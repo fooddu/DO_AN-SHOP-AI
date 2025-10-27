@@ -24,7 +24,7 @@ export default function RootLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Trang chủ',
+          title: 'Home',
           tabBarIcon: ({ color, focused }) => (
             <View style={{ alignItems: 'center' }}>
               <Ionicons
@@ -41,7 +41,7 @@ export default function RootLayout() {
       <Tabs.Screen
         name="favorites"
         options={{
-          title: 'Yêu thích',
+          title: 'Like',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'heart' : 'heart-outline'}
@@ -56,7 +56,7 @@ export default function RootLayout() {
       <Tabs.Screen
         name="cart"
         options={{
-          title: 'Giỏ hàng',
+          title: 'Shopping',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'cart' : 'cart-outline'}
