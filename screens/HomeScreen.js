@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, FlatList, Image, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, FlatList, Image,
+         TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [filtered, setFiltered] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
-  const API_URL = 'http://192.168.1.28:5000/api/products'; // ⚠️ đổi IP cho phù hợp
+  const API_URL = 'http://192.168.1.28:5000/api/products'; 
 
   useEffect(() => {
     fetchProducts();
@@ -34,26 +36,41 @@ export default function HomeScreen() {
     setFiltered(filteredData);
   };
 
+  const handleCategorySelect = (cat) => {
+    setSelectedCategory(cat);
+    if (cat === 'All') {
+      setFiltered(products);
+    } else {
+      const filteredData = products.filter((item) =>
+        item.name.toLowerCase().includes(cat.toLowerCase())
+      );
+      setFiltered(filteredData);
+    }
+  };
+
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card}>
+    <View style={styles.card}>
       <Image source={{ uri: item.image }} style={styles.image} />
-      <View style={styles.infoBox}>
-        <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.price}>${item.price}</Text>
-      </View>
-    </TouchableOpacity>
+      <Text style={styles.name}>{item.name}</Text>
+      <Text style={styles.price}>$ {item.price}</Text>
+    </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Thanh tìm kiếm */}
-      <View style={styles.header}>
-        <Text style={styles.title}>AL-Shop</Text>
-        <Ionicons name="cart-outline" size={24} color="#333" />
+      {/* Thanh tìm kiếm + Logo + Giỏ hàng */}
+      <View style={styles.headerRow}>
+        <Ionicons name="search-outline" size={22} color="#333" />
+        <Image
+          source={{ uri: 'https://i.imgur.com/v8jFhDk.png' }} // logo AI Shop
+          style={styles.logo}
+        />
+        <Ionicons name="cart-outline" size={22} color="#333" />
       </View>
 
+      {/* Tìm Kiếm Sản Phẩm */}
       <View style={styles.searchRow}>
-        <Ionicons name="search" size={20} color="#999" />
+        <Ionicons name="search" size={20} color="#666" />
         <TextInput
           placeholder="Tìm kiếm sản phẩm..."
           style={styles.searchInput}
@@ -62,17 +79,29 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Thanh danh mục */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categories}
-      >
-        {['T-Shirt', 'Shirt', 'Polo', 'Nike', 'Adidas', 'Gucci', 'LV', 'Chanel'].map((cat, index) => (
-          <TouchableOpacity key={index} style={styles.categoryButton}>
-            <Text style={styles.categoryText}>{cat}</Text>
-          </TouchableOpacity>
-        ))}
+      {/* Danh mục */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories}>
+        {['All', 'T-Shirt', 'Shirt', 'Polo', 'Nike', 'Louis Vuitton', 'Adidas', 'Gucci', 'Chanel'].map(
+          (cat, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.categoryButton,
+                selectedCategory === cat && styles.categorySelected,
+              ]}
+              onPress={() => handleCategorySelect(cat)}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === cat && styles.categoryTextSelected,
+                ]}
+              >
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          )
+        )}
       </ScrollView>
 
       {/* Danh sách sản phẩm */}
@@ -84,103 +113,85 @@ export default function HomeScreen() {
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Bottom Tab */}
+      <View style={styles.bottomTab}>
+        <TouchableOpacity style={styles.tabButton}>
+          <Ionicons name="home" size={24} color="#000" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabButton}>
+          <Ionicons name="heart-outline" size={24} color="#000" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabButton}>
+          <Ionicons name="notifications-outline" size={24} color="#000" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabButton}>
+          <Ionicons name="person-outline" size={24} color="#000" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-    paddingTop: 50,
-    paddingHorizontal: 15,
-  },
-  header: {
+  container: { flex: 1, backgroundColor: '#fff', paddingTop: 40, paddingHorizontal: 15 },
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111',
-    letterSpacing: 0.5,
-  },
+  logo: { width: 60, height: 60, resizeMode: 'contain' },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 30,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 25,
     paddingHorizontal: 15,
     paddingVertical: 8,
     marginBottom: 15,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
   },
-  searchInput: {
-    flex: 1,
-    marginHorizontal: 10,
-    fontSize: 15,
-    color: '#333',
-  },
-  categories: {
-    flexGrow: 0,
-    marginBottom: 10,
-  },
+  searchInput: { flex: 1, marginHorizontal: 10 },
+  categories: { marginBottom: 10 },
   categoryButton: {
-    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ccc',
     borderRadius: 20,
-    paddingHorizontal: 14,
+    paddingHorizontal: 15,
     paddingVertical: 6,
     marginRight: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
   },
-  categoryText: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
+  categorySelected: {
+    backgroundColor: '#000',
+    borderColor: '#000',
   },
-  list: {
-    paddingBottom: 100,
-  },
+  categoryText: { fontSize: 14, color: '#333' },
+  categoryTextSelected: { color: '#fff' },
+  list: { paddingBottom: 100 },
   card: {
     flex: 1,
     backgroundColor: '#fff',
     margin: 8,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 2 },
     padding: 10,
   },
-  image: {
-    width: 140,
-    height: 140,
-    borderRadius: 12,
-    resizeMode: 'cover',
+  image: { width: 120, height: 120, borderRadius: 10 },
+  name: { fontSize: 14, marginTop: 8 },
+  price: { fontWeight: 'bold', fontSize: 14, color: '#333' },
+  bottomTab: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    height: 60,
+    borderTopWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
-  infoBox: {
-    width: '100%',
-    alignItems: 'flex-start',
-    marginTop: 8,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#222',
-  },
-  price: {
-    fontWeight: '700',
-    fontSize: 15,
-    color: '#E67E22',
-    marginTop: 4,
-  },
+  tabButton: { alignItems: 'center' },
 });
