@@ -1,10 +1,86 @@
-import { Stack } from 'expo-router';
-
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { View } from 'react-native';
 
 export default function RootLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ title: 'Trang Chủ' }} />
-    </Stack>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: true,
+        tabBarActiveTintColor: '#E91E63',
+        tabBarInactiveTintColor: '#888',
+        tabBarStyle: {
+          backgroundColor: '#fff',
+          borderTopWidth: 0.5,
+          borderTopColor: '#ddd',
+          height: 65,
+          paddingBottom: 8,
+          paddingTop: 5,
+        },
+      }}
+    >
+      {/* Home */}
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Trang chủ',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ alignItems: 'center' }}>
+              <Ionicons
+                name={focused ? 'home' : 'home-outline'}
+                size={24}
+                color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+
+      {/* Favorites */}
+      <Tabs.Screen
+        name="favorites"
+        options={{
+          title: 'Yêu thích',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'heart' : 'heart-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      {/* Cart */}
+      <Tabs.Screen
+        name="cart"
+        options={{
+          title: 'Giỏ hàng',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'cart' : 'cart-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      {/* Profile */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Account',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'person' : 'person-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }
