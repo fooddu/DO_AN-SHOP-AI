@@ -14,18 +14,10 @@ function RootLayoutNav() {
   const segments = useSegments();
   const { isLoggedIn, loading } = useAuth();
 
-  // 2. LOADING: Lấy logic màn hình chờ từ nhánh 'HEAD'
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
 
   // 3. AUTH LOGIC: Lấy logic điều hướng tự động từ nhánh 'main'
   useEffect(() => {
-    // Không cần 'if (loading) return;' vì đã xử lý ở trên
+    if (loading) return;
     const inAuthGroup = segments[0] === '(auth)';
     
     if (!isLoggedIn && !inAuthGroup) {
@@ -35,22 +27,28 @@ function RootLayoutNav() {
       // Nếu đã đăng nhập VÀ đang ở trong nhóm (auth), đẩy về trang chủ
       router.replace('/');
     }
-  }, [isLoggedIn, segments]); // Bỏ 'loading' khỏi dependency array
+  }, [isLoggedIn, loading, segments]);
 
   // 4. STACK: Kết hợp các màn hình từ cả hai nhánh
   return (
-    <Stack>
-      {/* Các màn hình chính (từ 'HEAD' và 'main') */}
-      <Stack.Screen name="index" options={{ title: 'Trang Chủ' }} />
-      <Stack.Screen name="product/[id]" options={{ title: 'Chi Tiết Sản Phẩm' }} />
-      <Stack.Screen name="favorites" options={{ title: 'Sản Phẩm Yêu Thích' }} />
-      
-      {/* Nhóm (auth) để chứa các màn hình đăng nhập/đăng ký (từ 'main') */}
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      
-      {/* Màn hình 'login' từ 'HEAD' không cần ở đây
-          vì nó nên nằm trong file (auth)/login.tsx */}
-    </Stack>
+    loading ? (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    ) : (
+      <Stack>
+        {/* Các màn hình chính (từ 'HEAD' và 'main') */}
+        <Stack.Screen name="index" options={{ title: 'Trang Chủ' }} />
+        <Stack.Screen name="product/[id]" options={{ title: 'Chi Tiết Sản Phẩm' }} />
+        <Stack.Screen name="favorites" options={{ title: 'Sản Phẩm Yêu Thích' }} />
+        
+        {/* Nhóm (auth) để chứa các màn hình đăng nhập/đăng ký (từ 'main') */}
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        
+        {/* Màn hình 'login' từ 'HEAD' không cần ở đây
+            vì nó nên nằm trong file (auth)/login.tsx */}
+      </Stack>
+    )
   );
 }
 
