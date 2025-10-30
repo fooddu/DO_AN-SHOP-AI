@@ -75,6 +75,60 @@ const useAuthStore = create((set) => ({
       set({ error: error.message });
     }
   },
+
+  // Forgot Password
+  forgotPassword: async (email) => {
+    set({ loading: true, error: null });
+    try {
+      const data = await client.post('/users/forgot-password', { email });
+      set({ loading: false });
+      if (data.success) {
+        return { success: true };
+      } else {
+        set({ error: data.error || 'Error' });
+        return { success: false, error: data.error };
+      }
+    } catch (error) {
+      set({ error: error.message, loading: false });
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Verify OTP
+  verifyOtp: async (email, otp) => {
+    set({ loading: true, error: null });
+    try {
+      const data = await client.post('/users/verify-otp', { email, otp });
+      set({ loading: false });
+      if (data.success) {
+        return { success: true };
+      } else {
+        set({ error: data.error || 'Error' });
+        return { success: false, error: data.error };
+      }
+    } catch (error) {
+      set({ error: error.message, loading: false });
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Set New Password
+  setNewPassword: async (email, otp, newPassword) => {
+    set({ loading: true, error: null });
+    try {
+      const data = await client.post('/users/set-new-password', { email, otp, newPassword });
+      set({ loading: false });
+      if (data.success) {
+        return { success: true };
+      } else {
+        set({ error: data.error || 'Error' });
+        return { success: false, error: data.error };
+      }
+    } catch (error) {
+      set({ error: error.message, loading: false });
+      return { success: false, error: error.message };
+    }
+  },
 }));
 
 export default useAuthStore;
