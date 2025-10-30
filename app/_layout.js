@@ -1,8 +1,8 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { AuthProvider, useAuth } from '../contexts/AuthContext';
-import { FavoritesProvider } from '../contexts/FavoritesContext';
+import { AuthProvider, useAuth } from '../context/AuthContext';
+import { FavoritesProvider } from '../context/FavoritesContext';
 
 function RootLayoutNav() {
   const router = useRouter();
