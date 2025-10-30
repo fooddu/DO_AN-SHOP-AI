@@ -18,21 +18,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import client from '../api/client'; // API client của Quang Trung
-
-/**
- * HomeScreen (optimized by Quang Liem + Quang Trung API)
- * - Animated press feedback for cards & category buttons
- * - Clean layout: top bar (logo + cart), search row, featured categories, brand scroll, product grid
- * - API từ client.js (Quang Trung)
- * - Add to Cart saved in AsyncStorage (key: 'cart')
- *
- * Tính năng:
- * - Tìm kiếm sản phẩm theo tên
- * - Lọc sản phẩm theo category/brand
- * - Thêm vào giỏ hàng
- * - Hiệu ứng animation khi bấm
- */
+import client from '../api/client';
 
 const COLORS = {
   primary: '#E91E63', // pink
