@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function CartScreen() {
   const router = useRouter();
@@ -151,7 +152,14 @@ export default function CartScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>My cart</Text>
+        <View style={styles.backButton} />
       </View>
 
       {/* Danh sách sản phẩm */}
@@ -222,16 +230,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
     paddingTop: 50,
-    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000',
+    flex: 1,
+    textAlign: 'center',
   },
   cartList: {
     paddingHorizontal: 15,

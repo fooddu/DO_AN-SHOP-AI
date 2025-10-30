@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import client from '../api/client';
 
 export default function CheckoutScreen() {
@@ -93,11 +94,14 @@ export default function CheckoutScreen() {
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>←</Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Check out</Text>
-        <View style={{ width: 30 }} />
+        <View style={styles.backButton} />
       </View>
 
       {/* Shipping Address */}
@@ -198,13 +202,17 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   backButton: {
-    fontSize: 24,
-    color: '#000',
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000',
+    flex: 1,
+    textAlign: 'center',
   },
   section: {
     padding: 20,
