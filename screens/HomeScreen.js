@@ -1,58 +1,197 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  Image, 
-  TouchableOpacity,
+import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'expo-router';
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  FlatList,
+  Image,
+  Pressable,
+  SafeAreaView,
   ScrollView,
-  Alert
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import client from '../api/client';
+import { Ionicons } from '@expo/vector-icons';
+import client from '../api/client'; // API client của Quang Trung
+
+/**
+ * HomeScreen (optimized by Quang Liem + Quang Trung API)
+ * - Animated press feedback for cards & category buttons
+ * - Clean layout: top bar (logo + cart), search row, featured categories, brand scroll, product grid
+ * - API từ client.js (Quang Trung)
+ * - Add to Cart saved in AsyncStorage (key: 'cart')
+ *
+ * Tính năng:
+ * - Tìm kiếm sản phẩm theo tên
+ * - Lọc sản phẩm theo category/brand
+ * - Thêm vào giỏ hàng
+ * - Hiệu ứng animation khi bấm
+ */
+
+const COLORS = {
+  primary: '#E91E63', // pink
+  text: '#222',
+  muted: '#888',
+  bg: '#ffffff',
+  surface: '#F6F6F6',
+  shadow: '#000',
+};
+
+const CATEGORIES = {
+  features: ['T-Shirt', 'Shirt', 'Polo'],
+  brands: ['Nike', 'Louis Vuitton', 'Adidas', 'Gucci', 'Chanel'],
+};
+
+// Dữ liệu mẫu fallback khi không connect được API
+const sampleProducts = [
+  {
+    _id: 's1',
+    name: 'Polo Gucci',
+    price: 12,
+    image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=500&q=60',
+    category: 'Gucci',
+  },
+  {
+    _id: 's2',
+    name: 'T-Shirt Nike',
+    price: 25,
+    image: 'https://images.unsplash.com/photo-1520975912544-2d9f1f0b8a5b?auto=format&fit=crop&w=500&q=60',
+    category: 'Nike',
+  },
+  {
+    _id: 's3',
+    name: 'Shirt Louisvuitton',
+    price: 20,
+    image: 'https://images.unsplash.com/photo-1541099649105-9f6d3d6d6d1b?auto=format&fit=crop&w=500&q=60',
+    category: 'Louis Vuitton',
+  },
+  {
+    _id: 's4',
+    name: 'T-shirt Nike Black',
+    price: 50,
+    image: 'https://images.unsplash.com/photo-1519400190538-6fbcf7b4b9f4?auto=format&fit=crop&w=500&q=60',
+    category: 'Nike',
+  },
+];
+
+// Component nút bấm có animation
+function AnimatedButton({ children, style, onPress }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const onPressIn = () =>
+    Animated.timing(scale, { toValue: 0.96, duration: 100, useNativeDriver: true }).start();
+  const onPressOut = () =>
+    Animated.timing(scale, {
+      toValue: 1,
+      duration: 100,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      style={({ pressed }) => [{ opacity: pressed ? 0.95 : 1 }]}
+    >
+      <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>
+    </Pressable>
+  );
+}
+
+// Component card sản phẩm
+function ProductCard({ item, onAdd }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const pressIn = () => Animated.timing(scale, { toValue: 0.98, duration: 120, useNativeDriver: true }).start();
+  const pressOut = () => Animated.timing(scale, { toValue: 1, duration: 120, useNativeDriver: true }).start();
+
+  return (
+    <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
+      <Pressable
+        onPress={() => console.log('Open product', item._id || item.id)}
+        onPressIn={pressIn}
+        onPressOut={pressOut}
+        style={{ width: '100%', alignItems: 'center' }}
+      >
+        <Image source={{ uri: item.image }} style={styles.image} />
+      </Pressable>
+
+      <Text style={styles.name} numberOfLines={1}>
+        {item.name}
+      </Text>
+
+      <View style={styles.cardFooter}>
+        <Text style={styles.price}>$ {Number(item.price).toFixed(2)}</Text>
+        <TouchableOpacity style={styles.addBtn} onPress={() => onAdd(item)}>
+          <Ionicons name="cart" size={14} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
+  );
+}
 
 export default function HomeScreen() {
   const router = useRouter();
+
   const [products, setProducts] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('T-Shirt');
-  const [loading, setLoading] = useState(true);
+  const [filtered, setFiltered] = useState([]);
+  const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState('Tất cả');
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState(null);
 
-  const categories = ['T-Shirt', 'Short', 'Pant', 'Polo', 'Jean'];
-
-  // Lấy danh sách sản phẩm từ API
   useEffect(() => {
-    fetchProducts();
+    loadProducts();
   }, []);
 
-  const fetchProducts = async () => {
+  // Lấy danh sách sản phẩm từ API (dùng client.js của Quang Trung)
+  const loadProducts = async () => {
+    setLoading(true);
+    setStatus(null);
     try {
       const response = await client.get('/products');
-      setProducts(response.data || []);
+      // client.js đã parse response.data rồi
+      const list = Array.isArray(response) ? response : response?.data || [];
+      if (list.length) {
+        setProducts(list);
+        setFiltered(list);
+      } else {
+        // Nếu server trả về rỗng, dùng dữ liệu mẫu
+        setProducts(sampleProducts);
+        setFiltered(sampleProducts);
+        setStatus('Server trả về rỗng — hiển thị mẫu');
+      }
+    } catch (err) {
+      console.warn('Lỗi kết nối API:', err);
+      // Nếu không kết nối được, dùng dữ liệu mẫu
+      setProducts(sampleProducts);
+      setFiltered(sampleProducts);
+      setStatus('Không kết nối tới server — hiển thị mẫu');
+    } finally {
       setLoading(false);
-    } catch (error) {
-      console.error('Lỗi lấy sản phẩm:', error);
-      setLoading(false);
-      Alert.alert('Lỗi', 'Không thể lấy danh sách sản phẩm');
     }
   };
 
-  // Thêm sản phẩm vào giỏ hàng
+  // Thêm vào giỏ hàng (lưu vào AsyncStorage với key 'cart')
   const addToCart = async (product) => {
     try {
-      // Lấy giỏ hàng hiện tại
-      const existingCart = await AsyncStorage.getItem('cart');
-      let cart = existingCart ? JSON.parse(existingCart) : [];
-
-      // Kiểm tra sản phẩm đã có trong giỏ chưa
-      const index = cart.findIndex(item => item.productId === product._id);
-
-      if (index !== -1) {
-        // Nếu đã có, tăng số lượng
-        cart[index].quantity += 1;
+      const raw = await AsyncStorage.getItem('cart');
+      const cart = raw ? JSON.parse(raw) : [];
+      
+      // Tìm sản phẩm trong giỏ
+      const idx = cart.findIndex((it) => it.productId === product._id);
+      
+      if (idx >= 0) {
+        // Đã có -> tăng số lượng
+        cart[idx].quantity = (cart[idx].quantity || 1) + 1;
       } else {
-        // Nếu chưa có, thêm mới
+        // Chưa có -> thêm mới
         cart.push({
           productId: product._id,
           name: product.name,
@@ -61,195 +200,174 @@ export default function HomeScreen() {
           quantity: 1
         });
       }
-
-      // Lưu lại vào Local Storage
+      
       await AsyncStorage.setItem('cart', JSON.stringify(cart));
-      Alert.alert('Thành công', 'Đã thêm vào giỏ hàng!');
-    } catch (error) {
-      console.error('Lỗi thêm vào giỏ:', error);
-      Alert.alert('Lỗi', 'Không thể thêm vào giỏ hàng');
+      Alert.alert('Đã thêm', `${product.name} đã được thêm vào giỏ hàng.`);
+    } catch (e) {
+      console.error('Lỗi thêm vào giỏ:', e);
+      Alert.alert('Lỗi', 'Thêm vào giỏ thất bại');
     }
   };
 
-  // Hiển thị 1 sản phẩm
-  const renderProduct = ({ item }) => (
-    <View style={styles.productCard}>
-      <Image 
-        source={{ uri: item.image }} 
-        style={styles.productImage}
-        resizeMode="cover"
-      />
-      <Text style={styles.productName} numberOfLines={1}>
-        {item.name}
-      </Text>
-      <Text style={styles.productPrice}>
-        $ {item.price.toFixed(2)}
-      </Text>
-      <TouchableOpacity 
-        style={styles.addButton}
-        onPress={() => addToCart(item)}
-      >
-        <Text style={styles.addButtonText}>Add to cart</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  // Tìm kiếm sản phẩm theo tên
+  const onSearch = (text) => {
+    setSearch(text);
+    const q = text.trim().toLowerCase();
+    if (!q) {
+      setFiltered(products);
+      return;
+    }
+    setFiltered(products.filter((p) => (p.name || '').toLowerCase().includes(q)));
+  };
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <Text>Đang tải...</Text>
-      </View>
-    );
-  }
+  // Lọc sản phẩm theo category/brand
+  const onCategory = (cat) => {
+    setActiveCategory(cat);
+    if (cat === 'Tất cả') {
+      setFiltered(products);
+      return;
+    }
+    const low = cat.toLowerCase();
+    setFiltered(products.filter((p) => (p.category || '').toLowerCase().includes(low)));
+  };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>WELCOME</Text>
-        <TouchableOpacity 
-          style={styles.cartButton}
-          onPress={() => router.push('/cart')}
-        >
-          <Text style={styles.cartIcon}>🛒</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Categories */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
-      >
-        {categories.map((cat) => (
-          <TouchableOpacity
-            key={cat}
-            style={[
-              styles.categoryButton,
-              selectedCategory === cat && styles.categoryButtonActive
-            ]}
-            onPress={() => setSelectedCategory(cat)}
-          >
-            <Text style={[
-              styles.categoryText,
-              selectedCategory === cat && styles.categoryTextActive
-            ]}>
-              {cat}
-            </Text>
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        {/* TopBar: search icon + logo + cart */}
+        <View style={styles.topBar}>
+          <Ionicons name="search-outline" size={22} color={COLORS.text} />
+          <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartBtn}>
+            <Ionicons name="cart-outline" size={22} color={COLORS.text} />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+        </View>
 
-      {/* Danh sách sản phẩm */}
-      <FlatList
-        data={products}
-        renderItem={renderProduct}
-        keyExtractor={(item) => item._id}
-        numColumns={2}
-        contentContainerStyle={styles.productList}
-        columnWrapperStyle={styles.row}
-      />
-    </View>
+        {/* Search */}
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={18} color={COLORS.muted} />
+          <TextInput
+            placeholder="Tìm kiếm sản phẩm..."
+            placeholderTextColor="#999"
+            style={styles.searchInput}
+            value={search}
+            onChangeText={onSearch}
+          />
+        </View>
+
+        {/* Featured categories */}
+        <View style={styles.featureRow}>
+          <AnimatedButton
+            style={[styles.featureBtn, activeCategory === 'Tất cả' && styles.featureActive]}
+            onPress={() => onCategory('Tất cả')}
+          >
+            <Text style={[styles.featureText, activeCategory === 'Tất cả' && styles.featureTextActive]}>Tất cả</Text>
+          </AnimatedButton>
+
+          {CATEGORIES.features.map((f) => {
+            const isActive = activeCategory === f;
+            return (
+              <AnimatedButton
+                key={f}
+                style={[styles.featureBtn, isActive && styles.featureActive]}
+                onPress={() => onCategory(f)}
+              >
+                <Text style={[styles.featureText, isActive && styles.featureTextActive]}>{f}</Text>
+              </AnimatedButton>
+            );
+          })}
+        </View>
+
+        {/* Brands scroll */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.brandScroll}>
+          {CATEGORIES.brands.map((b) => (
+            <TouchableOpacity key={b} style={styles.brandItem} onPress={() => onCategory(b)}>
+              <Text style={styles.brandText}>{b}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Status message */}
+        {loading ? (
+          <View style={{ paddingVertical: 30 }}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : status ? (
+          <Text style={styles.statusText}>{status}</Text>
+        ) : null}
+
+        {/* Grid sản phẩm */}
+        <FlatList
+          data={filtered}
+          renderItem={({ item }) => <ProductCard item={item} onAdd={addToCart} />}
+          keyExtractor={(it) => it._id || it.id}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrap}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
+/* Styles */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFF',
-  },
-  header: {
+  safe: { flex: 1, backgroundColor: COLORS.bg },
+  container: { flex: 1, paddingTop: 12, paddingHorizontal: 16 },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  logo: { width: 72, height: 72 },
+  cartBtn: { padding: 6, borderRadius: 20 },
+
+  searchBox: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 50,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    flex: 1,
-    textAlign: 'center',
-  },
-  cartButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartIcon: {
-    fontSize: 24,
-  },
-  categoriesContainer: {
-    paddingHorizontal: 10,
+    backgroundColor: COLORS.surface,
+    borderRadius: 22,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     marginBottom: 10,
   },
-  categoryButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginHorizontal: 5,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
-  },
-  categoryButtonActive: {
-    backgroundColor: '#000',
-  },
-  categoryText: {
-    fontSize: 14,
-    color: '#808080',
-  },
-  categoryTextActive: {
-    color: '#FFF',
-    fontWeight: 'bold',
-  },
-  productList: {
-    paddingHorizontal: 10,
-  },
-  row: {
-    justifyContent: 'space-between',
-  },
-  productCard: {
-    width: '48%',
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    marginBottom: 15,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  productImage: {
-    width: '100%',
-    height: 150,
-    borderRadius: 10,
-    backgroundColor: '#F5F5F5',
-  },
-  productName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#000',
-    marginTop: 10,
-  },
-  productPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    marginVertical: 5,
-  },
-  addButton: {
-    backgroundColor: '#000',
-    paddingVertical: 8,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  addButtonText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-});
+  searchInput: { marginLeft: 8, flex: 1, fontSize: 15, color: COLORS.text },
 
+  featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, flexWrap: 'nowrap' },
+  featureBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    marginRight: 8,
+    backgroundColor: '#fff',
+  },
+  featureActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  featureText: { color: COLORS.text, fontSize: 13 },
+  featureTextActive: { color: '#fff', fontWeight: '700' },
+
+  brandScroll: { marginBottom: 8 },
+  brandItem: { marginRight: 12, backgroundColor: '#F3F3F3', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 18 },
+  brandText: { color: COLORS.muted, textTransform: 'capitalize', fontSize: 13 },
+
+  statusText: { color: '#e74c3c', marginBottom: 6, textAlign: 'center' },
+
+  list: { paddingBottom: 120, paddingTop: 6 },
+  columnWrap: { justifyContent: 'space-between' },
+  card: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 18,
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  image: { width: 140, height: 140, borderRadius: 10, marginBottom: 8 },
+  name: { fontSize: 14, color: COLORS.text, textAlign: 'center' },
+  cardFooter: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+  price: { color: COLORS.text, fontWeight: '700' },
+  addBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+});

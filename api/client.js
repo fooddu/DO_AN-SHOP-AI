@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// thay ip trc khi chạy
-const API_URL = 'http://localhost:5000/api'
+// Đổi IP khi chạy trên Simulator/Điện thoại thật
+const API_URL = 'http://192.168.1.19:5000/api'
 
 const client = axios.create({
   baseURL: API_URL,
