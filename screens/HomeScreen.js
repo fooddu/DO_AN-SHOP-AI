@@ -44,40 +44,66 @@ const COLORS = {
 };
 
 const CATEGORIES = {
-  features: ['T-Shirt', 'Shirt', 'Polo'],
-  brands: ['Nike', 'Louis Vuitton', 'Adidas', 'Gucci', 'Chanel'],
+  features: ['T-Shirt', 'Polo', 'Short', 'Pant', 'Jean'],
+  brands: [], // Tạm thời bỏ brands vì chưa có data
 };
 
-// Dữ liệu mẫu fallback khi không connect được API
+// Dữ liệu mẫu fallback khi không connect được API (từ seed-products.js)
 const sampleProducts = [
   {
     _id: 's1',
-    name: 'Polo Gucci',
-    price: 12,
-    image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=500&q=60',
-    category: 'Gucci',
+    name: 'POLK DRESS',
+    description: 'Áo thun họa tiết chấm bi',
+    price: 75.00,
+    category: 'T-Shirt',
+    image: 'https://product.hstatic.net/200000690725/product/1_92c3e628087d4bdaa9bc1ed9b1fb1f5c_master.jpg',
+    stock: 50
   },
   {
     _id: 's2',
-    name: 'T-Shirt Nike',
-    price: 25,
-    image: 'https://images.unsplash.com/photo-1520975912544-2d9f1f0b8a5b?auto=format&fit=crop&w=500&q=60',
-    category: 'Nike',
+    name: 'Basic Black T-Shirt',
+    description: 'Áo thun đen basic',
+    price: 35.00,
+    category: 'T-Shirt',
+    image: 'https://product.hstatic.net/200000690725/product/50bls_2_5bf9ccfd99ad4b5e858666f8c1b77a5e_master.jpg',
+    stock: 100
   },
   {
     _id: 's3',
-    name: 'Shirt Louisvuitton',
-    price: 20,
-    image: 'https://images.unsplash.com/photo-1541099649105-9f6d3d6d6d1b?auto=format&fit=crop&w=500&q=60',
-    category: 'Louis Vuitton',
+    name: 'White Plain T-Shirt',
+    description: 'Áo thun trắng trơn',
+    price: 33.00,
+    category: 'T-Shirt',
+    image: 'https://product.hstatic.net/200000690725/product/50wtb_2_8e0e91d5c8bf49f5b29a5a61968bf1e8_master.jpg',
+    stock: 80
   },
   {
     _id: 's4',
-    name: 'T-shirt Nike Black',
-    price: 50,
-    image: 'https://images.unsplash.com/photo-1519400190538-6fbcf7b4b9f4?auto=format&fit=crop&w=500&q=60',
-    category: 'Nike',
+    name: 'POLK DRESS Beige',
+    description: 'Áo thun họa tiết màu be',
+    price: 28.00,
+    category: 'T-Shirt',
+    image: 'https://product.hstatic.net/200000690725/product/2_7a6f3e2c84794e5b8b2c2c4e6b0d8c8f_master.jpg',
+    stock: 60
   },
+  {
+    _id: 's5',
+    name: 'Black Polo Shirt',
+    description: 'Áo polo đen cao cấp',
+    price: 55.00,
+    category: 'Polo',
+    image: 'https://product.hstatic.net/200000690725/product/black-polo_master.jpg',
+    stock: 40
+  },
+  {
+    _id: 's6',
+    name: 'Navy Short',
+    description: 'Quần short xanh navy',
+    price: 45.00,
+    category: 'Short',
+    image: 'https://product.hstatic.net/200000690725/product/navy-short_master.jpg',
+    stock: 55
+  }
 ];
 
 // Component nút bấm có animation
@@ -278,14 +304,16 @@ export default function HomeScreen() {
           })}
         </View>
 
-        {/* Brands scroll */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.brandScroll}>
-          {CATEGORIES.brands.map((b) => (
-            <TouchableOpacity key={b} style={styles.brandItem} onPress={() => onCategory(b)}>
-              <Text style={styles.brandText}>{b}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {/* Brands scroll - Ẩn vì chưa có data */}
+        {CATEGORIES.brands.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.brandScroll}>
+            {CATEGORIES.brands.map((b) => (
+              <TouchableOpacity key={b} style={styles.brandItem} onPress={() => onCategory(b)}>
+                <Text style={styles.brandText}>{b}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
 
         {/* Status message */}
         {loading ? (
