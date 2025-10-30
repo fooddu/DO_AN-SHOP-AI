@@ -1,57 +1,68 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import api from '../api/axiosConfig'; // Import file bạn vừa tạo
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
+export const AuthProvider = ({ children }) => {
+    const [user, setUser] = useState(null);
+    const [token, setToken] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
+    // Khi app mở, kiểm tra xem có token/user đã lưu không
+    useEffect(() => {
+        const loadStorageData = async () => {
+            try {
+                const storedToken = await AsyncStorage.getItem('userToken');
+                const storedUser = await AsyncStorage.getItem('userData');
+                
+                if (storedToken && storedUser) {
+                    setToken(storedToken);
+                    setUser(JSON.parse(storedUser));
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false); // Dừng loading
+            }
+        };
+        loadStorageData();
+    }, []);
 
-  const checkAuthStatus = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      setIsLoggedIn(!!token);
-    } catch (error) {
-      console.error('Error checking auth:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Hàm đăng nhập
+    const login = async (email, password) => {
+        try {
+            // Gọi API /login
+            const response = await api.post('/users/login', { email, password });
+            const { data, token } = response.data; // Lấy data (user) và token từ response
+            
+            setUser(data);
+            setToken(token);
+            
+            // Lưu token và user vào bộ nhớ
+            await AsyncStorage.setItem('userData', JSON.stringify(data));
+            await AsyncStorage.setItem('userToken', token);
+            return true;
+        } catch (error) {
+            console.error("Lỗi đăng nhập:", error.response?.data?.message || error.message);
+            return false;
+        }
+    };
 
-  const login = async (token) => {
-    try {
-      await AsyncStorage.setItem('token', token);
-      setIsLoggedIn(true);
-    } catch (error) {
-      console.error('Error saving token:', error);
-    }
-  };
+    // Hàm đăng xuất
+    const logout = async () => {
+        setUser(null);
+        setToken(null);
+        await AsyncStorage.removeItem('userData');
+        await AsyncStorage.removeItem('userToken');
+    };
 
-  const logout = async () => {
-    try {
-      await AsyncStorage.removeItem('token');
-      setIsLoggedIn(false);
-    } catch (error) {
-      console.error('Error removing token:', error);
-    }
-  };
-
-  return (
-    <AuthContext.Provider value={{ isLoggedIn, loading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
+    return (
+        <AuthContext.Provider value={{ user, token, login, logout, loading, isLoggedIn: !!user && !!token }}>
+            {children}
+        </AuthContext.Provider>
+    );
 };
 
+// Hook (móc) để dễ dàng sử dụng context
+export const useAuth = () => useContext(AuthContext);

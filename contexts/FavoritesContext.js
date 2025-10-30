@@ -1,7 +1,7 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useAuth } from './AuthContext'; // Import AuthContext
-import api from '../api/axiosConfig'; // Import file config axios
 import { router } from 'expo-router'; // Dùng để điều hướng
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import api from '../api/axiosConfig'; // Import file config axios
+import { useAuth } from '../contexts/AuthContext'; // Import AuthContext (fixed import)
 
 const FavoritesContext = createContext();
 
@@ -31,7 +31,7 @@ export const FavoritesProvider = ({ children }) => {
         // 1. Kiểm tra xem user đã đăng nhập chưa
         if (!user) {
             alert('Bạn cần đăng nhập để yêu thích sản phẩm');
-            router.push('/login'); // Điều hướng đến trang login
+            router.push('/(auth)/login'); // Điều hướng đến trang login
             return;
         }
 
