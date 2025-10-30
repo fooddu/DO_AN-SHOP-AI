@@ -21,7 +21,7 @@ function RootLayoutNav() {
     );
   }
 
-  // 2. Giữ lại Logic Xác thực (Auth)
+  // 2. Giữ lại Logic Xác thực (Auth) đầy đủ
   useEffect(() => {
     const inAuthGroup = segments[0] === '(auth)';
     
@@ -37,16 +37,16 @@ function RootLayoutNav() {
   // 3. Kết hợp TẤT CẢ các màn hình từ cả hai nhánh
   return (
     <Stack>
-      {/* Các màn hình từ nhánh 'main' và 'HEAD' */}
+      {/* Các màn hình từ nhánh 'main' (hoặc chung) */}
       <Stack.Screen name="index" options={{ title: 'Trang Chủ' }} />
       <Stack.Screen name="product/[id]" options={{ title: 'Chi Tiết Sản Phẩm' }} />
       <Stack.Screen name="favorites" options={{ title: 'Sản Phẩm Yêu Thích' }} />
       
       {/* Các màn hình từ nhánh 'HEAD' (Giỏ hàng) */}
-      <Stack.Screen name="cart" options={{ title: 'Giỏ hàng' }} />
-      <Stack.Screen name="checkout" options={{ title: 'Thanh toán' }} />
-      <Stack.Screen name="order-success" options={{ title: 'Thành công' }} />
-      <Stack.Screen name="orders" options={{ title: 'Đơn hàng' }} />
+      <Stack.Screen name="cart" options={{ title: 'Giỏ hàng', headerShown: false }} />
+      <Stack.Screen name="checkout" options={{ title: 'Thanh toán', headerShown: false }} />
+      <Stack.Screen name="order-success" options={{ title: 'Thành công', headerShown: false }} />
+      <Stack.Screen name="orders" options={{ title: 'Đơn hàng', headerShown: false }} />
 
       {/* Nhóm (auth) từ nhánh 'main' */}
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
