@@ -31,7 +31,7 @@ export default function OrderSuccessScreen() {
 
       <TouchableOpacity 
         style={styles.homeButton}
-        onPress={() => router.push('/')}
+        onPress={() => router.replace('/')}
       >
         <Text style={styles.homeButtonText}>BACK TO HOME</Text>
       </TouchableOpacity>

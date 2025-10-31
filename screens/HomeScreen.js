@@ -1,12 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
   ActivityIndicator,
-  Animated,
-  Easing,
   FlatList,
   Image,
-  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -92,47 +89,16 @@ const sampleProducts = [
   }
 ];
 
-// Component nút bấm có animation
-function AnimatedButton({ children, style, onPress }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const onPressIn = () =>
-    Animated.timing(scale, { toValue: 0.96, duration: 100, useNativeDriver: true }).start();
-  const onPressOut = () =>
-    Animated.timing(scale, {
-      toValue: 1,
-      duration: 100,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
-
-  return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
-      style={({ pressed }) => [{ opacity: pressed ? 0.95 : 1 }]}
-    >
-      <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>
-    </Pressable>
-  );
-}
-
 // Component card sản phẩm
-function ProductCard({ item, onAdd }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const pressIn = () => Animated.timing(scale, { toValue: 0.98, duration: 120, useNativeDriver: true }).start();
-  const pressOut = () => Animated.timing(scale, { toValue: 1, duration: 120, useNativeDriver: true }).start();
-
+function ProductCard({ item, onAdd, router }) {
   return (
-    <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
-      <Pressable
-        onPress={() => console.log('Open product', item._id || item.id)}
-        onPressIn={pressIn}
-        onPressOut={pressOut}
+    <View style={styles.card}>
+      <TouchableOpacity
+        onPress={() => router.push(`/product/${item._id || item.id}`)}
         style={{ width: '100%', alignItems: 'center' }}
       >
         <Image source={{ uri: item.image }} style={styles.image} />
-      </Pressable>
+      </TouchableOpacity>
 
       <Text style={styles.name} numberOfLines={1}>
         {item.name}
@@ -144,7 +110,7 @@ function ProductCard({ item, onAdd }) {
           <Ionicons name="cart" size={14} color="#fff" />
         </TouchableOpacity>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -157,6 +123,7 @@ export default function HomeScreen() {
   const [activeCategory, setActiveCategory] = useState('Tất cả');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
+  const [activeTab, setActiveTab] = useState('Home');
 
   useEffect(() => {
     loadProducts();
@@ -246,9 +213,9 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        {/* TopBar: search icon + logo + cart */}
+        {/* TopBar: logo + cart */}
         <View style={styles.topBar}>
-          <Ionicons name="search-outline" size={22} color={COLORS.text} />
+          <View style={styles.topBarLeft} />
           <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartBtn}>
             <Ionicons name="cart-outline" size={22} color={COLORS.text} />
@@ -269,23 +236,23 @@ export default function HomeScreen() {
 
         {/* Featured categories */}
         <View style={styles.featureRow}>
-          <AnimatedButton
+          <TouchableOpacity
             style={[styles.featureBtn, activeCategory === 'Tất cả' && styles.featureActive]}
             onPress={() => onCategory('Tất cả')}
           >
             <Text style={[styles.featureText, activeCategory === 'Tất cả' && styles.featureTextActive]}>Tất cả</Text>
-          </AnimatedButton>
+          </TouchableOpacity>
 
           {CATEGORIES.features.map((f) => {
             const isActive = activeCategory === f;
             return (
-              <AnimatedButton
+              <TouchableOpacity
                 key={f}
                 style={[styles.featureBtn, isActive && styles.featureActive]}
                 onPress={() => onCategory(f)}
               >
                 <Text style={[styles.featureText, isActive && styles.featureTextActive]}>{f}</Text>
-              </AnimatedButton>
+              </TouchableOpacity>
             );
           })}
         </View>
@@ -313,13 +280,80 @@ export default function HomeScreen() {
         {/* Grid sản phẩm */}
         <FlatList
           data={filtered}
-          renderItem={({ item }) => <ProductCard item={item} onAdd={addToCart} />}
+          renderItem={({ item }) => <ProductCard item={item} onAdd={addToCart} router={router} />}
           keyExtractor={(it) => it._id || it.id}
           numColumns={2}
           columnWrapperStyle={styles.columnWrap}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         />
+
+        {/* Bottom Navigation Bar */}
+        <View style={styles.bottomBar}>
+          <TouchableOpacity 
+            style={styles.bottomTab}
+            onPress={() => {
+              setActiveTab('Home');
+            }}
+          >
+            <Ionicons 
+              name="home" 
+              size={24} 
+              color={activeTab === 'Home' ? COLORS.primary : COLORS.muted} 
+            />
+            <Text style={[styles.bottomTabText, activeTab === 'Home' && styles.bottomTabActive]}>
+              Home
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.bottomTab}
+            onPress={() => {
+              setActiveTab('Like');
+            }}
+          >
+            <Ionicons 
+              name="heart-outline" 
+              size={24} 
+              color={activeTab === 'Like' ? COLORS.primary : COLORS.muted} 
+            />
+            <Text style={[styles.bottomTabText, activeTab === 'Like' && styles.bottomTabActive]}>
+              Like
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.bottomTab}
+            onPress={() => {
+              setActiveTab('Notification');
+            }}
+          >
+            <Ionicons 
+              name="notifications-outline" 
+              size={24} 
+              color={activeTab === 'Notification' ? COLORS.primary : COLORS.muted} 
+            />
+            <Text style={[styles.bottomTabText, activeTab === 'Notification' && styles.bottomTabActive]}>
+            Notification
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.bottomTab}
+            onPress={() => {
+              setActiveTab('Account');
+            }}
+          >
+            <Ionicons 
+              name="person-outline" 
+              size={24} 
+              color={activeTab === 'Account' ? COLORS.primary : COLORS.muted} 
+            />
+            <Text style={[styles.bottomTabText, activeTab === 'Account' && styles.bottomTabActive]}>
+              Account
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -330,6 +364,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.bg },
   container: { flex: 1, paddingTop: 12, paddingHorizontal: 16 },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  topBarLeft: { width: 22 },
   logo: { width: 72, height: 72 },
   cartBtn: { padding: 6, borderRadius: 20 },
 
@@ -364,7 +399,7 @@ const styles = StyleSheet.create({
 
   statusText: { color: '#e74c3c', marginBottom: 6, textAlign: 'center' },
 
-  list: { paddingBottom: 120, paddingTop: 6 },
+  list: { paddingBottom: 80, paddingTop: 6 },
   columnWrap: { justifyContent: 'space-between' },
   card: {
     width: '48%',
@@ -384,4 +419,39 @@ const styles = StyleSheet.create({
   cardFooter: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
   price: { color: COLORS.text, fontWeight: '700' },
   addBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#E8E8E8',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  bottomTab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  bottomTabText: {
+    fontSize: 11,
+    color: COLORS.muted,
+    marginTop: 4,
+  },
+  bottomTabActive: {
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
 });

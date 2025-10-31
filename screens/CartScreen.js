@@ -32,7 +32,7 @@ export default function CartScreen() {
         setCart(JSON.parse(data));
       }
     } catch (error) {
-      console.error('Lỗi lấy giỏ hàng:', error);
+      console.error('Error loading cart:', error);
     }
   };
 
@@ -42,7 +42,7 @@ export default function CartScreen() {
       await AsyncStorage.setItem('cart', JSON.stringify(newCart));
       setCart(newCart);
     } catch (error) {
-      console.error('Lỗi lưu giỏ hàng:', error);
+      console.error('Error saving cart:', error);
     }
   };
 
@@ -71,12 +71,12 @@ export default function CartScreen() {
   // Xóa sản phẩm
   const removeProduct = (productId) => {
     Alert.alert(
-      'Xác nhận',
-      'Bạn muốn xóa sản phẩm này?',
+      'Confirm',
+      'Do you want to remove this product?',
       [
-        { text: 'Hủy', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Xóa',
+          text: 'Remove',
           onPress: () => {
             const newCart = cart.filter(item => item.productId !== productId);
             saveCart(newCart);
@@ -101,7 +101,7 @@ export default function CartScreen() {
   // Chuyển sang màn hình thanh toán
   const goToCheckout = () => {
     if (cart.length === 0) {
-      Alert.alert('Thông báo', 'Giỏ hàng của bạn đang trống!');
+      Alert.alert('Notice', 'Your cart is empty!');
       return;
     }
     router.push('/checkout');
@@ -165,7 +165,7 @@ export default function CartScreen() {
       {/* Danh sách sản phẩm */}
       {cart.length === 0 ? (
         <View style={styles.emptyCart}>
-          <Text style={styles.emptyText}>Giỏ hàng trống</Text>
+          <Text style={styles.emptyText}>Cart is empty</Text>
         </View>
       ) : (
         <>
