@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   SafeAreaView,
@@ -11,10 +14,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Alert,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
 import client from '../api/client';
 
 const COLORS = {
@@ -90,15 +90,12 @@ const sampleProducts = [
 ];
 
 // Component card sản phẩm
-function ProductCard({ item, onAdd, router }) {
+function ProductCard({ item, onAdd }) {
   return (
     <View style={styles.card}>
-      <TouchableOpacity
-        onPress={() => router.push(`/product/${item._id || item.id}`)}
-        style={{ width: '100%', alignItems: 'center' }}
-      >
+      <View style={{ width: '100%', alignItems: 'center' }}>
         <Image source={{ uri: item.image }} style={styles.image} />
-      </TouchableOpacity>
+      </View>
 
       <Text style={styles.name} numberOfLines={1}>
         {item.name}
@@ -280,7 +277,7 @@ export default function HomeScreen() {
         {/* Grid sản phẩm */}
         <FlatList
           data={filtered}
-          renderItem={({ item }) => <ProductCard item={item} onAdd={addToCart} router={router} />}
+          renderItem={({ item }) => <ProductCard item={item} onAdd={addToCart} />}
           keyExtractor={(it) => it._id || it.id}
           numColumns={2}
           columnWrapperStyle={styles.columnWrap}

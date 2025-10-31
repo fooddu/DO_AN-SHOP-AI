@@ -33,7 +33,6 @@ function RootLayoutNav() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="product/[id]" options={{ title: 'Chi Tiết Sản Phẩm' }} />
       <Stack.Screen name="cart" options={{ title: 'Giỏ hàng', headerShown: false }} />
       <Stack.Screen name="checkout" options={{ title: 'Thanh toán', headerShown: false }} />
       <Stack.Screen name="order-success" options={{ title: 'Thành công', headerShown: false }} />
