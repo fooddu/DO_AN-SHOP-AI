@@ -1,36 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
-import {
-  ActivityIndicator,
-  Animated,
-  Easing,
-  FlatList,
-  Image,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  Alert,
-} from 'react-native';
+import {  ActivityIndicator, Animated, Easing, FlatList, Image,
+  Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput,
+  TouchableOpacity,  View,  Alert,} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-
-/**
- * HomeScreen (optimized)
- * - Animated press feedback for cards & category buttons
- * - Clean layout: top bar (logo + cart), search row, featured categories, brand scroll, product grid
- * - API fallback to sampleProducts
- * - Add to Cart saved in AsyncStorage (key: 'CART')
- *
- * Actions:
- * - Change API_URL to your backend IPv4
- * - Ensure logo at ../assets/logo-Shop.png (or edit path)
- * - Ensure app/cart.js exists for router.push('/cart')
- */
 
 const COLORS = {
   primary: '#E91E63', // pink
