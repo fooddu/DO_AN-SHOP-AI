@@ -1,182 +1,271 @@
+// [File] app/(auth)/register.js
+
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text, TextInput, TouchableOpacity,
+  View
 } from 'react-native';
-import AuthCard from '../../components/AuthCard';
-import AuthTextInput from '../../components/AuthTextInput';
-import useAuthStore from '../../store/authStore';
+// Đảm bảo đường dẫn này đúng
+import { useAuth } from '../../context/AuthContext';
+
+const COLORS = {
+    primary: '#222', 
+    grey: '#888',
+    lightGrey: '#ddd',
+    text: '#222',
+    bg: '#fff', // Màu nền của Thẻ (Card)
+    surface: '#F6F6F6', // Màu nền xám của màn hình
+};
 
 export default function RegisterScreen() {
-  const router = useRouter();
-  const { register, loading } = useAuthStore();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-
-  const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      alert('Please fill in all information');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      alert('Confirm password does not match');
-      return;
-    }
-
-    const result = await register(name, email, password);
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     
-    if (result.success) {
-      alert('Registration successful!');
-      router.replace('/(auth)/login');
-    } else {
-      alert(result.error || 'Registration failed');
-    }
-  };
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const router = useRouter();
+    const { signUp } = useAuth(); 
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.logoContainer}>
-        <View style={styles.divider} />
-        <Image 
-          source={require('../../assets/logo.png')} 
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <View style={styles.divider} />
-      </View>
+    const handleRegister = async () => {
+        // ... (Logic handleRegister giữ nguyên)
+        if (!name || !email || !password || !confirmPassword) {
+            Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin.');
+            return;
+        }
+        if (password !== confirmPassword) {
+            Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp.');
+            return;
+        }
+        setIsSubmitting(true);
+        const result = await signUp(name, email, password); 
+        setIsSubmitting(false);
+        if (result.success) {
+            router.replace('/tabs'); 
+        } else {
+            Alert.alert('Đăng ký thất bại', result.error);
+        }
+    };
 
-      <Text style={styles.welcomeText}>WELCOME</Text>
+    return (
+        <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="dark-content" />
+            
+            <ScrollView 
+                contentContainerStyle={styles.container}
+                showsVerticalScrollIndicator={false}
+            >
+                
+                {/* 1. KHU VỰC LOGO (CĂN GIỮA - CÓ LỀ NGANG 30) */}
+                <View style={styles.logoArea}>
+                    <View style={styles.line} />
+                    <Image 
+                        source={require('../../assets/logo.png')} 
+                        style={styles.logo} 
+                        resizeMode="contain" 
+                    />
+                    <View style={styles.line} />
+                </View>
+                
+                {/* 2. CHỮ WELCOME (CĂN TRÁI - CÓ LỀ NGANG 30) */}
+                <Text style={styles.titleWelcomeOutside}>WELCOME</Text>
 
-      <View style={styles.cardWrapper}>
-        <AuthCard>
-          <AuthTextInput
-            label="Name"
-            value={name}
-            onChangeText={setName}
-          />
-          <AuthTextInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <AuthTextInput
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          <AuthTextInput
-            label="Confirm Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
-          <TouchableOpacity 
-            style={styles.signUpButton} 
-            onPress={handleRegister}
-            disabled={loading}
-          >
-            <Text style={styles.signUpText}>
-              {loading ? 'Signing up...' : 'SIGN UP'}
-            </Text>
-          </TouchableOpacity>
-          <View style={styles.signInContainer}>
-            <Text style={styles.signInText}>Already have account? </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-              <Text style={styles.signInLink}>SIGN IN</Text>
-            </TouchableOpacity>
-          </View>
-        </AuthCard>
-      </View>
-    </ScrollView>
-  );
+                {/* 3. THẺ (CARD) TRẮNG (SÁT LỀ TRÁI = 0) */}
+                <View style={styles.card}>
+                    
+                    <View style={styles.form}>
+                        {/* (Các input fields) */}
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>Name</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={name}
+                                onChangeText={setName}
+                                autoCapitalize="words"
+                            />
+                        </View>
+                        
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>Email</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                            />
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>Password</Text>
+                            <View style={styles.passwordWrapper}>
+                                <TextInput
+                                    style={styles.input}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    secureTextEntry={!showPassword}
+                                />
+                                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                    <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color={COLORS.grey} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                        
+                        <View style={[styles.inputContainer, { marginBottom: 0 }]}> 
+                            <Text style={styles.label}>Confirm Password</Text>
+                            <View style={styles.passwordWrapper}>
+                                <TextInput
+                                    style={styles.input}
+                                    value={confirmPassword}
+                                    onChangeText={setConfirmPassword}
+                                    secureTextEntry={!showConfirmPassword}
+                                />
+                                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                                    <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={22} color={COLORS.grey} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                    
+                    {/* Nút SIGN UP (bên trong thẻ) */}
+                    <TouchableOpacity 
+                        style={styles.button} 
+                        onPress={handleRegister} 
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.buttonText}>SIGN UP</Text>
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Link SIGN IN (bên trong thẻ) */}
+                    <TouchableOpacity onPress={() => router.push('/login')}>
+                        <Text style={styles.signInText}>
+                            Already have account? <Text style={styles.signInLink}>SIGN IN</Text>
+                        </Text>
+                    </TouchableOpacity>
+                    
+                </View> 
+                {/* (Kết thúc thẻ) */}
+                
+            </ScrollView>
+        </SafeAreaView>
+    );
 }
 
+// Styles (Đã sửa lại container)
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    paddingTop: 40,
-    paddingBottom: 40,
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 40,
-    marginBottom: 20,
-  },
-  logo: {
-    width: 90,
-    height: 90,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    marginHorizontal: 20,
-  },
-  welcomeText: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    fontFamily: 'serif',
-    color: '#333',
-    paddingHorizontal: 30,
-    marginBottom: 30,
-  },
-  cardWrapper: {
-    alignSelf: 'flex-start',
-  },
-  signUpButton: {
-    backgroundColor: '#333',
-    borderRadius: 8,
-    paddingVertical: 15,
-    marginTop: 10,
-    shadowColor: '#000',
-    marginHorizontal: 30,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  signUpText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  signInContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  signInText: {
-    color: '#999',
-    fontSize: 14,
-  },
-  signInLink: {
-    color: '#333',
-    fontSize: 14,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-  },
-});
+    safeArea: { 
+        flex: 1, 
+        backgroundColor: COLORS.surface, // Nền xám
+    },
+    // Container chính (không có lề ngang)
+    container: {
+        paddingVertical: 40,
+        backgroundColor: COLORS.surface,
+    },
+    
+    // 1. STYLE CHO KHU VỰC LOGO (CĂN GIỮA, CÓ LỀ)
+    logoArea: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
+        paddingHorizontal: 30, // ⬅️ LỀ CỦA GẠCH NGANG
+    },
+    line: {
+        flex: 1, 
+        height: 1,
+        backgroundColor: COLORS.lightGrey,
+    },
+    logo: {
+        width: 70,
+        height: 70,
+        marginHorizontal: 15,
+    },
+    
+    // 2. STYLE CHO CHỮ WELCOME (CĂN TRÁI, CÓ LỀ)
+    titleWelcomeOutside: {
+        fontSize: 32,
+        color: COLORS.text,
+        fontWeight: 'bold',
+        fontFamily: 'serif',
+        marginBottom: 20, 
+        textAlign: 'left',
+        paddingHorizontal: 30, // ⬅️ LỀ CỦA CHỮ
+    },
+    
+    // 3. STYLE CHO THẺ (SÁT LỀ TRÁI = 0)
+    card: {
+        backgroundColor: COLORS.bg, // Nền trắng
+        // (Xóa borderRadius và shadow)
+        paddingHorizontal: 30, // ⬅️ Lề BÊN TRONG thẻ
+        paddingTop: 25,     
+        paddingBottom: 25,
+        width: '100%',
+    },
+    
+    form: {
+        width: '100%',
+    },
+    inputContainer: {
+        marginBottom: 18, 
+    },
+    label: {
+        color: COLORS.grey,
+        fontSize: 16,
+        marginBottom: 5, 
+    },
+    input: {
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.lightGrey,
+        paddingVertical: 6, 
+        fontSize: 16,
+        color: COLORS.text,
+        flex: 1,
+    },
+    passwordWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.lightGrey,
+    },
+    
+    button: {
+        backgroundColor: COLORS.primary,
+        paddingVertical: 16, 
+        // (Xóa borderRadius)
+        alignItems: 'center',
+        marginTop: 25, 
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    signInText: {
+        textAlign: 'center',
+        color: COLORS.grey,
+        fontSize: 14,
+        marginTop: 20, 
+    },
+    signInLink: {
+        color: COLORS.text,
+        fontWeight: 'bold',
+    },
+
+  });

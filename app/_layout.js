@@ -1,51 +1,45 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { AuthProvider, useAuth } from '../context/AuthContext';
+// [File] app/_layout.js
 
-function RootLayoutNav() {
-  const router = useRouter();
-  const segments = useSegments();
-  const { isLoggedIn, loading } = useAuth();
-
-  ///// không đăng nhập - đăng ki đc , tạm thời bỏ để log vào trong app
-  
-  // useEffect(() => {
-  //   if (loading) return;
-    
-  //   const inAuthGroup = segments[0] === '(auth)';
-    
-  //   if (!isLoggedIn && !inAuthGroup) {
-  //     router.replace('/(auth)/login');
-  //   } else if (isLoggedIn && inAuthGroup) {
-  //     router.replace('/');
-  //   }
-  // }, [isLoggedIn, loading, segments, router]);
-
-  // if (loading) {
-  //   return (
-  //     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-  //       <ActivityIndicator size="large" color="#0000ff" />
-  //     </View>
-  //   );
-  // }
-
-  return (
-    <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="cart" options={{ title: 'Giỏ hàng', headerShown: false }} />
-      <Stack.Screen name="checkout" options={{ title: 'Thanh toán', headerShown: false }} />
-      <Stack.Screen name="order-success" options={{ title: 'Thành công', headerShown: false }} />
-      <Stack.Screen name="orders" options={{ title: 'Đơn hàng', headerShown: false }} />
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-    </Stack>
-  );
-}
+import { Stack } from 'expo-router';
+// (Đảm bảo đường dẫn này đúng)
+import { AuthProvider } from '../context/AuthContext';
 
 export default function RootLayout() {
   return (
+    // Bọc AuthProvider ở đây
     <AuthProvider>
-      <RootLayoutNav />
+      <Stack>
+        {/* Nhóm (auth) và (tabs) không có header riêng */}
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="tabs" options={{ headerShown: false }} />
+        
+        {/* File index (cổng chính) cũng không có header */}
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+
+        {/* Các trang con này SẼ CÓ HEADER (và nút back) */}
+        <Stack.Screen 
+          name="cart" 
+          options={{ 
+            title: 'Giỏ hàng', 
+            headerShown: true 
+          }} 
+        />
+        <Stack.Screen 
+          name="orders" 
+          options={{ 
+            title: 'Đơn hàng', 
+            headerShown: true 
+          }} 
+        />
+        
+        {/* Trang chi tiết sản phẩm (header: false vì nó có header tùy chỉnh) */}
+        <Stack.Screen 
+          name="products/[id]" 
+          options={{ 
+            headerShown: false 
+          }} 
+        />
+      </Stack>
     </AuthProvider>
   );
 }

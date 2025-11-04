@@ -15,7 +15,7 @@ import {
   View
 } from 'react-native';
 // Đảm bảo bạn đang import đúng file client (axiosConfig.js hoặc client.js)
-import client from '../api/axiosConfig';
+import client from '../../api/axiosConfig';
 
 const COLORS = {
   primary: '#E91E63', // pink
@@ -172,7 +172,7 @@ export default function HomeScreen() {
         <View style={styles.topBar}>
           {/* Sẽ thêm nút Like/Account ở đây */}
           <View style={styles.topBarLeft} /> 
-          <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartBtn}>
             <Ionicons name="cart-outline" size={22} color={COLORS.text} />
           </TouchableOpacity>
