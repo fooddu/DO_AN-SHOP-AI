@@ -1,5 +1,5 @@
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useState } from 'react';
 import api from '../api/axiosConfig'; // Import file bạn vừa tạo
 
 const AuthContext = createContext();
@@ -57,8 +57,10 @@ export const AuthProvider = ({ children }) => {
         await AsyncStorage.removeItem('userToken');
     };
 
+    const isLoggedIn = !!user;
+
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, loading, isLoggedIn: !!user && !!token }}>
+        <AuthContext.Provider value={{ user, token, login, logout, loading, isLoggedIn }}>
             {children}
         </AuthContext.Provider>
     );
