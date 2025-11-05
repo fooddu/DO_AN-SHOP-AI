@@ -9,44 +9,44 @@ import {
     Image,
     SafeAreaView,
     ScrollView,
-    StyleSheet,
+    StyleSheet, // <-- ĐÃ THÊM StyleSheeT ĐỂ KHẮC PHỤC LỖI
     Text,
     TouchableOpacity,
     View
 } from 'react-native';
-import client from '../../api/axiosConfig'; // Đảm bảo đường dẫn này đúng
+import client from '../../api/axiosConfig'; // API client
+import { useFavorites } from '../../context/FavoritesContext'; // Hook từ Context
 
-// Sử dụng lại bảng màu của bạn
 const COLORS = {
-  primary: '#E91E63', // pink
-  text: '#222',
-  muted: '#888',
-  bg: '#ffffff',
-  surface: '#F6F6F6',
-  shadow: '#000',
+    primary: '#E91E63', // pink
+    text: '#222',
+    muted: '#888',
+    bg: '#ffffff',
+    surface: '#F6F6F6',
+    shadow: '#000',
+    lightGrey: '#E0E0E0',
 };
 
-const SIZES = ['S', 'M', 'L', 'XL']; // Dữ liệu size mẫu
+const SIZES = ['S', 'M', 'L', 'XL'];
 
 export default function ProductDetailScreen() {
     const router = useRouter();
-    const { id } = useLocalSearchParams(); // Lấy [id] từ URL
+    const { id } = useLocalSearchParams();
     
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
-    
-    // Các state cho "nút thường có"
-    const [selectedSize, setSelectedSize] = useState(null);
-    const [quantity, setQuantity] = useState(1);
+    const [selectedSize, setSelectedSize] = useState(null); 
+    const [quantity, setQuantity] = useState(1);         
 
-    // 1. Load data sản phẩm từ API
+    const { isFavorited, toggleFavorite } = useFavorites();
+
+    // Load data sản phẩm từ API
     useEffect(() => {
         if (!id) return;
         
         const fetchProduct = async () => {
             setLoading(true);
             try {
-                // (Sửa endpoint nếu cần)
                 const response = await client.get(`/products/${id}`); 
                 setProduct(response.data.data);
             } catch (err) {
@@ -61,42 +61,48 @@ export default function ProductDetailScreen() {
         fetchProduct();
     }, [id]);
 
-    // 2. Logic thêm vào giỏ hàng (từ trang Home)
+    // Logic thêm vào giỏ hàng
     const addToCart = async (item) => {
-        if (!selectedSize) {
+        // Kiểm tra BẮT BUỘC người dùng phải chọn Size
+        if (!selectedSize) { 
             Alert.alert('Lỗi', 'Vui lòng chọn size');
             return;
         }
-        
+
         try {
             const raw = await AsyncStorage.getItem('cart');
             const cart = raw ? JSON.parse(raw) : [];
             
-            // Tìm xem có sản phẩm + size này trong giỏ chưa
+            // Tìm sản phẩm + size hiện tại trong giỏ (Cần tìm theo cả ID và Size)
             const idx = cart.findIndex((it) => 
                 it.productId === item._id && it.size === selectedSize
             );
             
             if (idx >= 0) {
-                // Đã có, tăng số lượng
-                cart[idx].quantity += quantity;
+                // Đã có, tăng số lượng thêm
+                cart[idx].quantity += quantity; 
             } else {
-                // Chưa có, thêm mới
+                // Chưa có, thêm mới với size và số lượng đã chọn
                 cart.push({
-                  productId: item._id, 
-                  name: item.name, 
-                  price: item.price,
-                  image: item.image, 
-                  size: selectedSize, // Thêm size
-                  quantity: quantity  // Thêm số lượng
+                    productId: item._id, 
+                    name: item.name, 
+                    price: item.price,
+                    image: item.image, 
+                    size: selectedSize, 
+                    quantity: quantity
                 });
             }
             
             await AsyncStorage.setItem('cart', JSON.stringify(cart));
+            
             Alert.alert(
                 'Thành công', 
-                `${item.name} (Size ${selectedSize}) đã được thêm vào giỏ.`
+                `${item.name} (Size ${selectedSize}, SL: ${quantity}) đã được thêm vào giỏ.`
             );
+            
+            // Reset số lượng về 1 sau khi thêm
+            setQuantity(1); 
+            
         } catch (e) {
             console.error('Lỗi thêm vào giỏ:', e);
             Alert.alert('Lỗi', 'Thêm vào giỏ thất bại');
@@ -105,7 +111,8 @@ export default function ProductDetailScreen() {
     
     // Hàm tăng/giảm số lượng
     const updateQuantity = (amount) => {
-        setQuantity(prev => Math.max(1, prev + amount)); // Số lượng không < 1
+        // Đảm bảo số lượng không nhỏ hơn 1
+        setQuantity(prev => Math.max(1, prev + amount));
     };
 
     // ------ RENDER ------
@@ -119,12 +126,14 @@ export default function ProductDetailScreen() {
     }
     
     if (!product) {
-         return (
+        return (
             <SafeAreaView style={styles.safeArea}>
-                <Text>Không tìm thấy sản phẩm.</Text>
+                <Text style={{textAlign: 'center', marginTop: 50}}>Không tìm thấy sản phẩm.</Text>
             </SafeAreaView>
          );
     }
+
+    const isLiked = isFavorited(product._id);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -135,8 +144,17 @@ export default function ProductDetailScreen() {
                         <Ionicons name="arrow-back" size={24} color={COLORS.text} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Chi tiết</Text>
-                    <TouchableOpacity onPress={() => router.push('/cart')} style={styles.headerBtn}>
-                        <Ionicons name="cart-outline" size={24} color={COLORS.text} />
+                    
+                    {/* Nút Yêu thích (Từ Context) */}
+                    <TouchableOpacity 
+                        onPress={() => toggleFavorite(product)}
+                        style={styles.headerBtn}
+                    >
+                        <Ionicons 
+                            name={isLiked ? "heart" : "heart-outline"}
+                            size={24} 
+                            color={isLiked ? COLORS.primary : COLORS.text}
+                        />
                     </TouchableOpacity>
                 </View>
 
@@ -158,7 +176,7 @@ export default function ProductDetailScreen() {
                                     styles.sizeBox, 
                                     selectedSize === size && styles.sizeBoxSelected
                                 ]}
-                                onPress={() => setSelectedSize(size)}
+                                onPress={() => setSelectedSize(size)} 
                             >
                                 <Text style={[
                                     styles.sizeText,
@@ -174,7 +192,7 @@ export default function ProductDetailScreen() {
                         <TouchableOpacity style={styles.quantityBtn} onPress={() => updateQuantity(-1)}>
                             <Ionicons name="remove" size={20} color={COLORS.text} />
                         </TouchableOpacity>
-                        <Text style={styles.quantityValue}>{quantity}</Text>
+                        <Text style={styles.quantityValue}>{quantity}</Text> 
                         <TouchableOpacity style={styles.quantityBtn} onPress={() => updateQuantity(1)}>
                             <Ionicons name="add" size={20} color={COLORS.text} />
                         </TouchableOpacity>
@@ -206,23 +224,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 15,
     },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: COLORS.text,
-    },
-    headerBtn: {
-        padding: 5,
-    },
-    productImage: {
-        width: '100%',
-        height: 400, // Ảnh lớn
-        resizeMode: 'cover',
-    },
+    headerTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text },
+    headerBtn: { padding: 5 },
+    productImage: { width: '100%', height: 400, resizeMode: 'cover' },
     detailsContainer: {
         paddingHorizontal: 20,
         paddingTop: 20,
-        paddingBottom: 100, // Chừa chỗ cho nút footer
+        paddingBottom: 100, 
     },
     productName: {
         fontSize: 24,
@@ -242,10 +250,7 @@ const styles = StyleSheet.create({
         color: COLORS.text,
         marginBottom: 10,
     },
-    sizeRow: {
-        flexDirection: 'row',
-        marginBottom: 20,
-    },
+    sizeRow: { flexDirection: 'row', marginBottom: 20 },
     sizeBox: {
         width: 50,
         height: 50,
@@ -260,14 +265,8 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.primary,
         borderColor: COLORS.primary,
     },
-    sizeText: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: COLORS.text,
-    },
-    sizeTextSelected: {
-        color: '#fff',
-    },
+    sizeText: { fontSize: 16, fontWeight: '500', color: COLORS.text },
+    sizeTextSelected: { color: '#fff' },
     quantityRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -296,6 +295,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.bg,
         borderTopWidth: 1,
         borderTopColor: '#f0f0f0',
+        elevation: 10,
     },
     addToCartBtn: {
         backgroundColor: COLORS.primary,

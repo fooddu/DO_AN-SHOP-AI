@@ -28,7 +28,7 @@ const COLORS = {
 
 const CATEGORIES = {
   features: ['T-Shirt', 'Polo', 'Short', 'Pant', 'Jean'],
-  brands: [], 
+  brands: [],
 };
 
 // Dữ liệu mẫu fallback khi không connect được API
@@ -52,10 +52,12 @@ const sampleProducts = [
 ];
 
 // Component card sản phẩm
-function ProductCard({ item, onAdd }) {
+// <-- THAY ĐỔI 1: Thêm prop 'onPress'
+function ProductCard({ item, onAdd, onPress }) {
   // (Chúng ta sẽ thêm nút Like ở đây sau)
   return (
-    <View style={styles.card}>
+    // <-- THAY ĐỔI 2: Thay View bằng TouchableOpacity và thêm onPress
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={{ width: '100%', alignItems: 'center' }}>
         <Image source={{ uri: item.image }} style={styles.image} />
       </View>
@@ -66,7 +68,7 @@ function ProductCard({ item, onAdd }) {
           <Ionicons name="cart" size={14} color="#fff" />
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity> // <-- THAY ĐỔI 3: Đóng TouchableOpacity
   );
 }
 
@@ -164,6 +166,12 @@ export default function HomeScreen() {
     setFiltered(products.filter((p) => (p.category || '').toLowerCase().includes(low)));
   };
 
+  // <-- THAY ĐỔI 4: Thêm hàm xử lý điều hướng
+  const handleProductPress = (item) => {
+    // Sử dụng router.push để đi đến trang chi tiết /products/[id].js
+    router.push(`/products/${item._id}`);
+  };
+
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -171,7 +179,7 @@ export default function HomeScreen() {
         {/* TopBar: logo + cart */}
         <View style={styles.topBar}>
           {/* Sẽ thêm nút Like/Account ở đây */}
-          <View style={styles.topBarLeft} /> 
+          <View style={styles.topBarLeft} />
           <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartBtn}>
             <Ionicons name="cart-outline" size={22} color={COLORS.text} />
@@ -194,7 +202,7 @@ export default function HomeScreen() {
         <View style={styles.featureRow}>
           <TouchableOpacity
             style={[styles.featureBtn, activeCategory === 'Tất cả' && styles.featureActive]}
-            onPress={() => onCategory('Tất cả')}
+            onPress={() => onCategory('TấtAll')}
           >
             <Text style={[styles.featureText, activeCategory === 'Tất cả' && styles.featureTextActive]}>Tất cả</Text>
           </TouchableOpacity>
@@ -225,7 +233,13 @@ export default function HomeScreen() {
         {/* Grid sản phẩm */}
         <FlatList
           data={filtered}
-          renderItem={({ item }) => <ProductCard item={item} onAdd={addToCart} />}
+          renderItem={({ item }) => (
+            <ProductCard 
+              item={item} 
+              onAdd={addToCart} 
+              onPress={() => handleProductPress(item)} // <-- THAY ĐỔI 5: Thêm prop onPress
+            />
+          )}
           keyExtractor={(it) => it._id || it.id}
           numColumns={2}
           columnWrapperStyle={styles.columnWrap}
@@ -270,7 +284,7 @@ const styles = StyleSheet.create({
   featureText: { color: COLORS.text, fontSize: 13 },
   featureTextActive: { color: '#fff', fontWeight: '700' },
   statusText: { color: '#e74c3c', marginBottom: 6, textAlign: 'center' },
-  list: { paddingBottom: 20, paddingTop: 6 }, 
+  list: { paddingBottom: 20, paddingTop: 6 },
   columnWrap: { justifyContent: 'space-between' },
   card: {
     width: '48%',
@@ -290,5 +304,5 @@ const styles = StyleSheet.create({
   cardFooter: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
   price: { color: COLORS.text, fontWeight: '700' },
   addBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-});
-
+}
+);
