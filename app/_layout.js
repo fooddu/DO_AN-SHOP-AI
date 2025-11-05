@@ -1,8 +1,44 @@
-// app/(tabs)/_layout.js
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Stack, Tabs } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 
-export default function RootLayout() {
+/** 
+ * RootLayoutNav: chứa Stack chính cho toàn app
+ * - Có cả Tabs ở phần home
+ * - Có thêm các màn riêng (cart, checkout, orders, auth)
+ */
+function RootLayoutNav() {
+  const { isLoggedIn, loading } = useAuth();
+
+  // Khi đang loading, hiển thị vòng quay
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#E91E63" />
+      </View>
+    );
+  }
+
+  return (
+    <Stack>
+      {/* Tabs chính của app */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+      {/* Các màn riêng nằm ngoài Tabs */}
+      <Stack.Screen name="cart" options={{ title: 'Giỏ hàng', headerShown: false }} />
+      <Stack.Screen name="checkout" options={{ title: 'Thanh toán', headerShown: false }} />
+      <Stack.Screen name="order-success" options={{ title: 'Thành công', headerShown: false }} />
+      <Stack.Screen name="orders" options={{ title: 'Đơn hàng', headerShown: false }} />
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+    </Stack>
+  );
+}
+
+/**
+ * Tabs layout (Home, Like, Thông báo, Account)
+ */
+function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
@@ -62,3 +98,19 @@ export default function RootLayout() {
     </Tabs>
   );
 }
+
+/**
+ * RootLayout: Bao bọc toàn bộ app bằng AuthProvider
+ * Gọi RootLayoutNav để điều hướng Stack + Tabs
+ */
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootLayoutNav />
+    </AuthProvider>
+  );
+}
+
+// Xuất thêm layout Tabs để expo-router hiểu file con
+export { TabsLayout };
+
