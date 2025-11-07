@@ -1,12 +1,14 @@
 // [File] app/account-settings.js (Màn hình chỉnh sửa thông tin)
 
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     Image,
+    Platform,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -16,18 +18,66 @@ import {
     View
 } from 'react-native';
 
+import { useAuth } from '../../DO_AN-SHOP-AI/context/AuthContext';
 
-import client from '../api/client';
+// ⭐️ CẦN THAY THẾ BẰNG TOKEN JWT HỢP LỆ CỦA BẠN (Dùng cho Fetch)
+const DEBUG_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MGExYTg3M2ZkZDdkMWMwYjI0MTIxNiIsImlhdCI6MTc2MjQ0MDk4NCwiZXhwIjoxNzY1MDMyOTg0fQ.Bo_-KiT9mN83HhwO-YB2A0s9aE8SiDnXylKSrl3OA9M";
 
-import { useAuth } from '../context/AuthContext';
-
-// Bảng màu cơ bản
 const COLORS = {
-    primary: '#E91E63', // pink
+    primary: '#E91E63',
     text: '#222',
     muted: '#888',
     bg: '#ffffff',
     inputBg: '#f6f6f6',
+};
+
+// ⭐️ HÀM UPLOAD ẢNH (Dùng Fetch API và Port 5001)
+const uploadImageToServer = async (uri, userId, mimeType) => {
+    
+    const ext = mimeType.split('/')[1] || 'jpg';
+    const filename = `avatar-${userId}-${Date.now()}.${ext}`;
+    const formData = new FormData();
+    
+    let fileToUpload; 
+
+    // Logic Chuẩn hóa đa nền tảng
+    if (Platform.OS === 'web') {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        fileToUpload = new File([blob], filename, { type: mimeType });
+    } else {
+        const fileUri = uri.startsWith('file://') ? uri.replace('file://', '') : uri;
+        fileToUpload = { 
+            uri: fileUri, 
+            name: filename, 
+            type: mimeType, 
+        };
+    }
+
+    formData.append('avatar', fileToUpload);
+
+    try {
+        // ⭐️ SỬ DỤNG PORT 5001
+        const response = await fetch('http://localhost:5001/api/upload/avatar', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${DEBUG_TOKEN}`,
+            },
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        if (response.status !== 200) {
+            throw new Error(data.message || `Lỗi tải ảnh lên. Status: ${response.status}`);
+        }
+        
+        return data.url; 
+
+    } catch (error) {
+        console.error('Lỗi Upload ảnh (Frontend):', error.message);
+        throw new Error(error.message || 'Lỗi kết nối hoặc xử lý response.');
+    }
 };
 
 export default function EditProfileScreen() {
@@ -43,48 +93,91 @@ export default function EditProfileScreen() {
     const [avatar, setAvatar] = useState(user?.avatar || defaultAvatarUrl); 
     const [loading, setLoading] = useState(false);
 
-    // Hàm xử lý cập nhật thông tin người dùng
-    const handleUpdateProfile = async () => {
+    
+    // ⭐️ HÀM CẬP NHẬT PROFILE (SỬ DỤNG Fetch/Axios và Port 5001)
+    const handleUpdateProfile = async (newAvatarUrl = avatar) => {
         if (!name || !email) {
             Alert.alert('Lỗi', 'Vui lòng điền đầy đủ Tên và Email.');
             return;
         }
 
-        setLoading(true);
+        if (loading === false) { 
+            setLoading(true);
+        }
+
         try {
-            const updatedData = { name, email, phone, address, avatar }; 
+            const updatedData = { name, email, phone, address, avatar: newAvatarUrl }; 
             
-            const response = await client.put(`/users/${user._id}`, updatedData);
+            // ⭐️ SỬ DỤNG PORT 5001 CHO CẬP NHẬT PROFILE
+            const response = await fetch(`http://localhost:5001/api/users/${user._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${DEBUG_TOKEN}`, 
+                },
+                body: JSON.stringify(updatedData),
+            });
             
-            if (response.data.success) {
-                updateUser(response.data.data); 
-                Alert.alert('Thành công', 'Thông tin cá nhân đã được cập nhật.');
+            const data = await response.json();
+
+            if (data.success) {
+                updateUser(data.data); 
+                
+                if (loading === false || newAvatarUrl === avatar) { 
+                     Alert.alert('Thành công', 'Thông tin cá nhân đã được cập nhật.');
+                }
+                
             } else {
-                Alert.alert('Lỗi', response.data.message || 'Cập nhật thất bại.');
+                Alert.alert('Lỗi', data.message || 'Cập nhật thất bại.');
             }
 
         } catch (error) {
-            console.error('Lỗi cập nhật profile:', error.response?.data || error.message);
-            Alert.alert('Lỗi', error.response?.data?.message || 'Không thể kết nối tới server.');
+            console.error('Lỗi cập nhật profile:', error.message);
+            Alert.alert('Lỗi', 'Không thể kết nối tới server hoặc lỗi response.');
         } finally {
-            setLoading(false);
+            if (newAvatarUrl === avatar) {
+                 setLoading(false);
+            }
+        }
+    };
+    
+    // ⭐️ HÀM XỬ LÝ CHỌN ẢNH
+    const handleChoosePhoto = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Lỗi', 'Cần quyền truy cập thư viện ảnh để chọn ảnh.');
+            return;
+        }
+
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true, 
+            aspect: [1, 1],       
+            quality: 0.5,         
+        });
+
+        if (!result.canceled) {
+            const asset = result.assets[0]; 
+            setLoading(true);
+            try {
+                // 3. Upload ảnh lên server (dùng hàm đã sửa)
+                const newAvatarUrl = await uploadImageToServer(asset.uri, user._id, asset.mimeType);
+
+                // 4. Cập nhật URL ảnh mới cục bộ và gọi hàm lưu Profile chính
+                setAvatar(newAvatarUrl); 
+                
+                await handleUpdateProfile(newAvatarUrl);
+                
+                Alert.alert('Thành công', 'Ảnh đại diện đã được cập nhật.');
+
+            } catch (error) {
+                Alert.alert('Lỗi', error.message || 'Không thể tải ảnh lên server.');
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
-    // Hàm giả định xử lý chọn ảnh (Bạn cần thay thế bằng ImagePicker thực tế)
-    const handleChangeAvatar = () => {
-        Alert.alert(
-            "Đổi ảnh đại diện",
-            "Tính năng chọn/upload ảnh chưa được tích hợp.",
-            [
-                { text: "Hủy" },
-                { 
-                    text: "Đặt ảnh mẫu mới", 
-                    onPress: () => setAvatar('https://i.pravatar.cc/150?img=42') 
-                }
-            ]
-        );
-    }
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -106,7 +199,8 @@ export default function EditProfileScreen() {
                         style={styles.avatar} 
                         resizeMode="cover"
                     />
-                    <TouchableOpacity onPress={handleChangeAvatar}>
+                    {/* SỬA: BẤM VÀO SẼ CHỌN ẢNH */}
+                    <TouchableOpacity onPress={handleChoosePhoto}>
                         <Text style={styles.changeAvatarText}>Đổi ảnh</Text>
                     </TouchableOpacity>
                 </View>
@@ -158,7 +252,7 @@ export default function EditProfileScreen() {
                 {/* Nút Cập nhật */}
                 <TouchableOpacity 
                     style={styles.saveButton}
-                    onPress={handleUpdateProfile}
+                    onPress={() => handleUpdateProfile()} 
                     disabled={loading}
                 >
                     {loading ? (
