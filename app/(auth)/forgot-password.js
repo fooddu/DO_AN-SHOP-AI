@@ -1,18 +1,22 @@
-// [File] app/(auth)/forgot-password.js
+// app/(auth)/forgot-password.js
 
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
     SafeAreaView, StatusBar,
     StyleSheet,
     Text, TextInput, TouchableOpacity,
     View
 } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
+import { Ionicons } from 'react-native-vector-icons';
+import { useAuth } from '../../context/AuthContext'; // Thay đổi đường dẫn nếu cần
 
+const { width } = Dimensions.get('window');
+
+// Đã loại bỏ định nghĩa COLORS ra khỏi Component để tái sử dụng
 const COLORS = {
     primary: '#222', 
     grey: '#888',
@@ -26,33 +30,30 @@ export default function ForgotPasswordScreen() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     const router = useRouter();
-    const { forgotPassword } = useAuth(); 
+    const { forgotPassword } = useAuth(); // Hàm gọi API
 
     const handleSend = async () => {
-        if (!email) {
-            Alert.alert('Lỗi', 'Vui lòng nhập email của bạn.');
+        if (!email.trim()) {
+            Alert.alert('Lỗi', 'Vui lòng nhập email hợp lệ.');
             return;
         }
         
         setIsSubmitting(true);
+        // Backend trả về: { success: true, message: '...' }
         const result = await forgotPassword(email); 
         setIsSubmitting(false);
 
         if (result.success) {
-            Alert.alert(
-                'Đã gửi OTP', 
-                'Một mã OTP 6 số đã được gửi đến email của bạn.',
-                [{ 
-                    text: 'OK', 
-                    // Chuyển sang trang Verify OTP và mang theo email
-                    onPress: () => router.push({ 
-                        pathname: '/verify-otp', 
-                        params: { email: email } 
-                    })
-                }] 
-            );
+            // Điều hướng sang trang Verify OTP và truyền email đi
+            router.push({ 
+                pathname: '/verify-otp', 
+                params: { email: email.trim() } // Truyền email đã xử lý
+            });
+            // Hiển thị thông báo thành công (dùng message từ Backend)
+            Alert.alert('Thành công', result.message || 'Mã OTP đã được gửi đến email của bạn.');
         } else {
-            Alert.alert('Thất bại', result.error);
+            // Xử lý lỗi (ví dụ: Email không tồn tại, lỗi SendGrid,...)
+            Alert.alert('Thất bại', result.message || 'Có lỗi xảy ra, vui lòng thử lại.');
         }
     };
 
@@ -77,6 +78,7 @@ export default function ForgotPasswordScreen() {
                             onChangeText={setEmail}
                             keyboardType="email-address"
                             autoCapitalize="none"
+                            placeholder="example@email.com"
                         />
                     </View>
 
@@ -103,7 +105,7 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: COLORS.bg },
     container: {
         flex: 1,
-        paddingHorizontal: 30,
+        paddingHorizontal: width * 0.07,
         paddingTop: 40,
         backgroundColor: COLORS.bg,
     },
@@ -115,14 +117,11 @@ const styles = StyleSheet.create({
         fontSize: 32,
         color: COLORS.text,
         fontWeight: 'bold',
-        fontFamily: 'serif', 
         marginBottom: 15,
-        textAlign: 'left', 
     },
     subtitle: {
         fontSize: 16,
         color: COLORS.grey,
-        textAlign: 'left', 
         marginBottom: 40,
         lineHeight: 24,
     },
@@ -143,7 +142,6 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         fontSize: 16,
         color: COLORS.text,
-        flex: 1,
     },
     button: {
         backgroundColor: COLORS.primary, 

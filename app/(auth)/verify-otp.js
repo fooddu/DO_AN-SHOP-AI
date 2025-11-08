@@ -1,34 +1,32 @@
-// [File] app/(auth)/verify-otp.js
+// app/(auth)/verify-otp.js
 
-import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
     SafeAreaView, StatusBar,
     StyleSheet,
     Text, TextInput, TouchableOpacity,
     View
 } from 'react-native';
+import { Ionicons } from 'react-native-vector-icons';
 import { useAuth } from '../../context/AuthContext';
 
-const COLORS = {
-    primary: '#222', 
-    grey: '#888',
-    lightGrey: '#ddd',
-    text: '#222',
-    bg: '#fff',
-};
+const { width } = Dimensions.get('window');
+const COLORS = { primary: '#222', grey: '#888', lightGrey: '#ddd', text: '#222', bg: '#fff' };
 
 export default function VerifyOtpScreen() {
     const [otp, setOtp] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isResending, setIsResending] = useState(false); // State cho nút gửi lại
     
     const router = useRouter();
-    const { verifyOtp } = useAuth();
+    // Import cả hai hàm API cần thiết
+    const { verifyOtp, forgotPassword } = useAuth(); 
     
-    // 1. Lấy email được gửi từ trang 'forgot-password'
+    // Lấy email từ URL parameters (từ trang forgot-password)
     const { email } = useLocalSearchParams(); 
 
     const handleVerify = async () => {
@@ -38,25 +36,34 @@ export default function VerifyOtpScreen() {
         }
         
         setIsSubmitting(true);
-        // 2. Gửi cả email và otp
+        // Gửi email và otp lên backend
         const result = await verifyOtp(email, otp); 
         setIsSubmitting(false);
 
         if (result.success) {
-            Alert.alert(
-                'Xác thực thành công', 
-                'Bây giờ bạn có thể đặt mật khẩu mới.',
-                [{ 
-                    text: 'OK', 
-                    // 3. Chuyển sang trang đặt mật khẩu mới
-                    onPress: () => router.push({ 
-                        pathname: '/set-new-password', 
-                        params: { email: email } // Gửi email đi tiếp
-                    })
-                }] 
-            );
+            // Điều hướng sang trang đặt mật khẩu mới và truyền email đi
+            router.push({ 
+                pathname: '/set-new-password', 
+                params: { email: email } 
+            });
+            Alert.alert('Thành công', result.message || 'Xác thực thành công.');
         } else {
-            Alert.alert('Thất bại', result.error);
+            // Xử lý lỗi (OTP không hợp lệ/hết hạn)
+            Alert.alert('Thất bại', result.message || 'OTP không hợp lệ hoặc đã hết hạn.');
+        }
+    };
+    
+    const handleResend = async () => {
+        setIsResending(true);
+        // Gọi lại API forgot-password để tạo và gửi OTP mới
+        const result = await forgotPassword(email);
+        setIsResending(false);
+
+        if (result.success) {
+            Alert.alert('Gửi lại thành công', result.message || 'Mã OTP mới đã được gửi đến email của bạn.');
+        } else {
+            // Xử lý lỗi nếu việc gửi lại thất bại
+            Alert.alert('Lỗi gửi lại', result.message || 'Không thể gửi lại OTP. Vui lòng kiểm tra email.');
         }
     };
 
@@ -70,7 +77,7 @@ export default function VerifyOtpScreen() {
                 </TouchableOpacity>
 
                 <Text style={styles.title}>Xác thực OTP</Text>
-                <Text style={styles.subtitle}>Một mã 6 số đã được gửi đến email {email}.</Text>
+                <Text style={styles.subtitle}>Một mã 6 số đã được gửi đến email: **{email}**.</Text>
                 
                 <View style={styles.form}>
                     <View style={styles.inputContainer}>
@@ -81,6 +88,7 @@ export default function VerifyOtpScreen() {
                             onChangeText={setOtp}
                             keyboardType="number-pad"
                             maxLength={6}
+                            placeholder="Nhập 6 số"
                         />
                     </View>
 
@@ -95,6 +103,19 @@ export default function VerifyOtpScreen() {
                             <Text style={styles.buttonText}>Xác nhận</Text>
                         )}
                     </TouchableOpacity>
+                    
+                    {/* Nút Gửi lại OTP */}
+                    <TouchableOpacity 
+                        style={styles.buttonLink}
+                        onPress={handleResend}
+                        disabled={isResending}
+                    >
+                        {isResending ? (
+                            <ActivityIndicator color={COLORS.primary} />
+                        ) : (
+                            <Text style={styles.buttonLinkText}>Gửi lại mã OTP</Text>
+                        )}
+                    </TouchableOpacity>
                 </View>
                 
             </View>
@@ -107,47 +128,22 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: COLORS.bg },
     container: {
         flex: 1,
-        paddingHorizontal: 30,
+        paddingHorizontal: width * 0.07,
         paddingTop: 40,
         backgroundColor: COLORS.bg,
     },
-    backButton: {
-        marginBottom: 20, 
-        width: 40, 
-    },
-    title: {
-        fontSize: 32,
-        color: COLORS.text,
-        fontWeight: 'bold',
-        fontFamily: 'serif', 
-        marginBottom: 15,
-        textAlign: 'left', 
-    },
-    subtitle: {
-        fontSize: 16,
-        color: COLORS.grey,
-        textAlign: 'left', 
-        marginBottom: 40,
-        lineHeight: 24,
-    },
-    form: {
-        width: '100%',
-    },
-    inputContainer: {
-        marginBottom: 25,
-    },
-    label: {
-        color: COLORS.grey,
-        fontSize: 16,
-        marginBottom: 10,
-    },
+    backButton: { marginBottom: 20, width: 40 },
+    title: { fontSize: 32, color: COLORS.text, fontWeight: 'bold', marginBottom: 15 },
+    subtitle: { fontSize: 16, color: COLORS.grey, marginBottom: 40, lineHeight: 24 },
+    form: { width: '100%' },
+    inputContainer: { marginBottom: 25 },
+    label: { color: COLORS.grey, fontSize: 16, marginBottom: 10 },
     input: {
         borderBottomWidth: 1,
         borderBottomColor: COLORS.lightGrey,
         paddingVertical: 10,
         fontSize: 16,
         color: COLORS.text,
-        flex: 1,
     },
     button: {
         backgroundColor: COLORS.primary, 
@@ -156,9 +152,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 30,
     },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    buttonLink: {
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    buttonLinkText: {
+        color: COLORS.primary,
+        fontSize: 14,
         fontWeight: 'bold',
     },
 });
