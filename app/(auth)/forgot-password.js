@@ -2,157 +2,80 @@
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    SafeAreaView, StatusBar,
-    StyleSheet,
-    Text, TextInput, TouchableOpacity,
-    View
-} from 'react-native';
-import { Ionicons } from 'react-native-vector-icons';
-import { useAuth } from '../../context/AuthContext'; // Thay đổi đường dẫn nếu cần
-
-const { width } = Dimensions.get('window');
-
-// Đã loại bỏ định nghĩa COLORS ra khỏi Component để tái sử dụng
-const COLORS = {
-    primary: '#222', 
-    grey: '#888',
-    lightGrey: '#ddd',
-    text: '#222',
-    bg: '#fff',
-};
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import AuthCard from '../../components/AuthCard';
+import AuthTextInput from '../../components/AuthTextInput';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ForgotPasswordScreen() {
     const [email, setEmail] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     const router = useRouter();
-    const { forgotPassword } = useAuth(); // Hàm gọi API
+    const { forgotPassword } = useAuth();
 
     const handleSend = async () => {
         if (!email.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập email hợp lệ.');
+            Alert.alert('Error', 'Please enter a valid email.');
             return;
         }
         
         setIsSubmitting(true);
-        // Backend trả về: { success: true, message: '...' }
         const result = await forgotPassword(email); 
         setIsSubmitting(false);
 
         if (result.success) {
-            // Điều hướng sang trang Verify OTP và truyền email đi
             router.push({ 
-                pathname: '/verify-otp', 
-                params: { email: email.trim() } // Truyền email đã xử lý
+                pathname: '/(auth)/verify-otp', 
+                params: { email: email.trim() }
             });
-            // Hiển thị thông báo thành công (dùng message từ Backend)
-            Alert.alert('Thành công', result.message || 'Mã OTP đã được gửi đến email của bạn.');
+            Alert.alert('Success', result.message || 'OTP code has been sent to your email.');
         } else {
-            // Xử lý lỗi (ví dụ: Email không tồn tại, lỗi SendGrid,...)
-            Alert.alert('Thất bại', result.message || 'Có lỗi xảy ra, vui lòng thử lại.');
+            Alert.alert('Failed', result.message || 'An error occurred, please try again.');
         }
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="dark-content" />
-            <View style={styles.container}>
-                
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={28} color={COLORS.text} />
-                </TouchableOpacity>
-
-                <Text style={styles.title}>Quên Mật Khẩu?</Text>
-                <Text style={styles.subtitle}>Nhập email của bạn và chúng tôi sẽ gửi cho bạn một mã OTP để xác thực.</Text>
-                
-                <View style={styles.form}>
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Email</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            placeholder="example@email.com"
-                        />
-                    </View>
-
-                    <TouchableOpacity 
-                        style={styles.button} 
-                        onPress={handleSend} 
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.buttonText}>Gửi Mã OTP</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
-                
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+            <View style={styles.logoContainer}>
+                <View style={styles.divider} />
+                <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+                <View style={styles.divider} />
             </View>
-        </SafeAreaView>
+            <Text style={styles.welcomeText}>RESET PASSWORD</Text>
+            <View style={styles.cardWrapper}>
+                <AuthCard>
+                    <AuthTextInput
+                        label="Email"
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                    />
+                    <TouchableOpacity style={styles.signUpButton} onPress={handleSend} disabled={isSubmitting}>
+                        <Text style={styles.signUpText}>{isSubmitting ? 'Sending...' : 'SEND OTP'}</Text>
+                    </TouchableOpacity>
+                    <View style={styles.signInContainer}>
+                        <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+                            <Text style={styles.signInLink}>Back to Login</Text>
+                        </TouchableOpacity>
+                    </View>
+                </AuthCard>
+            </View>
+        </ScrollView>
     );
 }
 
-// Styles
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: COLORS.bg },
-    container: {
-        flex: 1,
-        paddingHorizontal: width * 0.07,
-        paddingTop: 40,
-        backgroundColor: COLORS.bg,
-    },
-    backButton: {
-        marginBottom: 20, 
-        width: 40, 
-    },
-    title: {
-        fontSize: 32,
-        color: COLORS.text,
-        fontWeight: 'bold',
-        marginBottom: 15,
-    },
-    subtitle: {
-        fontSize: 16,
-        color: COLORS.grey,
-        marginBottom: 40,
-        lineHeight: 24,
-    },
-    form: {
-        width: '100%',
-    },
-    inputContainer: {
-        marginBottom: 25,
-    },
-    label: {
-        color: COLORS.grey,
-        fontSize: 16,
-        marginBottom: 10,
-    },
-    input: {
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.lightGrey,
-        paddingVertical: 10,
-        fontSize: 16,
-        color: COLORS.text,
-    },
-    button: {
-        backgroundColor: COLORS.primary, 
-        paddingVertical: 18,
-        borderRadius: 8, 
-        alignItems: 'center',
-        marginTop: 30,
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
+    container: { flex: 1, backgroundColor: '#fff', },
+    content: { paddingTop: 40, paddingBottom: 40, },
+    logoContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 40, marginBottom: 20, },
+    logo: { width: 90, height: 90, },
+    divider: { flex: 1, height: 1, backgroundColor: '#e0e0e0', marginHorizontal: 20, },
+    welcomeText: { fontSize: 24, fontWeight: 'bold', color: '#333', paddingHorizontal: 30, marginBottom: 30, textAlign: 'center', },
+    cardWrapper: { alignSelf: 'flex-start', },
+    signUpButton: { backgroundColor: '#333', borderRadius: 8, paddingVertical: 15, marginTop: 10, shadowColor: '#000', marginHorizontal: 30, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3, },
+    signUpText: { color: '#fff', fontSize: 16, fontWeight: 'bold', textAlign: 'center', textTransform: 'uppercase', },
+    signInContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20 },
+    signInLink: { color: '#333', fontSize: 14, fontWeight: 'bold', textTransform: 'uppercase', },
 });

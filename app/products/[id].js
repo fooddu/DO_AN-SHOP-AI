@@ -15,7 +15,7 @@ import {
     View
 } from 'react-native';
 import client from '../../api/axiosConfig'; // API client
-import { useFavorites } from '../../context/FavoritesContext'; // Hook từ Context
+import { useFavorites } from '../../contexts/FavoritesContext'; // Hook từ Context
 
 const COLORS = {
     primary: '#E91E63', // pink

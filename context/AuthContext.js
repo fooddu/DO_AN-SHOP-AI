@@ -105,31 +105,40 @@ export const AuthProvider = ({ children }) => {
     // 6. CÁC HÀM QUÊN MẬT KHẨU (Giữ nguyên)
     const forgotPassword = async (email) => {
         try {
-            await api.post('/users/forgot-password', { email });
-            return { success: true };
+            const response = await api.post('/users/forgot-password', { email });
+            return { 
+                success: true, 
+                message: response.data?.message || 'OTP code has been sent to your email.' 
+            };
         } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || "Lỗi không xác định";
-            return { success: false, error: errorMessage };
+            const errorMessage = error.response?.data?.message || error.message || "An error occurred";
+            return { success: false, message: errorMessage, error: errorMessage };
         }
     };
 
     const verifyOtp = async (email, otp) => {
         try {
-            await api.post('/users/verify-otp', { email, otp });
-            return { success: true };
+            const response = await api.post('/users/verify-otp', { email, otp });
+            return { 
+                success: true, 
+                message: response.data?.message || 'Verification successful.' 
+            };
         } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || "Lỗi không xác định";
-            return { success: false, error: errorMessage };
+            const errorMessage = error.response?.data?.message || error.message || "An error occurred";
+            return { success: false, message: errorMessage, error: errorMessage };
         }
     };
 
     const setNewPassword = async (email, newPassword) => {
         try {
-            await api.post('/users/set-new-password', { email, newPassword });
-            return { success: true };
+            const response = await api.post('/users/set-new-password', { email, newPassword });
+            return { 
+                success: true, 
+                message: response.data?.message || 'Your password has been changed. Please log in again.' 
+            };
         } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || "Lỗi không xác định";
-            return { success: false, error: errorMessage };
+            const errorMessage = error.response?.data?.message || error.message || "An error occurred";
+            return { success: false, message: errorMessage, error: errorMessage };
         }
     };
     

@@ -3,16 +3,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    FlatList,
+    Image,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { useFavorites } from '../../context/FavoritesContext';
+import { useFavorites } from '../../contexts/FavoritesContext';
 
 // Bảng màu
 const COLORS = {

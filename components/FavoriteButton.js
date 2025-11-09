@@ -1,9 +1,9 @@
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
 // Chúng ta sẽ dùng icon trái tim của thư viện 'expo-vector-icons'
-import { Ionicons } from '@expo/vector-icons'; 
+import { Ionicons } from '@expo/vector-icons';
 // Import hook (móc) của FavoritesContext bạn vừa tạo
-import { useFavorites } from '../context/FavoritesContext';
+import { useFavorites } from '../contexts/FavoritesContext';
 
 // Component này chỉ cần nhận vào 2 props:
 // 1. productId: Để biết đang thao tác với sản phẩm nào
