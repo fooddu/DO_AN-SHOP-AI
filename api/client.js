@@ -1,18 +1,28 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { Platform } from 'react-native'; // 1. Import Platform
 
-// Đổi IP khi chạy trên Simulator/Điện thoại thật
-const API_URL = 'http://192.168.0.101:5000/api'
+// 2. Sửa lại IP
+// Khi chạy trên WEB, dùng 'localhost'. 
+// Khi chạy trên ĐIỆN THOẠI THẬT, dùng IP Wi-Fi
+const API_URL_WEB = 'http://localhost:5000/api';
+const API_URL_NATIVE = 'http://172.20.10.2:5000/api';
 
-const client = axios.create({
+// 3. Tự động chọn đúng IP
+const API_URL = Platform.OS === 'web' ? API_URL_WEB : API_URL_NATIVE;
+
+const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000,
 });
 
-client.interceptors.request.use(
-  (config) => {
+// Đoạn này sẽ tự động lấy token từ bộ nhớ
+// và đính kèm vào header "Authorization"
+api.interceptors.request.use(
+  async (config) => {
+    const token = await AsyncStorage.getItem('userToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -20,17 +30,4 @@ client.interceptors.request.use(
   }
 );
 
-client.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
-  (error) => {
-    if (error.response) {
-      return Promise.reject(error.response.data);
-    }
-    return Promise.reject(error);
-  }
-);
-
-export default client;
-
+export default api;

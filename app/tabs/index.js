@@ -1,5 +1,3 @@
-// [File] HomeScreen.js (Giả định nằm ở app/tabs/index.js)
-
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -10,17 +8,17 @@ import {
   FlatList,
   Image,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
-import client from '../../api/axiosConfig'; // API client
+// Đảm bảo bạn đang import đúng file client (axiosConfig.js hoặc client.js)
+import client from '../../api/axiosConfig';
 
 const COLORS = {
-    primary: '#E91E63', 
+    primary: '#E91E63', // pink
     text: '#222',
     muted: '#888',
     bg: '#ffffff',
@@ -28,13 +26,31 @@ const COLORS = {
     shadow: '#000',
 };
 
-// Dữ liệu mẫu fallback (Giữ nguyên)
+const CATEGORIES = {
+    features: ['T-Shirt', 'Polo', 'Short', 'Pant', 'Jean'],
+    brands: [],
+};
+
+// Dữ liệu mẫu fallback khi không connect được API
 const sampleProducts = [
-    { _id: 's1', name: 'POLK DRESS', price: 75.00, category: 'T-Shirt', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500', stock: 50 },
-    { _id: 's2', name: 'Basic Black T-Shirt', price: 35.00, category: 'Hoodie', image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500', stock: 100 },
-    { _id: 's3', name: 'White Plain T-Shirt', price: 33.00, category: 'Polo', image: 'https://images.unsplash.com/photo-1622445275576-721325763afe?w=500', stock: 80 },
-    { _id: 's4', name: 'POLK DRESS Beige', price: 28.00, category: 'Jean', image: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=500', stock: 60 },
+    {
+        _id: 's1', name: 'POLK DRESS', price: 75.00, category: 'T-Shirt',
+        image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500', stock: 50
+    },
+    {
+        _id: 's2', name: 'Basic Black T-Shirt', price: 35.00, category: 'T-Shirt',
+        image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500', stock: 100
+    },
+    {
+        _id: 's3', name: 'White Plain T-Shirt', price: 33.00, category: 'T-Shirt',
+        image: 'https://images.unsplash.com/photo-1622445275576-721325763afe?w=500', stock: 80
+    },
+    {
+        _id: 's4', name: 'POLK DRESS Beige', price: 28.00, category: 'T-Shirt',
+        image: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=500', stock: 60
+    },
 ];
+
 
 function ProductCard({ item, onAdd, onPress }) {
     return (
@@ -57,51 +73,44 @@ export default function HomeScreen() {
     const router = useRouter();
     const [products, setProducts] = useState([]);
     const [filtered, setFiltered] = useState([]);
-    const [search, setSearch] = useState(''); 
+    const [search, setSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState('Tất cả');
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState(null);
-    const [availableCategories, setAvailableCategories] = useState([]);
 
     useEffect(() => {
         loadProducts();
     }, []);
 
-    // HÀM LẤY CATEGORY DUY NHẤT
-    const loadCategories = (productList) => {
-        const categories = new Set();
-        productList.forEach(p => {
-            if (p.category && typeof p.category === 'string') {
-                categories.add(p.category); 
-            }
-        });
-        setAvailableCategories(Array.from(categories)); 
-    };
-
-
+    // Lấy danh sách sản phẩm từ API
     const loadProducts = async () => {
         setLoading(true);
         setStatus(null);
         try {
+            // Gọi API (đảm bảo 'client' đang dùng đúng file config)
             const response = await client.get('/products');
+
+            console.log('[HomeScreen] Phản hồi API:', response);
+
+            // Dữ liệu nằm trong response.data.data (theo console log)
             const list = Array.isArray(response.data.data) ? response.data.data : [];
-            
+
             if (list.length > 0) {
                 setProducts(list);
                 setFiltered(list);
-                loadCategories(list); 
-                setStatus(null);
+                setStatus(null); // Xóa thông báo lỗi
             } else {
-                setProducts(sampleProducts);
+                // API kết nối thành công, nhưng không có sản phẩm
+                setProducts(sampleProducts); // Dùng data mẫu
                 setFiltered(sampleProducts);
-                loadCategories(sampleProducts); 
                 setStatus('Server trả về rỗng — hiển thị mẫu');
             }
         } catch (err) {
             console.error('[HomeScreen] Lỗi API:', err);
+
+            // Nếu không kết nối được (lỗi CORS, server sập, sai IP)
             setProducts(sampleProducts);
             setFiltered(sampleProducts);
-            loadCategories(sampleProducts);
             setStatus('Không kết nối tới server — hiển thị mẫu');
         } finally {
             setLoading(false);
@@ -113,7 +122,7 @@ export default function HomeScreen() {
             const raw = await AsyncStorage.getItem('cart');
             const cart = raw ? JSON.parse(raw) : [];
             const idx = cart.findIndex((it) => it.productId === product._id);
-            
+
             if (idx >= 0) {
                 cart[idx].quantity = (cart[idx].quantity || 1) + 1;
             } else {
@@ -122,7 +131,7 @@ export default function HomeScreen() {
                     image: product.image, quantity: 1
                 });
             }
-            
+
             await AsyncStorage.setItem('cart', JSON.stringify(cart));
             Alert.alert('Đã thêm', `${product.name} đã được thêm vào giỏ hàng.`);
         } catch (e) {
@@ -130,65 +139,46 @@ export default function HomeScreen() {
             Alert.alert('Lỗi', 'Thêm vào giỏ thất bại');
         }
     };
-
     const onSearch = (text) => {
         setSearch(text);
         const q = text.trim().toLowerCase();
-
         if (!q) {
-            onCategory('Tất cả'); 
+            setFiltered(products);
             return;
         }
-        
-        const searchResults = products.filter((p) => {
-            const searchString = [p.name, p.category, p.brand, p.description].join(' ').toLowerCase();
-            return searchString.includes(q);
-        });
-
-        setFiltered(searchResults);
-        setActiveCategory('Tất cả'); 
+        setFiltered(products.filter((p) => (p.name || '').toLowerCase().includes(q)));
     };
-
     const onCategory = (cat) => {
         setActiveCategory(cat);
-        
-        let listToFilter = products;
-        
-        const q = search.trim().toLowerCase();
-        if (q) {
-            listToFilter = products.filter((p) => {
-                const searchString = [p.name, p.category].join(' ').toLowerCase();
-                return searchString.includes(q);
-            });
-        }
-
         if (cat === 'Tất cả') {
-            setFiltered(listToFilter);
+            setFiltered(products);
             return;
         }
-        
         const low = cat.toLowerCase();
-        setFiltered(listToFilter.filter((p) => (p.category || '').toLowerCase().includes(low)));
+        setFiltered(products.filter((p) => (p.category || '').toLowerCase().includes(low)));
     };
 
+    // Hàm xử lý điều hướng
     const handleProductPress = (item) => {
+        // Sử dụng router.push để đi đến trang chi tiết /products/[id].js
         router.push(`/products/${item._id}`);
     };
 
 
     return (
         <SafeAreaView style={styles.safe}>
-            <View style={styles.container}> 
+            <View style={styles.container}>
                 {/* TopBar: logo + cart */}
                 <View style={styles.topBar}>
-                    <View style={styles.topBarLeft} /> 
+                    {/* Sẽ thêm nút Like/Account ở đây */}
+                    <View style={styles.topBarLeft} />
                     <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
                     <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartBtn}>
                         <Ionicons name="cart-outline" size={22} color={COLORS.text} />
                     </TouchableOpacity>
                 </View>
 
-                {/* SEARCH INPUT */}
+                {/* Search */}
                 <View style={styles.searchBox}>
                     <Ionicons name="search" size={18} color={COLORS.muted} />
                     <TextInput
@@ -196,47 +186,36 @@ export default function HomeScreen() {
                         placeholderTextColor="#999"
                         style={styles.searchInput}
                         value={search}
-                        onChangeText={onSearch} 
+                        onChangeText={onSearch}
                     />
                 </View>
 
-                {/* ⭐️ HÀNG CATEGORY CÓ THỂ KÉO NGANG ⭐️ */}
-                {/* THAY ĐỔI: Sử dụng style mới cho scroll view để không bị padding */}
-                <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false} 
-                    contentContainerStyle={styles.featureScrollContent} 
-                    style={styles.categoryScrollContainer} // Đặt margin/padding cho container scroll
-                >
-                    <View style={styles.featureRow}>
-                        {/* Nút 'Tất cả' */}
-                        <TouchableOpacity
-                            style={[styles.featureBtn, activeCategory === 'Tất cả' && styles.featureActive]}
-                            onPress={() => onCategory('Tất cả')}
-                        >
-                            <Text style={[styles.featureText, activeCategory === 'Tất cả' && styles.featureTextActive]}>Tất cả</Text>
-                        </TouchableOpacity>
+                {/* Featured categories */}
+                <View style={styles.featureRow}>
+                    <TouchableOpacity
+                        style={[styles.featureBtn, activeCategory === 'Tất cả' && styles.featureActive]}
+                        onPress={() => onCategory('Tất cả')}
+                    >
+                        <Text style={[styles.featureText, activeCategory === 'Tất cả' && styles.featureTextActive]}>Tất cả</Text>
+                    </TouchableOpacity>
 
-                        {/* MAP QUA availableCategories ĐỘNG */}
-                        {availableCategories.map((f) => {
-                            const isActive = activeCategory === f;
-                            return (
-                                <TouchableOpacity
-                                    key={f}
-                                    style={[styles.featureBtn, isActive && styles.featureActive]}
-                                    onPress={() => onCategory(f)}
-                                >
-                                    <Text style={[styles.featureText, isActive && styles.featureTextActive]}>{f}</Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-                </ScrollView>
-
+                    {CATEGORIES.features.map((f) => {
+                        const isActive = activeCategory === f;
+                        return (
+                            <TouchableOpacity
+                                key={f}
+                                style={[styles.featureBtn, isActive && styles.featureActive]}
+                                onPress={() => onCategory(f)}
+                            >
+                                <Text style={[styles.featureText, isActive && styles.featureTextActive]}>{f}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
 
                 {/* Status message */}
                 {loading ? (
-                    <View style={styles.statusPadding}>
+                    <View style={{ paddingVertical: 30 }}>
                         <ActivityIndicator size="large" color={COLORS.primary} />
                     </View>
                 ) : status ? (
@@ -247,10 +226,10 @@ export default function HomeScreen() {
                 <FlatList
                     data={filtered}
                     renderItem={({ item }) => (
-                        <ProductCard 
-                            item={item} 
-                            onAdd={addToCart} 
-                            onPress={() => handleProductPress(item)} 
+                        <ProductCard
+                            item={item}
+                            onAdd={addToCart}
+                            onPress={() => handleProductPress(item)}
                         />
                     )}
                     keyExtractor={(it) => it._id || it.id}
@@ -258,9 +237,8 @@ export default function HomeScreen() {
                     columnWrapperStyle={styles.columnWrap}
                     contentContainerStyle={styles.list}
                     showsVerticalScrollIndicator={false}
-                    style={styles.flatListStyle} // Style cho FlatList
                 />
-                
+
             </View>
         </SafeAreaView>
     );
@@ -269,13 +247,7 @@ export default function HomeScreen() {
 /* Styles */
 const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: COLORS.bg },
-    // ⭐️ THAY ĐỔI 1: ÁP DỤNG PADDING CHUNG CHO CONTAINER
-    container: { flex: 1, paddingTop: 12, paddingHorizontal: 16 }, 
-
-    // Status padding (có thể giữ lại nếu muốn)
-    statusPadding: { paddingVertical: 30, paddingHorizontal: 16 },
-
-    // Các phần tử khác đã có padding trong container (TopBar, SearchBox)
+    container: { flex: 1, paddingTop: 12, paddingHorizontal: 16 },
     topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     topBarLeft: { width: 22 },
     logo: { width: 72, height: 72 },
@@ -290,24 +262,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     searchInput: { marginLeft: 8, flex: 1, fontSize: 15, color: COLORS.text },
-    
-    // ⭐️ THAY ĐỔI 2: STYLE CHO SCROLLVIEW CONTAINER
-    categoryScrollContainer: {
-        marginBottom: 10,
-        // Đặt padding ngang bằng 0 để cuộn qua cạnh
-        marginHorizontal: -16, 
-        // Thay đổi: Xóa padding ở đây và đặt lại vào contentContainerStyle
-    },
-    // ⭐️ THAY ĐỔI 3: STYLE CHO NỘI DUNG SCROLL
-    featureScrollContent: {
-        paddingLeft: 16, // Đẩy hàng nút vào 
-        paddingRight: 16, // Đảm bảo nút cuối cùng không bị cắt
-        alignItems: 'center',
-    },
-    featureRow: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-    },
+    featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, flexWrap: 'nowrap' },
     featureBtn: {
         paddingHorizontal: 12,
         paddingVertical: 8,
@@ -321,13 +276,7 @@ const styles = StyleSheet.create({
     featureText: { color: COLORS.text, fontSize: 13 },
     featureTextActive: { color: '#fff', fontWeight: '700' },
     statusText: { color: '#e74c3c', marginBottom: 6, textAlign: 'center' },
-    
-    // STYLE CHO FLATLIST
-    flatListStyle: {
-        // FlatList cần chiếm hết không gian còn lại
-        flex: 1,
-    },
-    list: { paddingBottom: 20, paddingTop: 6 }, 
+    list: { paddingBottom: 20, paddingTop: 6 },
     columnWrap: { justifyContent: 'space-between' },
     card: {
         width: '48%',
@@ -347,5 +296,5 @@ const styles = StyleSheet.create({
     cardFooter: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
     price: { color: COLORS.text, fontWeight: '700' },
     addBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-
-  });
+}
+);

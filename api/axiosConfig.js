@@ -1,8 +1,15 @@
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { Platform } from 'react-native'; // 1. Import Platform
 
-// Đổi IP khi chạy trên Simulator/Điện thoại thật
-const API_URL = 'http://192.168.0.101:5000/api'; 
+// 2. Sửa lại IP
+// Khi chạy trên WEB, dùng 'localhost'. 
+// Khi chạy trên ĐIỆN THOẠI THẬT, dùng IP Wi-Fi
+const API_URL_WEB = 'http://localhost:5000/api';
+const API_URL_NATIVE = 'http://172.20.10.2:5000/api';
+
+// 3. Tự động chọn đúng IP
+const API_URL = Platform.OS === 'web' ? API_URL_WEB : API_URL_NATIVE;
 
 const api = axios.create({
   baseURL: API_URL,
