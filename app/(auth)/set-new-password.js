@@ -1,22 +1,13 @@
 // app/(auth)/set-new-password.js
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react'; // Đã thêm React vào import
-import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    SafeAreaView, StatusBar,
-    StyleSheet,
-    Text, TextInput, TouchableOpacity,
-    View
-} from 'react-native';
-import { Ionicons } from 'react-native-vector-icons';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import AuthCard from '../../components/AuthCard';
+import AuthTextInput from '../../components/AuthTextInput';
 import { useAuth } from '../../context/AuthContext';
 
-const { width } = Dimensions.get('window');
-const COLORS = { primary: '#222', grey: '#888', lightGrey: '#ddd', text: '#222', bg: '#fff' };
-const MIN_PASSWORD_LENGTH = 6; 
+const MIN_PASSWORD_LENGTH = 6;
 
 export default function SetNewPasswordScreen() {
     const [password, setPassword] = useState('');
@@ -25,151 +16,90 @@ export default function SetNewPasswordScreen() {
     
     const router = useRouter();
     const { setNewPassword } = useAuth();
-    
-    const { email } = useLocalSearchParams(); 
-    
-    // ⭐️ DEBUG 1: Kiểm tra email nhận được ngay khi load màn hình
-    console.log("DEBUG FRONTEND: Email received in SetNewPasswordScreen:", email); 
+    const { email } = useLocalSearchParams();
 
     const handleSetPassword = async () => {
-        // 1. Kiểm tra dữ liệu email (Frontend)
         if (!email) {
-            console.error("DEBUG FRONTEND: Lỗi! Không tìm thấy email trong params.");
-            Alert.alert('Lỗi Dữ liệu', 'Không nhận được địa chỉ email. Vui lòng bắt đầu lại quy trình.');
-            router.replace('/forgot-password');
+            Alert.alert('Data Error', 'Email address not received. Please start the process again.');
+            router.replace('/(auth)/forgot-password');
             return;
         }
 
-        // 2. Kiểm tra validate mật khẩu
         if (!password || !confirmPassword) {
-            Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ mật khẩu.');
+            Alert.alert('Error', 'Please enter all password fields.');
             return;
         }
         if (password.length < MIN_PASSWORD_LENGTH) {
-            console.warn(`DEBUG FRONTEND: Mật khẩu quá ngắn (${password.length}).`);
-            Alert.alert('Lỗi', `Mật khẩu phải có ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`);
+            Alert.alert('Error', `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
             return;
         }
         if (password !== confirmPassword) {
-            Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp.');
+            Alert.alert('Error', 'Passwords do not match.');
             return;
         }
         
         setIsSubmitting(true);
-        
-        const payload = { email: email, newPassword: password };
-        // ⭐️ DEBUG 2: Kiểm tra Payload gửi đi
-        console.log("DEBUG FRONTEND: Sending Payload:", payload);
-        
-        // 3. Gọi API
         const result = await setNewPassword(email, password); 
-        
         setIsSubmitting(false);
-        // ⭐️ DEBUG 3: Ghi log chi tiết phản hồi từ Backend
-        console.log("DEBUG FRONTEND: API Response received:", result);
 
         if (result.success) {
             Alert.alert(
-                'Thành công', 
-                result.message || 'Mật khẩu của bạn đã được thay đổi. Vui lòng đăng nhập lại.',
+                'Success', 
+                result.message || 'Your password has been changed. Please log in again.',
                 [{ 
                     text: 'OK', 
-                    onPress: () => router.replace('/login') 
+                    onPress: () => router.replace('/(auth)/login') 
                 }] 
             );
         } else {
-            // Lỗi 400 từ Backend sẽ rơi vào đây
-            console.error("DEBUG FRONTEND: API Error Message:", result.message);
-            Alert.alert('Thất bại', result.message || 'Đặt mật khẩu thất bại. Vui lòng thử lại.');
+            Alert.alert('Failed', result.message || 'Failed to set password. Please try again.');
         }
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="dark-content" />
-            <View style={styles.container}>
-                
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={28} color={COLORS.text} />
-                </TouchableOpacity>
-
-                <Text style={styles.title}>Đặt Mật Khẩu Mới</Text>
-                <Text style={styles.subtitle}>Nhập mật khẩu mới cho tài khoản: <Text style={{fontWeight: 'bold'}}>{email}</Text>.</Text>
-                
-                <View style={styles.form}>
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Mật khẩu mới</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                            placeholder={`Ít nhất ${MIN_PASSWORD_LENGTH} ký tự`}
-                            maxLength={50}
-                        />
-                    </View>
-                    
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Xác nhận mật khẩu mới</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={confirmPassword}
-                            onChangeText={setConfirmPassword}
-                            secureTextEntry
-                            placeholder="Nhập lại mật khẩu"
-                            maxLength={50}
-                        />
-                    </View>
-
-                    <TouchableOpacity 
-                        style={styles.button} 
-                        onPress={handleSetPassword} 
-                        disabled={isSubmitting}
-                    >
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+            <View style={styles.logoContainer}>
+                <View style={styles.divider} />
+                <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+                <View style={styles.divider} />
+            </View>
+            <Text style={styles.welcomeText}>NEW PASSWORD</Text>
+            <View style={styles.cardWrapper}>
+                <AuthCard>
+                    <AuthTextInput
+                        label="New Password"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                    />
+                    <AuthTextInput
+                        label="Confirm New Password"
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        secureTextEntry
+                    />
+                    <TouchableOpacity style={styles.signUpButton} onPress={handleSetPassword} disabled={isSubmitting}>
                         {isSubmitting ? (
-                            <ActivityIndicator color="#fff" />
+                            <ActivityIndicator color="#fff" style={styles.loader} />
                         ) : (
-                            <Text style={styles.buttonText}>Lưu Mật Khẩu</Text>
+                            <Text style={styles.signUpText}>CHANGE PASSWORD</Text>
                         )}
                     </TouchableOpacity>
-                </View>
-                
+                </AuthCard>
             </View>
-        </SafeAreaView>
+        </ScrollView>
     );
 }
 
-// Styles
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: COLORS.bg },
-    container: {
-        flex: 1,
-        paddingHorizontal: width * 0.07,
-        paddingTop: 40,
-        backgroundColor: COLORS.bg,
-    },
-    backButton: { marginBottom: 20, width: 40 },
-    title: { fontSize: 32, color: COLORS.text, fontWeight: 'bold', marginBottom: 15 },
-    subtitle: { fontSize: 16, color: COLORS.grey, marginBottom: 40, lineHeight: 24 },
-    form: { width: '100%' },
-    inputContainer: { marginBottom: 25 },
-    label: { color: COLORS.grey, fontSize: 16, marginBottom: 10 },
-    input: {
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.lightGrey,
-        paddingVertical: 10,
-        fontSize: 16,
-        color: COLORS.text,
-        
-    },
-    button: {
-        backgroundColor: COLORS.primary, 
-        paddingVertical: 18,
-        borderRadius: 8, 
-        alignItems: 'center',
-        marginTop: 30,
-    },
-    buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-
-}
-);
+    container: { flex: 1, backgroundColor: '#fff', },
+    content: { paddingTop: 40, paddingBottom: 40, },
+    logoContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 40, marginBottom: 20, },
+    logo: { width: 90, height: 90, },
+    divider: { flex: 1, height: 1, backgroundColor: '#e0e0e0', marginHorizontal: 20, },
+    welcomeText: { fontSize: 24, fontWeight: 'bold', color: '#333', paddingHorizontal: 30, marginBottom: 30, textAlign: 'center', },
+    cardWrapper: { alignSelf: 'flex-start', },
+    signUpButton: { backgroundColor: '#333', borderRadius: 8, paddingVertical: 15, marginTop: 10, shadowColor: '#000', marginHorizontal: 30, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3, },
+    signUpText: { color: '#fff', fontSize: 16, fontWeight: 'bold', textAlign: 'center', textTransform: 'uppercase', },
+    loader: { marginVertical: 5, },
+});

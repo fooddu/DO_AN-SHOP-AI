@@ -3,7 +3,7 @@
 import { router } from 'expo-router';
 import { createContext, useContext, useEffect, useState } from 'react';
 import api from '../api/axiosConfig'; // Import file config axios
-import { useAuth } from './AuthContext'; // Import AuthContext
+import { useAuth } from '../context/AuthContext'; // Import AuthContext
 
 const FavoritesContext = createContext();
 

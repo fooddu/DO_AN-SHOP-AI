@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 // (Đảm bảo đường dẫn này đúng)
 import { AuthProvider } from '../context/AuthContext';
 // <-- 1. IMPORT FAVORITES PROVIDER
-import { FavoritesProvider } from '../context/FavoritesContext';
+import { FavoritesProvider } from '../contexts/FavoritesContext';
 
 export default function RootLayout() {
   return (
