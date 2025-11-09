@@ -26,6 +26,9 @@ const COLORS = {
   shadow: '#000',
 };
 
+const API_URL = 'http://192.168.0.101:5000/api';
+// hàm lấy danh sách user
+
 const CATEGORIES = {
   features: ['T-Shirt', 'Polo', 'Short', 'Pant', 'Jean'],
   brands: [], // Tạm thời bỏ brands vì chưa có data
