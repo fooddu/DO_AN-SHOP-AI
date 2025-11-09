@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 export default function Notifications() {
-  const API_URL = 'http://192.168.0.101:5000/api'; // 🔁 Thay bằng API thật của bạn
+  const API_URL = 'http://localhost:5000/api'; // 🔁 Thay bằng API thật của bạn
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
