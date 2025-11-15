@@ -1,167 +1,116 @@
-// [File] context/AuthContext.js
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import { createContext, useContext, useEffect, useState } from 'react';
-import api from '../api/axiosConfig'; // Đảm bảo đường dẫn này đúng
+import api from '../api/axiosConfig';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
-    const [loading, setLoading] = useState(true); 
-
-    // 1. KIỂM TRA TOKEN KHI MỞ APP
+    const [isLoading, setIsLoading] = useState(true); 
+    
+    // 1. Tải dữ liệu đã lưu khi ứng dụng khởi động
     useEffect(() => {
-        const loadStorageData = async () => {
+        const loadStoredData = async () => {
+            console.log('--- [AuthContext] ĐANG TẢI DỮ LIỆU ---');
             try {
-                // Đọc đúng key: userToken và userData
+
                 const storedToken = await AsyncStorage.getItem('userToken');
-                const storedUser = await AsyncStorage.getItem('userData');
-                
+                const storedUser = await AsyncStorage.getItem('user');
+
                 if (storedToken && storedUser) {
-                    api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+                    const parsedUser = JSON.parse(storedUser);
+                    
                     setToken(storedToken);
-                    setUser(JSON.parse(storedUser));
+                    setUser(parsedUser);
+                    console.log(`Đối tượng User đã tải: ${parsedUser.name}`);
+                } else {
+                    console.log('Không tìm thấy User/Token đã lưu.');
                 }
             } catch (e) {
-                console.error(e);
+                console.error("Lỗi khi tải dữ liệu từ AsyncStorage:", e);
             } finally {
-                setLoading(false);
+                // Tắt loading để ứng dụng biết đã sẵn sàng
+                setIsLoading(false);
+                console.log(`Trạng thái Loading: false`);
             }
         };
-        loadStorageData();
+        loadStoredData();
     }, []);
 
-    // 2. HÀM ĐĂNG NHẬP (Lưu vào userData và userToken)
+    // 2. Hàm Đăng nhập 
     const login = async (email, password) => {
         try {
             const response = await api.post('/users/login', { email, password });
-            const { data, token: newToken } = response.data; 
-            setUser(data);
-            setToken(newToken);
-            api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
             
-            // ⭐️ LƯU TRỮ CHUẨN HÓA
-            await AsyncStorage.setItem('userData', JSON.stringify(data));
-            await AsyncStorage.setItem('userToken', newToken);
-            
-            return { success: true };
+            if (response.data.success) {
+                const newToken = response.data.token;
+                const userData = response.data.data;
+
+                // LƯU VÀO ASYNC STORAGE TRƯỚC KHI CẬP NHẬT STATE
+                await AsyncStorage.setItem('userToken', newToken);
+                await AsyncStorage.setItem('user', JSON.stringify(userData));
+
+                // Cập nhật State
+                setToken(newToken);
+                setUser(userData);
+                
+                return { success: true, user: userData };
+            }
+            return { success: false, message: response.data.message || 'Đăng nhập thất bại' };
+
         } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || "Lỗi không xác định";
-            return { success: false, error: errorMessage };
+            console.error('Login failed:', error.response?.data?.message || error.message);
+            return { success: false, message: error.response?.data?.message || 'Lỗi server' };
         }
     };
     
-    // 3. HÀM ĐĂNG KÝ (Lưu vào userData và userToken)
-    const signUp = async (name, email, password) => {
-        try {
-            const response = await api.post('/users/register', { name, email, password });
-            const { data, token: newToken } = response.data;
-            setUser(data);
-            setToken(newToken);
-            api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-            
-            // ⭐️ LƯU TRỮ CHUẨN HÓA
-            await AsyncStorage.setItem('userData', JSON.stringify(data));
-            await AsyncStorage.setItem('userToken', newToken);
-            
-            return { success: true };
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || "Lỗi không xác định";
-            return { success: false, error: errorMessage };
-        }
-    };
-
-    // 4. HÀM ĐĂNG XUẤT
+    // 3. Hàm Đăng xuất
     const logout = async () => {
-        delete api.defaults.headers.common['Authorization'];
-        setUser(null);
-        setToken(null);
-        await AsyncStorage.removeItem('userData');
+
         await AsyncStorage.removeItem('userToken');
-        // Không cần xóa 'authData' vì không dùng nữa
+        await AsyncStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+        router.replace('/(auth)/login');
     };
 
-    // ⭐️ 5. HÀM CẬP NHẬT THÔNG TIN USER (Đã Sửa Logic Lưu trữ)
+    // ⭐️ FIX: BƯỚC 1: THÊM HÀM UPDATEUSER ⭐️
+    /**
+     * Cập nhật thông tin User trong Context State và AsyncStorage.
+     * @param {object} newUserData - Dữ liệu người dùng mới nhận từ API.
+     */
     const updateUser = async (newUserData) => {
-        // 1. Cập nhật state (React)
-        setUser(newUserData); 
-        
-        // ⭐️ LOG DEBUG: Kiểm tra dữ liệu được truyền vào Context
-        console.log("DEBUG CONTEXT: Dữ liệu User MỚI được truyền vào Context:", newUserData);
+        if (!newUserData) return;
 
-        // 2. Cập nhật Local Storage (AsyncStorage)
-        // Chúng ta chỉ cần lưu user object mới vào key 'userData'
         try {
-             await AsyncStorage.setItem('userData', JSON.stringify(newUserData));
-             console.log("DEBUG CONTEXT: Đã lưu thông tin user mới vào AsyncStorage thành công.");
-        } catch (e) {
-            console.error("Lỗi khi lưu userData mới:", e);
-        }
-       
-    };
-    
-    // 6. CÁC HÀM QUÊN MẬT KHẨU (Giữ nguyên)
-    const forgotPassword = async (email) => {
-        try {
-            const response = await api.post('/users/forgot-password', { email });
-            return { 
-                success: true, 
-                message: response.data?.message || 'OTP code has been sent to your email.' 
-            };
+            // 1. Cập nhật state cục bộ
+            setUser(newUserData); 
+            
+            // 2. Cập nhật AsyncStorage
+            await AsyncStorage.setItem('user', JSON.stringify(newUserData));
+            console.log("Context: User State và Storage đã được cập nhật.");
+            
         } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || "An error occurred";
-            return { success: false, message: errorMessage, error: errorMessage };
+            console.error("Lỗi khi cập nhật User trong Context:", error);
         }
     };
-
-    const verifyOtp = async (email, otp) => {
-        try {
-            const response = await api.post('/users/verify-otp', { email, otp });
-            return { 
-                success: true, 
-                message: response.data?.message || 'Verification successful.' 
-            };
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || "An error occurred";
-            return { success: false, message: errorMessage, error: errorMessage };
-        }
-    };
-
-    const setNewPassword = async (email, newPassword) => {
-        try {
-            const response = await api.post('/users/set-new-password', { email, newPassword });
-            return { 
-                success: true, 
-                message: response.data?.message || 'Your password has been changed. Please log in again.' 
-            };
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || "An error occurred";
-            return { success: false, message: errorMessage, error: errorMessage };
-        }
-    };
-    
-    const isLoggedIn = !!user;
 
     return (
+        // ⭐️ FIX: BƯỚC 2: TRUYỀN HÀM UPDATEUSER VÀO VALUE ⭐️
         <AuthContext.Provider value={{ 
             user, 
             token, 
+            isLoading, 
             login, 
-            logout, 
-            signUp, 
-            forgotPassword, 
-            verifyOtp, 
-            setNewPassword,
-            updateUser, // ⭐️ ĐÃ THÊM update USER VÀO CONTEXT
-            loading, 
-            isLoggedIn 
+            logout,
+            updateUser // <-- ĐÃ THÊM!
         }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
-// Hook để sử dụng context
+
 export const useAuth = () => useContext(AuthContext);

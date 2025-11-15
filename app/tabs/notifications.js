@@ -1,21 +1,22 @@
-// [File] app/tabs/notifications.js
-
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  Alert,
-  FlatList,
-  Image,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    RefreshControl,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
+import client from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 
-// Định nghĩa màu sắc
+// Sử dụng COLORS bạn đã định nghĩa
 const COLORS = {
     text: '#222',
     muted: '#888',
@@ -23,120 +24,125 @@ const COLORS = {
     surface: '#f6f6f6', 
     green: '#27ae60', 
     borderColor: '#E8E8E8',
-    warning: '#f39c12', // Màu vàng cảnh báo
-    primary: '#E91E63', // Màu hồng cho nút xóa
+    warning: '#f39c12', 
+    primary: '#E91E63', 
 };
 
 // ======================================================
-// Dữ liệu mẫu (Mock Data)
+// ProfileWarningCard (Giữ lại định nghĩa nhưng không sử dụng trong FlatList)
 // ======================================================
-const sampleNotifications = [
-    {
-        id: '1',
-        title: 'Your order #123456789 has been confirmed',
-        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Turpis pretium et in arcu adipiscing nec.',
-        image: 'https://images.unsplash.com/photo-1596706268132-bk04235e197c?w=100', 
-        isNew: true,
-        read: false, 
-    },
-    {
-        id: '2',
-        title: 'Your order #123456789 has been canceled',
-        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Turpis pretium et in in arcu adipiscing nec.',
-        image: 'https://images.unsplash.com/photo-1571455269707-38f3aff4447a?w=100', 
-        isNew: false,
-        read: true, 
-    },
-];
-
-// Component Cảnh báo Yêu cầu Cập nhật Profile (Giữ nguyên)
 const ProfileWarningCard = ({ onPress }) => (
     <TouchableOpacity style={styles.warningCard} onPress={onPress}>
         <Ionicons name="alert-circle-outline" size={24} color={COLORS.warning} />
         <View style={styles.warningContent}>
-            <Text style={styles.warningTitle}>Cần Cập nhật Hồ sơ</Text>
-            <Text style={styles.warningText}>Vui lòng thêm **Số điện thoại & Địa chỉ** để giao hàng.</Text>
+            <Text style={styles.warningTitle}>Cảnh báo Hồ sơ</Text>
+            <Text style={styles.warningText}>Vui lòng cập nhật SĐT và Địa chỉ để giao dịch.</Text>
         </View>
-        <Ionicons name="chevron-forward" size={24} color={COLORS.warning} />
+        <Ionicons name="chevron-forward" size={20} color={COLORS.muted} />
     </TouchableOpacity>
 );
+
 
 // ======================================================
 // Component cho từng hàng thông báo
 // ======================================================
 const NotificationItem = ({ item, deleteNotification }) => (
-    // THAY ĐỔI: Sử dụng styles cho card item chính
-    <View style={styles.notificationWrapper}> 
-        <View style={[styles.itemContainer, !item.read && styles.unreadItem]}>
+    // itemContainer: Đã loại bỏ hiệu ứng card, sử dụng viền dưới
+    <View style={[styles.itemContainer, !item.read && styles.unreadItem]}>
+        
+        <Image 
+            // ⭐️ Đã sửa URL placeholder lỗi và chỉnh kích thước về 50x50 ⭐️
+            source={{ uri: item.image || 'https://via.placeholder.com/50/f0f0f0?text=IMG' }} 
+            style={styles.itemImage} 
+        />
+        
+        <View style={styles.itemTextContainer}> 
+            {/* Title: Tiêu đề chưa đọc sẽ dùng COLORS.text (màu đậm) */}
+            <Text 
+                style={[styles.itemTitle, !item.read && { color: COLORS.text }]}
+                numberOfLines={1}
+            >
+                {item.title}
+            </Text>
             
-            {/* Hình ảnh sản phẩm */}
-            <Image source={{ uri: item.image }} style={styles.itemImage} />
+            {/* Description */}
+            <Text 
+                style={styles.itemDescription} 
+                numberOfLines={2}
+            >
+                {item.description}
+            </Text>
             
-            {/* Cụm text (title, description, tag) */}
-            {/* THAY ĐỔI: Thêm actionRow bên trong itemTextContainer */}
-            <View style={styles.itemTextContainer}> 
-                
-                {/* Text Nội dung */}
-                <Text style={styles.itemTitle}>{item.title}</Text>
-                <Text style={styles.itemDescription} numberOfLines={3}>{item.description}</Text>
-                
-                {/* ⭐️ NÚT DELETE VÀ NEW TAG NẰM TRONG HÀNG NÀY ⭐️ */}
-                <View style={styles.bottomRow}>
-                    
-                    {/* NÚT DELETE (Tối giản, không viền) */}
-                    <TouchableOpacity 
-                        style={styles.compactDeleteButton} 
-                        onPress={() => deleteNotification(item.id)}
-                    >
-                        <Text style={styles.compactDeleteText}>Delete</Text>
-                    </TouchableOpacity>
-                    
-                    {/* Tag "New" */}
-                    {item.isNew && (
-                        <Text style={styles.newTagText}>New</Text>
-                    )}
-                </View>
-                
+            {/* Bottom Row - Chỉ hiển thị Tag "New" */}
+            <View style={styles.bottomRow}>
+                {item.isNew && (
+                    <Text style={styles.newTagText}>New</Text>
+                )}
             </View>
+            
         </View>
     </View>
 );
 
 // ======================================================
-// Component màn hình chính
+// Màn hình chính NotificationsScreen
 // ======================================================
 export default function NotificationsScreen() {
     const router = useRouter();
-    const { user, loading } = useAuth(); 
-    const [notifications, setNotifications] = useState(sampleNotifications);
+    const { user, loading: authLoading } = useAuth(); 
+    const [notifications, setNotifications] = useState([]); 
+    const [loading, setLoading] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // LOGIC XÓA THÔNG BÁO
-    const deleteNotification = (id) => {
-        Alert.alert(
-            "Xác nhận xóa",
-            "Bạn có chắc chắn muốn xóa thông báo này?",
-            [
-                { text: "Hủy", style: "cancel" },
-                { 
-                    text: "Xóa", 
-                    onPress: () => {
-                        const newNotifications = notifications.filter(n => n.id !== id);
-                        setNotifications(newNotifications);
-                    },
-                    style: 'destructive'
-                }
-            ]
+    const fetchNotifications = async (isRefresh = false) => {
+        if (!user) return;
+        if (!isRefresh) setLoading(true);
+        else setIsRefreshing(true);
+
+        try {
+            const response = await client.get('/notifications'); 
+            
+            if (response.data.success) {
+                const dataWithIdKey = response.data.data.map(item => ({ 
+                    ...item, 
+                    id: item._id, 
+                    isNew: !item.read 
+                }));
+                // Sắp xếp: ưu tiên thông báo chưa đọc lên đầu
+                const sortedData = dataWithIdKey.sort((a, b) => b.isNew - a.isNew);
+                
+                setNotifications(sortedData || []); 
+            }
+        } catch (error) {
+            console.error("Lỗi tải thông báo:", error);
+            if (error.response && error.response.status === 401) {
+                Alert.alert("Phiên hết hạn", "Vui lòng đăng nhập lại.");
+            }
+        } finally {
+            setLoading(false);
+            setIsRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        if (user) {
+            fetchNotifications();
+        }
+    }, [user]);
+
+    // Lược bỏ logic deleteNotification vì không có nút xóa trên UI
+
+    if (authLoading || loading) {
+        return (
+            <SafeAreaView style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+            </SafeAreaView>
         );
-    };
-
-    const isProfileIncomplete = user && (!user.phone || user.phone.trim() === '' || !user.address || user.address.trim() === '');
-    
-    const handleGoToEditProfile = () => {
-        router.push('/account-settings'); 
-    };
+    }
 
     return (
         <SafeAreaView style={styles.safeArea}>
+            {/* Header */}
             <View style={styles.header}>
                 <Ionicons name="search-outline" size={24} color={COLORS.text} style={styles.searchIcon} />
                 <Text style={styles.headerTitle}>Notification</Text>
@@ -148,31 +154,53 @@ export default function NotificationsScreen() {
                 keyExtractor={item => item.id}
                 contentContainerStyle={styles.listContainer}
                 showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => (
-                    <NotificationItem item={item} deleteNotification={deleteNotification} />
-                )}
                 
-                ListHeaderComponent={() => (
-                    !loading && isProfileIncomplete ? <ProfileWarningCard onPress={handleGoToEditProfile} /> : null
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={() => fetchNotifications(true)}
+                        tintColor={COLORS.primary}
+                    />
+                }
+                
+                renderItem={({ item }) => (
+                    <NotificationItem item={item} />
+                )}
+
+                ListEmptyComponent={() => (
+                    !loading && !authLoading && (
+                        <View style={styles.emptyContainer}>
+                            <Text style={styles.emptyText}>Bạn chưa có thông báo nào.</Text>
+                        </View>
+                    )
                 )}
             />
         </SafeAreaView>
     );
 }
 
+// ======================================================
+// Stylesheets (Đã hoàn thiện theo UI mẫu)
+// ======================================================
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: COLORS.bg },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.bg,
+    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 15,
+        paddingVertical: 10, 
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
     },
     headerTitle: {
-        fontSize: 20,
+        fontSize: 18, 
         fontWeight: 'bold',
         color: COLORS.text,
     },
@@ -182,80 +210,74 @@ const styles = StyleSheet.create({
     searchIconPlaceholder: {
         width: 34, 
     },
-    listContainer: {
-        paddingTop: 10,
+    emptyContainer: {
+        flex: 1,
+        marginTop: 100,
+        alignItems: 'center',
     },
-    // STYLE CHO CONTAINER CHỨA NOTIFICATION VÀ NÚT XÓA
-    notificationWrapper: {
-        marginBottom: 10, 
-        backgroundColor: COLORS.bg,
-        marginHorizontal: 16, 
-        borderRadius: 8,
-        overflow: 'hidden',
-        elevation: 1,
-        borderWidth: 1,
-        borderColor: COLORS.borderColor,
+    emptyText: {
+        color: COLORS.muted,
+        fontSize: 16,
     },
-    // STYLE CHO NỘI DUNG THÔNG BÁO CHÍNH
+    listContainer: {},
+    
+    // Item Container (Phẳng)
     itemContainer: {
         flexDirection: 'row',
         padding: 16,
         alignItems: 'flex-start',
         backgroundColor: COLORS.bg, 
+        borderBottomWidth: 1, 
+        borderBottomColor: '#eee', 
     },
     unreadItem: {
-        backgroundColor: COLORS.surface, 
+        // Tùy chọn: backgroundColor: COLORS.surface, 
     },
     itemImage: {
-        width: 50,
-        height: 50,
-        borderRadius: 8,
+        width: 50, 
+        height: 50, 
+        borderRadius: 4, 
         marginRight: 15,
         backgroundColor: '#eee', 
-        resizeMode: 'contain', 
+        resizeMode: 'cover', 
     },
     itemTextContainer: {
-        flex: 1,
-        justifyContent: 'space-between', // Đảm bảo text và bottomRow được căn cách nhau
+        flex: 1, 
+        flexShrink: 1, 
+        justifyContent: 'space-between',
     },
     itemTitle: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: COLORS.text,
+        fontSize: 14, 
+        fontWeight: 'bold', 
+        color: COLORS.muted, 
         marginBottom: 4,
     },
     itemDescription: {
-        fontSize: 14,
+        fontSize: 13, 
         color: COLORS.muted,
-        lineHeight: 20,
-        marginBottom: 8, // Thêm margin để tách khỏi hàng dưới
+        lineHeight: 18,
+        marginBottom: 8, 
+        flexShrink: 1,
     },
-    // ⭐️ STYLE MỚI CHO HÀNG NÚT DELETE VÀ NEW TAG
     bottomRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between', // Căn cách Delete và New
+        justifyContent: 'flex-end', 
         alignItems: 'center',
         marginTop: 5,
     },
-    // ⭐️ STYLE MỚI CHO NÚT DELETE TỐI GIẢN
-    compactDeleteButton: {
-        // Tối giản: không padding lớn, không viền
-        paddingHorizontal: 8, 
-        paddingVertical: 4,
-        backgroundColor: COLORS.primary, 
-        borderRadius: 5,
-    },
-    compactDeleteText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 12, // Kích thước nhỏ gọn
-    },
+    
     newTagText: {
-        fontSize: 13,
-        fontWeight: 'bold',
+        fontSize: 12,
+        fontWeight: '600',
         color: COLORS.green,
+        borderColor: COLORS.green,
+        borderWidth: 1,
+        borderRadius: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
     },
-    // STYLE CẢNH BÁO (Giữ nguyên)
+    
+    // Styles cho ProfileWarningCard (không sử dụng)
     warningCard: {
         flexDirection: 'row',
         alignItems: 'center',

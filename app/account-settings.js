@@ -20,7 +20,20 @@ import {
 
 import { useAuth } from '../../DO_AN-SHOP-AI/context/AuthContext';
 
-// ⭐️ CẦN THAY THẾ BẰNG TOKEN JWT HỢP LỆ CỦA BẠN (Dùng cho Fetch)
+// Giả định bạn có một hàm lấy Base URL động (từ axiosConfig.js hoặc tương tự)
+const getBaseUrl = () => {
+    // ⚠️ QUAN TRỌNG: SỬ DỤNG IP CỤC BỘ VÀ PORT
+    const LOCAL_IP = '192.168.1.2'; 
+    const LOCAL_PORT = 4000;
+    
+    if (Platform.OS === 'web') {
+        return `http://localhost:${LOCAL_PORT}`;
+    }
+    // Dùng IP cục bộ cho Native
+    return `http://${LOCAL_IP}:${LOCAL_PORT}`; 
+};
+
+// ⭐️ TOKEN: Cần lấy token từ AuthContext, không dùng biến cứng (DEBUG_TOKEN)
 const DEBUG_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MGExYTg3M2ZkZDdkMWMwYjI0MTIxNiIsImlhdCI6MTc2MjQ0MDk4NCwiZXhwIjoxNzY1MDMyOTg0fQ.Bo_-KiT9mN83HhwO-YB2A0s9aE8SiDnXylKSrl3OA9M";
 
 const COLORS = {
@@ -31,12 +44,13 @@ const COLORS = {
     inputBg: '#f6f6f6',
 };
 
-// ⭐️ HÀM UPLOAD ẢNH (Dùng Fetch API và Port 5001)
-const uploadImageToServer = async (uri, userId, mimeType) => {
+// ⭐️ HÀM UPLOAD ẢNH (Đã fix logic URL kép)
+const uploadImageToServer = async (uri, userId, mimeType, token) => {
     
     const ext = mimeType.split('/')[1] || 'jpg';
     const filename = `avatar-${userId}-${Date.now()}.${ext}`;
     const formData = new FormData();
+    const serverBaseUrl = getBaseUrl(); 
     
     let fileToUpload; 
 
@@ -46,9 +60,8 @@ const uploadImageToServer = async (uri, userId, mimeType) => {
         const blob = await response.blob();
         fileToUpload = new File([blob], filename, { type: mimeType });
     } else {
-        const fileUri = uri.startsWith('file://') ? uri.replace('file://', '') : uri;
         fileToUpload = { 
-            uri: fileUri, 
+            uri: uri, 
             name: filename, 
             type: mimeType, 
         };
@@ -57,22 +70,30 @@ const uploadImageToServer = async (uri, userId, mimeType) => {
     formData.append('avatar', fileToUpload);
 
     try {
-        // ⭐️ SỬ DỤNG PORT 5001
-        const response = await fetch('http://localhost:5001/api/upload/avatar', {
+        const response = await fetch(`${serverBaseUrl}/api/upload/avatar`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${DEBUG_TOKEN}`,
+                'Authorization': `Bearer ${token}`, // Sử dụng token truyền vào
             },
             body: formData,
         });
 
         const data = await response.json();
 
-        if (response.status !== 200) {
+        if (response.status !== 200 || !data.success) {
             throw new Error(data.message || `Lỗi tải ảnh lên. Status: ${response.status}`);
         }
         
-        return data.url; 
+        // ⭐️ FIX LỖI GHÉP URL KÉP: Kiểm tra nếu URL đã tuyệt đối (chứa http/https)
+        const serverReturnedUrl = data.url;
+        
+        if (serverReturnedUrl.startsWith('http://') || serverReturnedUrl.startsWith('https://')) {
+            // Server đã trả về URL tuyệt đối (Vd: Ngrok URL), DÙNG LUÔN
+            return serverReturnedUrl; 
+        }
+
+        // Nếu Server chỉ trả về URL tương đối (Vd: /uploads/avatars/...)
+        return `${serverBaseUrl}${serverReturnedUrl}`; 
 
     } catch (error) {
         console.error('Lỗi Upload ảnh (Frontend):', error.message);
@@ -82,7 +103,7 @@ const uploadImageToServer = async (uri, userId, mimeType) => {
 
 export default function EditProfileScreen() {
     const router = useRouter();
-    const { user, updateUser } = useAuth(); 
+    const { user, token: userToken, updateUser } = useAuth(); // Lấy token từ AuthContext 
 
     const defaultAvatarUrl = 'https://i.pravatar.cc/150';
 
@@ -94,12 +115,14 @@ export default function EditProfileScreen() {
     const [loading, setLoading] = useState(false);
 
     
-    // ⭐️ HÀM CẬP NHẬT PROFILE (SỬ DỤNG Fetch/Axios và Port 5001)
+    // ⭐️ HÀM CẬP NHẬT PROFILE (Sử dụng Fetch)
     const handleUpdateProfile = async (newAvatarUrl = avatar) => {
         if (!name || !email) {
             Alert.alert('Lỗi', 'Vui lòng điền đầy đủ Tên và Email.');
             return;
         }
+
+        const currentToken = userToken || DEBUG_TOKEN; // Dùng token thực tế
 
         if (loading === false) { 
             setLoading(true);
@@ -107,13 +130,14 @@ export default function EditProfileScreen() {
 
         try {
             const updatedData = { name, email, phone, address, avatar: newAvatarUrl }; 
+            const serverBaseUrl = getBaseUrl();
             
-            // ⭐️ SỬ DỤNG PORT 5001 CHO CẬP NHẬT PROFILE
-            const response = await fetch(`http://localhost:5001/api/users/${user._id}`, {
+            // ⭐️ CẬP NHẬT PROFILE
+            const response = await fetch(`${serverBaseUrl}/api/users/${user._id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${DEBUG_TOKEN}`, 
+                    'Authorization': `Bearer ${currentToken}`, 
                 },
                 body: JSON.stringify(updatedData),
             });
@@ -121,12 +145,9 @@ export default function EditProfileScreen() {
             const data = await response.json();
 
             if (data.success) {
+                // Cập nhật Context với dữ liệu người dùng mới nhất
                 updateUser(data.data); 
-                
-                if (loading === false || newAvatarUrl === avatar) { 
-                     Alert.alert('Thành công', 'Thông tin cá nhân đã được cập nhật.');
-                }
-                
+                Alert.alert('Thành công', 'Thông tin cá nhân đã được cập nhật.');
             } else {
                 Alert.alert('Lỗi', data.message || 'Cập nhật thất bại.');
             }
@@ -135,41 +156,51 @@ export default function EditProfileScreen() {
             console.error('Lỗi cập nhật profile:', error.message);
             Alert.alert('Lỗi', 'Không thể kết nối tới server hoặc lỗi response.');
         } finally {
-            if (newAvatarUrl === avatar) {
-                 setLoading(false);
-            }
+            setLoading(false);
         }
     };
     
-    // ⭐️ HÀM XỬ LÝ CHỌN ẢNH
+    // ⭐️ HÀM XỬ LÝ CHỌN VÀ UPLOAD ẢNH (Đã fix lỗi Type triệt để)
     const handleChoosePhoto = async () => {
+        // ⭐️ LOG 1: Xác nhận nút click đã hoạt động
+        console.log("DEBUG UPLOAD: Bắt đầu quá trình chọn ảnh..."); 
+        
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
             Alert.alert('Lỗi', 'Cần quyền truy cập thư viện ảnh để chọn ảnh.');
             return;
         }
 
+        // ⭐️ FIX LỖI TYPE ERROR: Đảm bảo mediaTypes là MẢNG chứa giá trị hợp lệ.
+        const mediaTypeConfig = (ImagePicker.MediaType && ImagePicker.MediaType.Images !== undefined)
+            ? [ImagePicker.MediaType.Images]
+            : [1]; // 1 là giá trị nội bộ (enum value) cho Images
+        
         let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: mediaTypeConfig, 
             allowsEditing: true, 
-            aspect: [1, 1],       
-            quality: 0.5,         
+            aspect: [1, 1], 
+            quality: 0.5, 
         });
 
         if (!result.canceled) {
             const asset = result.assets[0]; 
+            // ⭐️ LOG 2: Xác nhận ảnh đã được chọn và có URI
+            console.log("DEBUG UPLOAD: Ảnh được chọn, URI:", asset.uri);
+            
             setLoading(true);
-            try {
-                // 3. Upload ảnh lên server (dùng hàm đã sửa)
-                const newAvatarUrl = await uploadImageToServer(asset.uri, user._id, asset.mimeType);
+            const currentToken = userToken || DEBUG_TOKEN;
 
-                // 4. Cập nhật URL ảnh mới cục bộ và gọi hàm lưu Profile chính
-                setAvatar(newAvatarUrl); 
+            try {
+                // 3. Upload ảnh lên server
+                const newAvatarUrl = await uploadImageToServer(asset.uri, user._id, asset.mimeType, currentToken);
                 
+                // 4. Cập nhật URL ảnh mới cục bộ và gọi hàm lưu Profile chính
+                setAvatar(newAvatarUrl); // Cập nhật UI ngay lập lập tức
+                
+                // Lưu URL ảnh mới vào database cùng với thông tin profile
                 await handleUpdateProfile(newAvatarUrl);
                 
-                Alert.alert('Thành công', 'Ảnh đại diện đã được cập nhật.');
-
             } catch (error) {
                 Alert.alert('Lỗi', error.message || 'Không thể tải ảnh lên server.');
             } finally {
@@ -181,7 +212,6 @@ export default function EditProfileScreen() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            {/* Header tùy chỉnh */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text} />
@@ -199,8 +229,7 @@ export default function EditProfileScreen() {
                         style={styles.avatar} 
                         resizeMode="cover"
                     />
-                    {/* SỬA: BẤM VÀO SẼ CHỌN ẢNH */}
-                    <TouchableOpacity onPress={handleChoosePhoto}>
+                    <TouchableOpacity onPress={handleChoosePhoto} disabled={loading}>
                         <Text style={styles.changeAvatarText}>Đổi ảnh</Text>
                     </TouchableOpacity>
                 </View>

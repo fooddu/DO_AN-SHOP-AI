@@ -1,27 +1,26 @@
-// [File] app/tabs/account.js (Đã sửa đường dẫn điều hướng)
-
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, useRouter } from 'expo-router'; // Import Redirect
+import { Redirect, useRouter } from 'expo-router';
 import {
-  ActivityIndicator,
-  Image,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Image,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
-// 1. Import useAuth
+import { useEffect, useState } from 'react';
+// ⚠️ Thay đổi đường dẫn này nếu cần
 import { useAuth } from '../../context/AuthContext';
 
 // Định nghĩa màu sắc
 const COLORS = {
     text: '#222',
     muted: '#888',
-    bg: '#ffffff', 
-    cardBackground: '#fff', 
+    bg: '#ffffff', // Màu nền tổng thể (Trắng)
+    cardBackground: '#fff', // Màu nền cho các thẻ (Trắng)
     borderColor: '#E8E8E8',
     shadow: '#000',
 };
@@ -33,24 +32,62 @@ const ProfileMenuItemCard = ({ title, subtitle, onPress }) => (
             <Text style={styles.cardTitle}>{title}</Text>
             <Text style={styles.cardSubtitle}>{subtitle}</Text>
         </View>
+        {/* Biểu tượng mũi tên giữ nguyên */}
         <Ionicons name="chevron-forward" size={22} color={COLORS.muted} />
     </TouchableOpacity>
 );
 
+// ⭐️ HÀM MOCKUP FETCH API (Giữ nguyên)
+const fetchOrderCountAPI = async (token) => {
+    // Giả lập độ trễ (ví dụ: 500ms) để mô phỏng việc gọi API
+    await new Promise(resolve => setTimeout(resolve, 500)); 
+    // Giả lập trả về số lượng đơn hàng
+    return Math.floor(Math.random() * 50) + 5; 
+};
 
 export default function AccountScreen() {
     const router = useRouter(); 
     
-    // Lấy user thật và hàm logout từ Context
-    const { user, logout, loading } = useAuth();
+    // Lấy token từ AuthContext để dùng cho việc gọi API
+    const { user, logout, loading, token } = useAuth();
 
-    // ⭐️ SỬA ĐƯỜNG DẪN ĐIỀU HƯỚNG TỚI FILE CHỈNH SỬA
-    const goToOrders = () => router.push('/orders');
-    const goToShippingAddresses = () => console.log('Go to Shipping');
-    const goToPaymentMethod = () => console.log('Go to Payment');
-    const goToEditInformation = () => router.push('/account-settings'); // <--- ĐIỀU HƯỚNG TỚI STACK SCREEN MỚI
+    // STATE để lưu số lượng đơn hàng thực tế
+    const [orderCount, setOrderCount] = useState(0); 
+    const [isCounting, setIsCounting] = useState(true); // Bắt đầu là đang tải
+
+    // Dữ liệu giả định cho các thẻ khác
+    const addressCount = 3;
+    const cardCount = 2;
+
+    // LOGIC GỌI API KHI COMPONENT ĐƯỢC LOAD
+    useEffect(() => {
+        const loadOrderCount = async () => {
+            if (user && token) {
+                setIsCounting(true);
+                try {
+                    // Gọi hàm Mockup hoặc API thực tế
+                    const count = await fetchOrderCountAPI(token);
+                    setOrderCount(count);
+                } catch (error) {
+                    console.error("Lỗi tải số lượng đơn hàng:", error);
+                    setOrderCount(0); // Đặt về 0 nếu có lỗi
+                } finally {
+                    setIsCounting(false);
+                }
+            } else {
+                 setIsCounting(false); // Nếu chưa đăng nhập, kết thúc loading count
+            }
+        };
+
+        loadOrderCount();
+    }, [user, token]); 
     
-    // Xử lý khi user chưa kịp load
+    // --- Các hàm Navigation ---
+    const goToOrders = () => router.push('/orders'); 
+    const goToShippingAddresses = () => router.push('/shipping-addresses'); 
+    const goToPaymentMethod = () => console.log('Go to Payment');
+    const goToEditInformation = () => router.push('/account-settings');
+    
     if (loading) {
         return (
             <SafeAreaView style={[styles.safeArea, {justifyContent: 'center', alignItems: 'center'}]}>
@@ -59,12 +96,19 @@ export default function AccountScreen() {
         );
     }
     
-    // Nếu (vì lý do nào đó) không có user, quay về login
     if (!user) {
         return <Redirect href="/login" />;
     }
     
-    const userAvatar = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto.format&fit.crop';
+    // ⭐️ FIX LỖI: Định nghĩa URL avatar mặc định ⭐️
+    const defaultAvatarUrl = 'https://i.pravatar.cc/150?img=1'; 
+
+    // Sử dụng user data từ Context
+    const displayName = user.name || "Bruno Pham"; 
+    const displayEmail = user.email || "bruno203@gmail.com"; 
+    
+    // SỬA LỖI: Sử dụng defaultAvatarUrl thay vì biến chưa định nghĩa
+    const displayAvatar = user.avatar || defaultAvatarUrl; 
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -72,13 +116,14 @@ export default function AccountScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity style={styles.headerIconLeft}>
+                    {/* Biểu tượng kính lúp (Search) */}
                     <Ionicons name="search-outline" size={24} color={COLORS.text} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Profile</Text>
                 
                 {/* NÚT LOGOUT */}
                 <TouchableOpacity style={styles.headerIconRight} onPress={logout}>
-                    <Ionicons name="log-out-outline" size={24} color={COLORS.text} />
+                    <Ionicons name="refresh-circle-outline" size={28} color={COLORS.text} />
                 </TouchableOpacity>
             </View>
 
@@ -87,34 +132,43 @@ export default function AccountScreen() {
                 
                 {/* Profile Info - HIỂN THỊ USER THẬT */}
                 <View style={styles.profileInfoContainer}>
-                    {/* Giả định: user.avatar là đường dẫn ảnh thật (nếu có) */}
-                    <Image source={{ uri: user.avatar || userAvatar }} style={styles.avatar} /> 
+                    <Image 
+                        source={{ uri: displayAvatar }} 
+                        style={styles.avatar} 
+                        // Thêm onError để xử lý lỗi tải ảnh
+                        onError={() => console.log('Lỗi tải avatar')}
+                    /> 
                     <View style={styles.userInfo}>
-                        <Text style={styles.userName}>{user.name}</Text>
-                        <Text style={styles.userEmail}>{user.email}</Text> 
+                        <Text style={styles.userName}>{displayName}</Text>
+                        <Text style={styles.userEmail}>{displayEmail}</Text> 
                     </View>
                 </View>
 
                 {/* 4 Card Menu */}
                 <ProfileMenuItemCard
                     title="My orders"
-                    subtitle="Already have 10 orders"
+                    // HIỂN THỊ SỐ LƯỢNG ĐỘNG / TRẠNG THÁI TẢI
+                    subtitle={
+                        isCounting 
+                        ? "Đang tải..." 
+                        : (orderCount === 0 ? "Chưa có đơn hàng nào." : `Đã có ${orderCount} đơn hàng.`)
+                    }
                     onPress={goToOrders}
                 />
                 <ProfileMenuItemCard
                     title="Shipping Addresses"
-                    subtitle="03 Addresses"
-                    onPress={goToShippingAddresses}
+                    subtitle={`${addressCount} Addresses`}
+                    onPress={goToShippingAddresses} 
                 />
                 <ProfileMenuItemCard
                     title="Payment Method"
-                    subtitle="You have 2 cards"
+                    subtitle={`You have ${cardCount} cards`}
                     onPress={goToPaymentMethod}
                 />
                 <ProfileMenuItemCard
-                    title="Edit Infomation"
+                    title="Edit Infomation" 
                     subtitle="Notification, Password, FAQ, Contact"
-                    onPress={goToEditInformation} // <--- ĐÃ SỬA
+                    onPress={goToEditInformation}
                 />
 
             </ScrollView>
@@ -122,28 +176,28 @@ export default function AccountScreen() {
     );
 }
 
-// Styles (Giữ nguyên)
+
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
         backgroundColor: COLORS.bg,
     },
     scrollContainer: {
-        paddingHorizontal: 16, 
+        paddingHorizontal: 10, 
         paddingBottom: 20,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
+        paddingHorizontal: 15, 
+        paddingVertical: 10, 
         backgroundColor: COLORS.cardBackground, 
     },
-    headerIconLeft: { width: 24 },
-    headerIconRight: { padding: 2 },
+    headerIconLeft: { width: 30, alignItems: 'center' },
+    headerIconRight: { width: 30, alignItems: 'center' },
     headerTitle: {
-        fontSize: 20,
+        fontSize: 18, 
         fontWeight: 'bold',
         color: COLORS.text,
     },
@@ -153,23 +207,23 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
         backgroundColor: COLORS.bg, 
         marginBottom: 10, 
-        paddingHorizontal: 4, 
+        paddingHorizontal: 15, 
     },
     avatar: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
-        marginRight: 15,
+        width: 60, 
+        height: 60, 
+        borderRadius: 30,
+        marginRight: 10,
         backgroundColor: COLORS.borderColor,
     },
-    userInfo: { flex: 1 },
+    userInfo: { flex: 1, justifyContent: 'center' },
     userName: {
-        fontSize: 18,
+        fontSize: 16, 
         fontWeight: 'bold',
         color: COLORS.text,
     },
     userEmail: {
-        fontSize: 14,
+        fontSize: 13, 
         color: COLORS.muted,
     },
     card: {
@@ -177,26 +231,25 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: COLORS.cardBackground,
-        borderRadius: 10,
-        padding: 20,
-        marginBottom: 15, 
-        elevation: 3, 
-        shadowColor: COLORS.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 5,
+        borderRadius: 0, 
+        paddingVertical: 20, 
+        paddingHorizontal: 15, 
+        marginBottom: 8, 
+        elevation: 0, 
+        shadowOpacity: 0,
+        shadowRadius: 0,
     },
     cardTextContainer: {
         flex: 1,
     },
     cardTitle: {
-        fontSize: 16,
+        fontSize: 15, 
         fontWeight: '600',
         color: COLORS.text,
-        marginBottom: 3,
+        marginBottom: 2,
     },
     cardSubtitle: {
-        fontSize: 13,
+        fontSize: 12, 
         color: COLORS.muted,
     },
 });

@@ -5,7 +5,7 @@ import { Platform } from 'react-native'; // 1. Import Platform
 // 2. Sửa lại IP
 // Khi chạy trên WEB, dùng 'localhost'. 
 // Khi chạy trên ĐIỆN THOẠI THẬT, dùng IP Wi-Fi
-const API_URL_WEB = 'http://localhost:5000/api';
+const API_URL_WEB = 'http://localhost:4000/api';
 const API_URL_NATIVE = 'http://192.168.1.2:5000/api';
 
 // 3. Tự động chọn đúng IP

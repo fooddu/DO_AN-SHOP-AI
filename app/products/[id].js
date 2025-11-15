@@ -1,4 +1,4 @@
-// [File] app/products/[id].js
+// [File] app/products/[id].js (Đã fix và thêm Debug)
 
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,13 +9,15 @@ import {
     Image,
     SafeAreaView,
     ScrollView,
-    StyleSheet, // <-- ĐÃ THÊM StyleSheeT ĐỂ KHẮC PHỤC LỖI
+    StyleSheet,
     Text,
     TouchableOpacity,
     View
 } from 'react-native';
-import client from '../../api/axiosConfig'; // API client
-import { useFavorites } from '../../contexts/FavoritesContext'; // Hook từ Context
+// ⚠️ Thay đổi đường dẫn này theo cấu trúc của bạn
+import client from '../../api/axiosConfig';
+import { useAuth } from '../../context/AuthContext';
+import { useFavorites } from '../../contexts/FavoritesContext';
 
 const COLORS = {
     primary: '#E91E63', // pink
@@ -36,17 +38,22 @@ export default function ProductDetailScreen() {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedSize, setSelectedSize] = useState(null); 
-    const [quantity, setQuantity] = useState(1);         
-
+    const [quantity, setQuantity] = useState(1); 
+    
+    // ⭐️ LẤY TRẠNG THÁI NGƯỜI DÙNG ⭐️
+    const { user, token } = useAuth(); // Lấy token từ AuthContext
     const { isFavorited, toggleFavorite } = useFavorites();
 
-    // Load data sản phẩm từ API
+    // Load data sản phẩm từ API (Giữ nguyên)
     useEffect(() => {
+        // ... (Logic fetchProduct giữ nguyên) ...
         if (!id) return;
         
         const fetchProduct = async () => {
             setLoading(true);
             try {
+                // ⭐️ DEBUG LOG: Xem ID sản phẩm đang được tải ⭐️
+                console.log(`DEBUG PRODUCT: Fetching product ID: ${id}`);
                 const response = await client.get(`/products/${id}`); 
                 setProduct(response.data.data);
             } catch (err) {
@@ -61,61 +68,72 @@ export default function ProductDetailScreen() {
         fetchProduct();
     }, [id]);
 
-    // Logic thêm vào giỏ hàng
+    // Logic thêm vào giỏ hàng (Giữ nguyên)
     const addToCart = async (item) => {
-        // Kiểm tra BẮT BUỘC người dùng phải chọn Size
+        // ... (Logic addToCart giữ nguyên) ...
         if (!selectedSize) { 
             Alert.alert('Lỗi', 'Vui lòng chọn size');
             return;
         }
 
         try {
-            const raw = await AsyncStorage.getItem('cart');
-            const cart = raw ? JSON.parse(raw) : [];
-            
-            // Tìm sản phẩm + size hiện tại trong giỏ (Cần tìm theo cả ID và Size)
-            const idx = cart.findIndex((it) => 
-                it.productId === item._id && it.size === selectedSize
-            );
-            
-            if (idx >= 0) {
-                // Đã có, tăng số lượng thêm
-                cart[idx].quantity += quantity; 
-            } else {
-                // Chưa có, thêm mới với size và số lượng đã chọn
-                cart.push({
-                    productId: item._id, 
-                    name: item.name, 
-                    price: item.price,
-                    image: item.image, 
-                    size: selectedSize, 
-                    quantity: quantity
-                });
-            }
-            
-            await AsyncStorage.setItem('cart', JSON.stringify(cart));
-            
-            Alert.alert(
-                'Thành công', 
-                `${item.name} (Size ${selectedSize}, SL: ${quantity}) đã được thêm vào giỏ.`
-            );
-            
-            // Reset số lượng về 1 sau khi thêm
-            setQuantity(1); 
-            
+             const raw = await AsyncStorage.getItem('cart');
+             const cart = raw ? JSON.parse(raw) : [];
+             
+             const idx = cart.findIndex((it) => 
+                 it.productId === item._id && it.size === selectedSize
+             );
+             
+             if (idx >= 0) {
+                 cart[idx].quantity += quantity; 
+             } else {
+                 cart.push({
+                     productId: item._id, 
+                     name: item.name, 
+                     price: item.price,
+                     image: item.image, 
+                     size: selectedSize, 
+                     quantity: quantity
+                 });
+             }
+             
+             await AsyncStorage.setItem('cart', JSON.stringify(cart));
+             
+             Alert.alert(
+                 'Thành công', 
+                 `${item.name} (Size ${selectedSize}, SL: ${quantity}) đã được thêm vào giỏ.`
+             );
+             
+             setQuantity(1); 
+             
         } catch (e) {
-            console.error('Lỗi thêm vào giỏ:', e);
-            Alert.alert('Lỗi', 'Thêm vào giỏ thất bại');
+             console.error('Lỗi thêm vào giỏ:', e);
+             Alert.alert('Lỗi', 'Thêm vào giỏ thất bại');
         }
     };
     
-    // Hàm tăng/giảm số lượng
     const updateQuantity = (amount) => {
-        // Đảm bảo số lượng không nhỏ hơn 1
         setQuantity(prev => Math.max(1, prev + amount));
     };
+    
+    const handleToggleFavorite = () => {
+        // ⭐️ DEBUG LOG: Xem trạng thái token khi nhấn nút Yêu thích ⭐️
+        console.log(`DEBUG FAVORITE: User: ${user ? user.name : 'N/A'}. Current Token: ${token ? 'Available' : 'NOT AVAILABLE'}`);
+
+        // Ngăn chặn gọi API nếu user không tồn tại/token không hợp lệ (logic này được thực thi lại trong Context)
+        if (!user || !token) {
+            Alert.alert('Yêu cầu Đăng nhập', 'Vui lòng đăng nhập để thêm sản phẩm vào danh sách yêu thích.');
+            router.push('/(auth)/login'); 
+            return;
+        }
+        
+        // Gọi hàm toggleFavorite từ Context
+        toggleFavorite(product);
+    };
+
 
     // ------ RENDER ------
+    // ... (Phần render giữ nguyên) ...
 
     if (loading) {
         return (
@@ -130,7 +148,7 @@ export default function ProductDetailScreen() {
             <SafeAreaView style={styles.safeArea}>
                 <Text style={{textAlign: 'center', marginTop: 50}}>Không tìm thấy sản phẩm.</Text>
             </SafeAreaView>
-         );
+           );
     }
 
     const isLiked = isFavorited(product._id);
@@ -145,9 +163,9 @@ export default function ProductDetailScreen() {
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Chi tiết</Text>
                     
-                    {/* Nút Yêu thích (Từ Context) */}
+                    {/* Nút Yêu thích */}
                     <TouchableOpacity 
-                        onPress={() => toggleFavorite(product)}
+                        onPress={handleToggleFavorite} // ⭐️ GỌI HÀM BẢO VỆ ⭐️
                         style={styles.headerBtn}
                     >
                         <Ionicons 
@@ -159,7 +177,10 @@ export default function ProductDetailScreen() {
                 </View>
 
                 {/* 2. Hình ảnh sản phẩm */}
-                <Image source={{ uri: product.image }} style={styles.productImage} />
+                <Image 
+                    source={{ uri: product.image[0] }} 
+                    style={styles.productImage} 
+                />
 
                 {/* 3. Tên và Giá */}
                 <View style={styles.detailsContainer}>
@@ -214,7 +235,7 @@ export default function ProductDetailScreen() {
     );
 }
 
-// Styles
+// Styles (Giữ nguyên)
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: COLORS.bg },
     header: {
