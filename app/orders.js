@@ -2,13 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 // ⚠️ Thay thế đường dẫn này bằng đường dẫn thực tế đến AuthContext của bạn
 import { useAuth } from '../../DO_AN-SHOP-AI/context/AuthContext';

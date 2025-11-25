@@ -1,8 +1,10 @@
+// File: app/checkout.js (FIXED PAYLOAD)
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, // Đã sửa lỗi cú pháp import
+  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -11,10 +13,12 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import client from '../api/client'; // Import client Axios đã cấu hình
+import client from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 export default function CheckoutScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [cart, setCart] = useState([]);
   const [shippingInfo, setShippingInfo] = useState({
     recipientName: '',
@@ -40,7 +44,6 @@ export default function CheckoutScreen() {
     }
   };
 
-  // FIX: Đảm bảo trả về số 0 nếu cart rỗng hoặc giá/số lượng không hợp lệ
   const calculateSubtotal = () => {
     if (!cart || cart.length === 0) {
         return 0;
@@ -66,23 +69,32 @@ export default function CheckoutScreen() {
       return;
     }
     
+    if (!user || !user._id) { 
+        Alert.alert('Lỗi', 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        return;
+    }
+    
     if (isLoading) return;
     setIsLoading(true); 
 
     console.log('--- [DEBUG] Bắt đầu gọi API đặt hàng (POST /orders) ---');
 
     try {
+      // ⭐ FIX 2: Cấu trúc payload khớp với Order Model mới
       const orderData = {
-        user: '690f70a1e440a80ae3a4cec2', 
+        user: user._id, 
         products: cart.map(item => ({
           product: item.productId, 
           quantity: item.quantity,
           price: item.price
         })),
         total: calculateTotal(),
-        shippingAddress: shippingInfo.address,
-        phoneNumber: shippingInfo.phoneNumber,
-        recipientName: shippingInfo.recipientName,
+        // ⭐ FIX: Gửi thông tin địa chỉ dưới dạng một đối tượng nhúng (Embedded Object)
+        shippingAddress: {
+            recipientName: shippingInfo.recipientName,
+            fullAddress: shippingInfo.address,
+            phoneNumber: shippingInfo.phoneNumber,
+        },
         status: 'pending'
       };
 
@@ -105,7 +117,7 @@ export default function CheckoutScreen() {
 
     } catch (error) {
         const errorMessage = error.response?.data?.message || error.message || 'Lỗi kết nối hoặc server.';
-        console.error('❌ [DEBUG] Lỗi đặt hàng chi tiết:', error);
+        console.error('❌ [DEBUG] Lỗi đặt hàng chi tiết:', errorMessage);
         Alert.alert('Lỗi đặt hàng', errorMessage);
     } finally {
         setIsLoading(false);

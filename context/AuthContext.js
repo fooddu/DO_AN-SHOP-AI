@@ -66,6 +66,83 @@ export const AuthProvider = ({ children }) => {
         }
     };
     
+    // Hàm Đăng ký 
+    const signUp = async (name, email, password) => {
+        try {
+            const response = await api.post('/users/register', { name, email, password });
+            
+            if (response.data.success) {
+                return { success: true, data: response.data.data };
+            }
+            
+            return { success: false, error: response.data.message || 'Đăng ký thất bại' };
+
+        } catch (error) {
+            console.error('Registration failed:', error.response?.data?.message || error.message);
+            return { 
+                success: false, 
+                error: error.response?.data?.message || 'Lỗi server khi đăng ký' 
+            };
+        }
+    };
+
+    // Hàm Quên mật khẩu
+    const forgotPassword = async (email) => {
+        try {
+            // Gọi API gửi mã OTP/link reset đến email
+            const response = await api.post('/users/forgot-password', { email });
+
+            return { 
+                success: true, 
+                message: response.data.message || 'Mã OTP đã được gửi đến email của bạn.' 
+            };
+        } catch (error) {
+            console.error('Forgot password failed:', error.response?.data?.message || error.message);
+            return { 
+                success: false, 
+                message: error.response?.data?.message || 'Không tìm thấy người dùng hoặc lỗi server.' 
+            };
+        }
+    };
+    
+    // ⭐️ THÊM: Hàm Xác thực OTP (verifyOtp) ⭐️
+    const verifyOtp = async (email, otp) => {
+        try {
+            // Gọi API để xác thực OTP
+            const response = await api.post('/users/verify-otp', { email, otp });
+
+            return { 
+                success: true, 
+                message: response.data.message || 'Xác thực OTP thành công.' 
+            };
+        } catch (error) {
+            console.error('Verify OTP failed:', error.response?.data?.message || error.message);
+            return { 
+                success: false, 
+                message: error.response?.data?.message || 'Mã OTP không hợp lệ hoặc lỗi server.' 
+            };
+        }
+    };
+    
+    // Hàm Đặt lại mật khẩu
+    const setNewPassword = async (email, newPassword) => {
+        try {
+            // Gọi API để đặt mật khẩu mới
+            const response = await api.post('/users/set-new-password', { email, newPassword });
+
+            return { 
+                success: true, 
+                message: response.data.message || 'Mật khẩu đã được đặt lại thành công.' 
+            };
+        } catch (error) {
+            console.error('Reset password failed:', error.response?.data?.message || error.message);
+            return { 
+                success: false, 
+                message: error.response?.data?.message || 'Phiên đặt lại mật khẩu không hợp lệ.' 
+            };
+        }
+    };
+    
     // 3. Hàm Đăng xuất
     const logout = async () => {
 
@@ -76,11 +153,7 @@ export const AuthProvider = ({ children }) => {
         router.replace('/(auth)/login');
     };
 
-    // ⭐️ FIX: BƯỚC 1: THÊM HÀM UPDATEUSER ⭐️
-    /**
-     * Cập nhật thông tin User trong Context State và AsyncStorage.
-     * @param {object} newUserData - Dữ liệu người dùng mới nhận từ API.
-     */
+    // Hàm Cập nhật User
     const updateUser = async (newUserData) => {
         if (!newUserData) return;
 
@@ -98,14 +171,17 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        // ⭐️ FIX: BƯỚC 2: TRUYỀN HÀM UPDATEUSER VÀO VALUE ⭐️
         <AuthContext.Provider value={{ 
             user, 
             token, 
             isLoading, 
             login, 
             logout,
-            updateUser // <-- ĐÃ THÊM!
+            updateUser,
+            signUp,
+            forgotPassword, 
+            verifyOtp, // ⬅️ ĐÃ THÊM HÀM THIẾU VÀO CONTEXT VALUE
+            setNewPassword, 
         }}>
             {children}
         </AuthContext.Provider>

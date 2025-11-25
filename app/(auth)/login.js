@@ -4,13 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  SafeAreaView, StatusBar,
-  StyleSheet,
-  Text, TextInput, TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    SafeAreaView, StatusBar,
+    StyleSheet,
+    Text, TextInput, TouchableOpacity,
+    View
 } from 'react-native';
 // Đảm bảo đường dẫn này đúng
 import { useAuth } from '../../context/AuthContext';
@@ -28,16 +28,13 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
     const router = useRouter();
     const { login } = useAuth(); 
-
     const handleLogin = async () => {
         if (!email || !password) {
             Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ email và mật khẩu.');
             return;
         }
-        
         setIsSubmitting(true);
         const result = await login(email, password);
         setIsSubmitting(false);
@@ -48,7 +45,6 @@ export default function LoginScreen() {
             Alert.alert('Đăng nhập thất bại', result.error);
         }
     };
-
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
@@ -63,12 +59,10 @@ export default function LoginScreen() {
                         resizeMode="contain" 
                     />
                     <View style={styles.line} />
-                </View>
-                
+                </View>  
                 {/* Tiêu đề */}
                 <Text style={styles.titleHello}>Hello!</Text>
                 <Text style={styles.titleWelcome}>WELCOME BACK</Text>
-                
                 {/* Form */}
                 <View style={styles.form}>
                     <View style={styles.inputContainer}>
@@ -81,7 +75,6 @@ export default function LoginScreen() {
                             autoCapitalize="none"
                         />
                     </View>
-                    
                     <View style={styles.inputContainer}>
                         <Text style={styles.label}>Password</Text>
                         <View style={styles.passwordWrapper}>
@@ -96,7 +89,6 @@ export default function LoginScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-
                     {/* ⬇️ ĐÃ CẬP NHẬT ONPRESS CHO NÚT NÀY ⬇️ */}
                     <TouchableOpacity onPress={() => router.push('/forgot-password')}>
                         <Text style={styles.forgotPasswordText}>Forgot Password</Text>
@@ -114,7 +106,6 @@ export default function LoginScreen() {
                         )}
                     </TouchableOpacity>
                 </View>
-                
                 {/* Nút Sign Up */}
                 <TouchableOpacity onPress={() => router.push('/register')}>
                     <Text style={styles.signUpText}>SIGN UP</Text>
@@ -123,7 +114,6 @@ export default function LoginScreen() {
         </SafeAreaView>
     );
 }
-
 // Styles
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: COLORS.bg },

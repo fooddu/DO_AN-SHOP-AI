@@ -1,22 +1,19 @@
-// [File] app/(auth)/register.js
-
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text, TextInput, TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text, TextInput, TouchableOpacity,
+    View
 } from 'react-native';
 // Đảm bảo đường dẫn này đúng
 import { useAuth } from '../../context/AuthContext';
-
 const COLORS = {
     primary: '#222', 
     grey: '#888',
@@ -25,22 +22,18 @@ const COLORS = {
     bg: '#fff', // Màu nền của Thẻ (Card)
     surface: '#F6F6F6', // Màu nền xám của màn hình
 };
-
 export default function RegisterScreen() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
     const router = useRouter();
-    const { signUp } = useAuth(); 
+    const { signUp } = useAuth(); // Bây giờ signUp đã là một function hợp lệ
 
     const handleRegister = async () => {
-        // ... (Logic handleRegister giữ nguyên)
         if (!name || !email || !password || !confirmPassword) {
             Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin.');
             return;
@@ -50,25 +43,26 @@ export default function RegisterScreen() {
             return;
         }
         setIsSubmitting(true);
+        // ⭐ ĐÃ SỬ DỤNG HÀM signUp TỪ CONTEXT ⭐
         const result = await signUp(name, email, password); 
         setIsSubmitting(false);
         if (result.success) {
-            router.replace('/tabs'); 
+            // Bạn có thể cần xử lý logic chuyển hướng khác nếu API của bạn yêu cầu xác thực email
+            Alert.alert('Thành công', 'Đăng ký thành công! Vui lòng đăng nhập.');
+            router.replace('/login'); 
         } else {
             Alert.alert('Đăng ký thất bại', result.error);
         }
     };
-
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
-            
             <ScrollView 
+                // 1. Container CÓ LỀ NGANG 30 (CĂN GIỮA)
                 contentContainerStyle={styles.container}
                 showsVerticalScrollIndicator={false}
             >
-                
-                {/* 1. KHU VỰC LOGO (CĂN GIỮA - CÓ LỀ NGANG 30) */}
+                {/* 2. KHU VỰC LOGO (CĂN GIỮA) */}
                 <View style={styles.logoArea}>
                     <View style={styles.line} />
                     <Image 
@@ -78,15 +72,12 @@ export default function RegisterScreen() {
                     />
                     <View style={styles.line} />
                 </View>
-                
-                {/* 2. CHỮ WELCOME (CĂN TRÁI - CÓ LỀ NGANG 30) */}
+                {/* 3. Chữ WELCOME (căn trái, bên ngoài thẻ) */}
                 <Text style={styles.titleWelcomeOutside}>WELCOME</Text>
-
-                {/* 3. THẺ (CARD) TRẮNG (SÁT LỀ TRÁI = 0) */}
+                {/* 4. Thẻ (Card) trắng chứa form */}
                 <View style={styles.card}>
-                    
                     <View style={styles.form}>
-                        {/* (Các input fields) */}
+                        {/* (Các input fields, đã thu hẹp) */}
                         <View style={styles.inputContainer}>
                             <Text style={styles.label}>Name</Text>
                             <TextInput
@@ -96,7 +87,6 @@ export default function RegisterScreen() {
                                 autoCapitalize="words"
                             />
                         </View>
-                        
                         <View style={styles.inputContainer}>
                             <Text style={styles.label}>Email</Text>
                             <TextInput
@@ -107,7 +97,6 @@ export default function RegisterScreen() {
                                 autoCapitalize="none"
                             />
                         </View>
-
                         <View style={styles.inputContainer}>
                             <Text style={styles.label}>Password</Text>
                             <View style={styles.passwordWrapper}>
@@ -122,7 +111,6 @@ export default function RegisterScreen() {
                                 </TouchableOpacity>
                             </View>
                         </View>
-                        
                         <View style={[styles.inputContainer, { marginBottom: 0 }]}> 
                             <Text style={styles.label}>Confirm Password</Text>
                             <View style={styles.passwordWrapper}>
@@ -166,26 +154,24 @@ export default function RegisterScreen() {
         </SafeAreaView>
     );
 }
-
-// Styles (Đã sửa lại container)
+// Styles
 const styles = StyleSheet.create({
     safeArea: { 
         flex: 1, 
         backgroundColor: COLORS.surface, // Nền xám
     },
-    // Container chính (không có lề ngang)
+    // 1. CONTAINER CĂN GIỮA
     container: {
+        paddingHorizontal: 30, // ⬅️ LỀ TRÁI 30 VÀ LỀ PHẢI 30
         paddingVertical: 40,
         backgroundColor: COLORS.surface,
     },
-    
-    // 1. STYLE CHO KHU VỰC LOGO (CĂN GIỮA, CÓ LỀ)
+    // 2. LOGO CĂN GIỮA
     logoArea: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 20,
-        paddingHorizontal: 30, // ⬅️ LỀ CỦA GẠCH NGANG
     },
     line: {
         flex: 1, 
@@ -198,7 +184,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 15,
     },
     
-    // 2. STYLE CHO CHỮ WELCOME (CĂN TRÁI, CÓ LỀ)
+    // 3. CHỮ WELCOME CĂN TRÁI (theo lề 30)
     titleWelcomeOutside: {
         fontSize: 32,
         color: COLORS.text,
@@ -206,17 +192,20 @@ const styles = StyleSheet.create({
         fontFamily: 'serif',
         marginBottom: 20, 
         textAlign: 'left',
-        paddingHorizontal: 30, // ⬅️ LỀ CỦA CHỮ
     },
-    
-    // 3. STYLE CHO THẺ (SÁT LỀ TRÁI = 0)
+    // 4. THẺ (CARD) CĂN TRÁI (theo lề 30)
     card: {
         backgroundColor: COLORS.bg, // Nền trắng
-        // (Xóa borderRadius và shadow)
-        paddingHorizontal: 30, // ⬅️ Lề BÊN TRONG thẻ
+        borderRadius: 10,
+        paddingHorizontal: 25, 
         paddingTop: 25,     
         paddingBottom: 25,
         width: '100%',
+        elevation: 3, 
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
     },
     
     form: {
@@ -244,11 +233,10 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: COLORS.lightGrey,
     },
-    
     button: {
         backgroundColor: COLORS.primary,
         paddingVertical: 16, 
-        // (Xóa borderRadius)
+        borderRadius: 8,
         alignItems: 'center',
         marginTop: 25, 
     },
@@ -267,5 +255,4 @@ const styles = StyleSheet.create({
         color: COLORS.text,
         fontWeight: 'bold',
     },
-
-  });
+});

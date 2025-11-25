@@ -6,6 +6,7 @@ import { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Platform,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -16,14 +17,26 @@ import {
 } from 'react-native';
 import client from '../api/client';
 
-// Định nghĩa màu sắc
 const COLORS = {
-    primary: '#000',      // Main color for interactive elements (Black)
-    text: '#222',         // Dark text color
-    muted: '#888',        // Light gray muted text color
-    bg: '#ffffff',        // General background color
-    cardBackground: '#fff', // Card/Header background color
-    borderColor: '#E8E8E8', // Light border color
+    primary: '#000',       
+    text: '#222',         
+    muted: '#888',        
+    bg: '#ffffff',        
+    cardBackground: '#fff', 
+    borderColor: '#E8E8E8', 
+    success: '#4CAF50', 
+    error: '#d32f2f',
+};
+
+const validatePhoneNumber = (phone) => {
+    const cleaned = phone.replace(/[^0-9]/g, '');
+    if (cleaned.length === 0) {
+        return "Số điện thoại không được để trống.";
+    }
+    if (cleaned.length < 9 || cleaned.length > 11) {
+        return "SĐT phải chứa từ 9 đến 11 chữ số.";
+    }
+    return '';
 };
 
 export default function AddAddressFormScreen() {
@@ -35,33 +48,94 @@ export default function AddAddressFormScreen() {
         isDefault: false,
     });
     const [loading, setLoading] = useState(false);
+    const [successMessage, setSuccessMessage] = useState(''); 
+    const [validationErrors, setValidationErrors] = useState({});
+
+    const validateField = (fieldName, value) => {
+        let error = '';
+
+        switch (fieldName) {
+            case 'recipientName':
+                if (value.trim().length === 0) {
+                    error = 'Tên người nhận không được để trống.';
+                }
+                break;
+            case 'fullAddress':
+                if (value.trim().length === 0) {
+                    error = 'Địa chỉ không được để trống.';
+                }
+                break;
+            case 'phoneNumber':
+                error = validatePhoneNumber(value);
+                break;
+            default:
+                break;
+        }
+
+        setValidationErrors(prev => ({
+            ...prev,
+            [fieldName]: error,
+        }));
+        return error === '';
+    };
+    
+    const handleTextChange = (fieldName, text) => {
+        setAddressInfo(prev => ({
+            ...prev,
+            [fieldName]: text
+        }));
+        validateField(fieldName, text); 
+    };
 
     const handleSaveAddress = async () => {
-        // Basic validation check
-        if (!addressInfo.recipientName || !addressInfo.fullAddress || !addressInfo.phoneNumber) {
-            Alert.alert("Error", "Please fill in the Recipient Name, Full Address, and Phone Number.");
-            return;
+        console.log("DEBUG: handleSaveAddress function called.");
+
+        // Chạy Validation tổng thể lần cuối
+        const isNameValid = validateField('recipientName', addressInfo.recipientName);
+        const isAddressValid = validateField('fullAddress', addressInfo.fullAddress);
+        const isPhoneValid = validateField('phoneNumber', addressInfo.phoneNumber);
+
+        if (!isNameValid || !isAddressValid || !isPhoneValid) {
+             Alert.alert("Lỗi", "Vui lòng kiểm tra lại các trường thông tin bị lỗi.");
+             return;
         }
+
+        const cleanedPhoneNumber = addressInfo.phoneNumber.replace(/[^0-9]/g, '');
+        
+        const payload = {
+            ...addressInfo,
+            phoneNumber: cleanedPhoneNumber, 
+        };
+        
+        console.log("DEBUG: Final payload being sent:", payload);
 
         setLoading(true);
 
         try {
-            // Call API POST /api/addresses
-            const response = await client.post('/addresses', addressInfo);
+            const response = await client.post('/addresses', payload);
 
             if (response.data.success) {
-                // Success: Show alert and go back
-                Alert.alert("Success", response.data.message || "New address has been saved.");
-                router.back(); 
+                const message = response.data.message || "Địa chỉ mới đã được lưu thành công.";
+                setSuccessMessage(message);
+                
+                setTimeout(() => {
+                    setSuccessMessage('');
+                    router.back(); 
+                }, 3000); 
+                
+                return; 
             } else {
-                Alert.alert("Error", response.data.message || "Unknown error occurred while saving the address.");
+                Alert.alert("Lỗi", response.data.message || "Đã xảy ra lỗi không xác định khi lưu địa chỉ.");
             }
         } catch (error) {
-            const errorMessage = error.response?.data?.message || "Server connection error or Validation error.";
-            console.error("Error saving address:", error);
-            Alert.alert("Error", errorMessage);
+            console.error("DEBUG: API call FAILED. Full error object:", error);
+            
+            const errorMessage = error.response?.data?.message || "Lỗi kết nối Server hoặc Lỗi Validation.";
+            Alert.alert("Lỗi", errorMessage);
         } finally {
-            setLoading(false);
+            if (!successMessage) { 
+                 setLoading(false);
+            }
         }
     };
 
@@ -71,42 +145,48 @@ export default function AddAddressFormScreen() {
                 <TouchableOpacity onPress={() => router.back()} disabled={loading} style={styles.headerIcon}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Add New Address</Text>
-                {/* Empty View to center the title */}
-                <View style={styles.headerIcon} /> 
+                <Text style={styles.headerTitle}>Thêm Địa Chỉ Mới</Text>
+                <View style={styles.headerIcon} />
             </View>
-
+            
+            {/* KHỐI SCROLLVIEW ĐÃ SỬA LỖI JSX */}
             <ScrollView contentContainerStyle={styles.scrollContainer}>
+                {/* Tên người nhận */}
                 <TextInput
                     style={styles.input}
-                    // TEXT in English
-                    placeholder="Recipient Name" 
+                    placeholder="Tên người nhận" 
                     placeholderTextColor={COLORS.muted}
                     value={addressInfo.recipientName}
-                    onChangeText={(text) => setAddressInfo({...addressInfo, recipientName: text})}
+                    onChangeText={(text) => handleTextChange('recipientName', text)}
                     editable={!loading}
                 />
+                {validationErrors.recipientName && <Text style={styles.errorText}>{validationErrors.recipientName}</Text>}
+                
+                {/* Địa chỉ đầy đủ */}
                 <TextInput
                     style={[styles.input, styles.textArea]}
-                    // TEXT in English
-                    placeholder="Full Address (House number, street, city...)" 
+                    placeholder="Địa chỉ đầy đủ (Số nhà, đường, thành phố...)" 
                     placeholderTextColor={COLORS.muted}
                     value={addressInfo.fullAddress}
-                    onChangeText={(text) => setAddressInfo({...addressInfo, fullAddress: text})}
+                    onChangeText={(text) => handleTextChange('fullAddress', text)}
                     multiline
                     numberOfLines={4}
                     editable={!loading}
                 />
+                {validationErrors.fullAddress && <Text style={styles.errorText}>{validationErrors.fullAddress}</Text>}
+                
+                {/* Số điện thoại */}
                 <TextInput
                     style={styles.input}
-                    // TEXT in English
-                    placeholder="Phone Number" 
+                    placeholder="Số điện thoại" 
                     placeholderTextColor={COLORS.muted}
                     value={addressInfo.phoneNumber}
-                    onChangeText={(text) => setAddressInfo({...addressInfo, phoneNumber: text})}
+                    onChangeText={(text) => handleTextChange('phoneNumber', text.replace(/[^0-9]/g, ''))}
                     keyboardType="phone-pad"
                     editable={!loading}
+                    maxLength={11}
                 />
+                {validationErrors.phoneNumber && <Text style={styles.errorText}>{validationErrors.phoneNumber}</Text>}
                 
                 {/* Default Checkbox */}
                 <TouchableOpacity 
@@ -119,28 +199,38 @@ export default function AddAddressFormScreen() {
                         size={24} 
                         color={addressInfo.isDefault ? COLORS.primary : COLORS.muted}
                     />
-                    {/* TEXT in English */}
-                    <Text style={styles.checkboxText}>Set as default address</Text>
+                    <Text style={styles.checkboxText}>Đặt làm địa chỉ mặc định</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
                     style={styles.saveButton} 
                     onPress={handleSaveAddress}
-                    disabled={loading}
+                    disabled={loading || successMessage}
                 >
                     {loading ? (
                         <ActivityIndicator color="#FFF" />
                     ) : (
-                    // TEXT in English
-                    <Text style={styles.saveButtonText}>SAVE ADDRESS</Text>
+                    <Text style={styles.saveButtonText}>LƯU ĐỊA CHỈ</Text>
                     )}
                 </TouchableOpacity>
             </ScrollView>
+
+            {/* THÔNG BÁO OVERLAY (Toast) */}
+            {successMessage ? (
+                <View style={styles.overlayContainer} key="overlay-alert">
+                    <View style={styles.successContainerOverlay}>
+                        <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                        <Text style={styles.successTextOverlay}>{successMessage}</Text>
+                    </View>
+                </View>
+            ) : null}
         </SafeAreaView>
     );
 }
 
-// Styling remains the same as the minimalistic, flat design
+// ---------------------------
+// STYLES 
+// ---------------------------
 const styles = StyleSheet.create({
     safeArea: { 
         flex: 1, 
@@ -176,12 +266,18 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 12,
         fontSize: 15,
-        marginBottom: 15,
+        marginBottom: 5, 
         color: COLORS.text,
     },
     textArea: {
         height: 100,
         textAlignVertical: 'top',
+    },
+    errorText: {
+        color: COLORS.error,
+        fontSize: 12,
+        marginBottom: 15, 
+        marginLeft: 5,
     },
     defaultCheckbox: {
         flexDirection: 'row',
@@ -207,5 +303,41 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    // --- OVERLAY STYLES ---
+    overlayContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        paddingTop: Platform.OS === 'android' ? 50 : 20, 
+        zIndex: 100,
+        pointerEvents: 'box-none',
+    },
+    successContainerOverlay: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.success,
+        padding: 12,
+        borderRadius: 8,
+        alignSelf: 'center',
+        minWidth: 250,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+            },
+            android: {
+                elevation: 5,
+            },
+        }),
+    },
+    successTextOverlay: {
+        color: '#fff',
+        fontWeight: '600',
+        marginLeft: 10,
     },
 });

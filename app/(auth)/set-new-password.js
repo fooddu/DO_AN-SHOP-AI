@@ -1,11 +1,10 @@
-// app/(auth)/set-new-password.js
-// SỬ DỤNG CUSTOM MODAL/OVERLAY THAY THẾ CHO ALERT.ALERT VÀ window.alert()
+// app/(auth)/set-new-password.js (Đã fix lỗi căn giữa nút 80%)
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
+    Dimensions,
     Image,
     Modal,
     Platform,
@@ -13,13 +12,15 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import AuthCard from '../../components/AuthCard';
 import AuthTextInput from '../../components/AuthTextInput';
 import { useAuth } from '../../context/AuthContext';
-// Có thể import Icon nếu bạn dùng (ví dụ: Feather, AntDesign)
 // import { AntDesign } from '@expo/vector-icons'; 
+
+// Lấy chiều rộng màn hình để tính toán responsive
+const { width } = Dimensions.get('window');
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -31,16 +32,19 @@ const SuccessModal = ({ isVisible, title, message, onOKPress }) => {
     // Nếu không visible, không render gì cả
     if (!isVisible) return null; 
 
+    // Thay đổi Icon dựa trên title (ví dụ: title chứa 'Lỗi' thì dùng ❌)
+    const icon = title?.toLowerCase().includes('lỗi') || title?.toLowerCase().includes('thất bại') ? '❌' : '✅';
+
     return (
         <Modal 
             transparent={true} 
             visible={isVisible}
-            animationType="fade" // Hiệu ứng mờ dần
+            animationType="fade" 
         >
             <View style={modalStyles.overlay}>
                 <View style={modalStyles.container}>
-                    {/* Icon hoặc biểu tượng thành công */}
-                    <Text style={modalStyles.icon}>✅</Text> 
+                    {/* Icon hoặc biểu tượng */}
+                    <Text style={modalStyles.icon}>{icon}</Text> 
                     
                     {/* Nội dung */}
                     <Text style={modalStyles.title}>{title}</Text>
@@ -48,7 +52,11 @@ const SuccessModal = ({ isVisible, title, message, onOKPress }) => {
 
                     {/* Nút OK */}
                     <TouchableOpacity 
-                        style={modalStyles.button} 
+                        style={[
+                            modalStyles.button, 
+                            // Thay đổi màu nút nếu là thông báo lỗi
+                            !title?.toLowerCase().includes('thành công') && { backgroundColor: '#dc3545' } 
+                        ]} 
                         onPress={onOKPress}
                     >
                         <Text style={modalStyles.buttonText}>OK</Text>
@@ -91,8 +99,8 @@ export default function SetNewPasswordScreen() {
 
         // 💡 DEBUG: Nếu đang ở Web, alert() tạm thời để đảm bảo hiển thị
         if (Platform.OS === 'web' && !isSuccess) {
-            console.warn("WEB FALLBACK: Sử dụng Alert.alert cho lỗi.");
-            Alert.alert(title, message); 
+             // Dùng Alert.alert() cho lỗi trên web chỉ khi Modal không hiển thị tốt
+             console.warn("WEB FALLBACK: Sử dụng Alert.alert cho lỗi nếu Modal không hoạt động.");
         }
     };
     
@@ -140,14 +148,18 @@ export default function SetNewPasswordScreen() {
     };
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <ScrollView 
+            style={styles.container} 
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+        >
             <SuccessModal 
                 isVisible={modalVisible}
                 title={modalContent.title}
                 message={modalContent.message}
                 onOKPress={handleModalOK}
             />
-            
+            {/* Logo và Divider */}
             <View style={styles.logoContainer}>
                 <View style={styles.divider} />
                 <Image 
@@ -157,9 +169,13 @@ export default function SetNewPasswordScreen() {
                 />
                 <View style={styles.divider} />
             </View>
+            
+            {/* Title */}
             <Text style={styles.welcomeText}>NEW PASSWORD</Text>
+            
+            {/* Card chứa Form */}
             <View style={styles.cardWrapper}>
-                <AuthCard>
+                <AuthCard style={styles.authCardCustom}>
                     <AuthTextInput
                         label="New Password"
                         value={password}
@@ -188,41 +204,77 @@ export default function SetNewPasswordScreen() {
         </ScrollView>
     );
 }
-
-// =========================================================
-// ⭐️ STYLES cho MAIN COMPONENT
-// =========================================================
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
-    content: { paddingTop: 40, paddingBottom: 40 },
-    logoContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 40, marginBottom: 20 },
+    container: { 
+        flex: 1, 
+        backgroundColor: '#f8f9fa' // Nền xám nhạt
+    },
+    content: { 
+        paddingTop: width * 0.1, 
+        paddingBottom: width * 0.1, 
+        alignItems: 'center' // Căn giữa tất cả các thành phần con theo chiều ngang
+    },
+    // --- Logo & Divider ---
+    logoContainer: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        width: '85%', // Vẫn giữ 85% để divider dài ra
+        marginTop: 40, 
+        marginBottom: 20,
+    },
     logo: { width: 90, height: 90 },
-    divider: { flex: 1, height: 1, backgroundColor: '#e0e0e0', marginHorizontal: 20 },
-    welcomeText: { fontSize: 24, fontWeight: 'bold', color: '#333', paddingHorizontal: 30, marginBottom: 30, textAlign: 'center' },
-    cardWrapper: { alignSelf: 'flex-start' },
+    divider: { flex: 1, height: 1, backgroundColor: '#ced4da', marginHorizontal: 20 },
+    
+    // --- Text ---
+    welcomeText: { 
+        fontSize: 24, 
+        fontWeight: 'bold', 
+        color: '#333', 
+        paddingHorizontal: 30, 
+        marginBottom: 30, 
+        textAlign: 'center' 
+    },
+    
+    // --- Card Wrapper ---
+    cardWrapper: { 
+        width: '100%', 
+        paddingHorizontal: 25, // Thêm padding để cách lề màn hình
+        alignSelf: 'stretch',
+    },
+    authCardCustom: {
+        paddingHorizontal: 30,
+        paddingVertical: 30,
+        borderRadius: 12,
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 5 }, 
+        shadowOpacity: 0.1, 
+        shadowRadius: 10, 
+        elevation: 8, 
+    },
+    // --- Buttons ---
     signUpButton: { 
         backgroundColor: '#333', 
-        borderRadius: 8, 
-        paddingVertical: 15, 
-        marginTop: 10, 
-        marginHorizontal: 30,
+        borderRadius: 10, 
+        paddingVertical: 16, 
+        marginTop: 30, 
+        width: '80%', // Chiều rộng 80%
+        alignSelf: 'center', // ⭐️ FIX CĂN GIỮA NÚT TRONG CARD ⭐️
         shadowColor: '#000', 
-        shadowOffset: { width: 0, height: 2 }, 
-        shadowOpacity: 0.1, 
-        shadowRadius: 4, 
-        elevation: 3, 
+        shadowOffset: { width: 0, height: 4 }, 
+        shadowOpacity: 0.2, 
+        shadowRadius: 5, 
+        elevation: 4, 
     },
-    signUpText: { color: '#fff', fontSize: 16, fontWeight: 'bold', textAlign: 'center', textTransform: 'uppercase' },
+    signUpText: { color: '#fff', fontSize: 17, fontWeight: 'bold', textAlign: 'center', textTransform: 'uppercase' },
     loader: { marginVertical: 0 },
 });
 
-// =========================================================
-// ⭐️ STYLES cho CUSTOM MODAL
-// =========================================================
+// --- Styles cho Modal ---
 const modalStyles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)', // Nền tối mờ
+        backgroundColor: 'rgba(0, 0, 0, 0.6)', 
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -233,7 +285,6 @@ const modalStyles = StyleSheet.create({
         borderRadius: 12,
         padding: 25,
         alignItems: 'center',
-        // Shadow/Elevation cho Modal
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.25,
@@ -261,7 +312,7 @@ const modalStyles = StyleSheet.create({
         backgroundColor: '#007AFF', // Màu xanh dương tiêu chuẩn
         borderRadius: 8,
         paddingVertical: 12,
-        width: '100%',
+        width: '80%', // Nút OK trong Modal cũng căn giữa 80%
         marginTop: 10,
     },
     buttonText: {
