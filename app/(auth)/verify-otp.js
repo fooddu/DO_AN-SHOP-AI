@@ -1,5 +1,3 @@
-// app/(auth)/verify-otp.js (Đã chỉnh màu nút Resend sang đen)
-
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -15,9 +13,9 @@ import {
 } from 'react-native';
 import AuthCard from '../../components/AuthCard';
 import AuthOtpInput from '../../components/AuthOtpInput';
+// Giả sử đường dẫn AuthContext của bạn ở đây, hãy sửa nếu khác
 import { useAuth } from '../../context/AuthContext';
 
-// Lấy chiều rộng màn hình để tính toán responsive
 const { width } = Dimensions.get('window');
 
 export default function VerifyOtpScreen() {
@@ -36,29 +34,37 @@ export default function VerifyOtpScreen() {
         }
         
         setIsSubmitting(true);
-        const result = await verifyOtp(email, otp); 
-        setIsSubmitting(false);
-
-        if (result.success) {
-            router.push({ 
-                pathname: '/(auth)/set-new-password', 
-                params: { email: email } 
-            });
-            Alert.alert('Success', result.message || 'Verification successful.');
-        } else {
-            Alert.alert('Failed', result.message || 'Invalid or expired OTP.');
+        try {
+            const result = await verifyOtp(email, otp); 
+            if (result.success) {
+                Alert.alert('Success', result.message || 'Verification successful.');
+                router.push({ 
+                    pathname: '/(auth)/set-new-password', 
+                    params: { email: email } 
+                });
+            } else {
+                Alert.alert('Failed', result.message || 'Invalid or expired OTP.');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'An unexpected error occurred.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
     
     const handleResend = async () => {
         setIsResending(true);
-        const result = await forgotPassword(email);
-        setIsResending(false);
-
-        if (result.success) {
-            Alert.alert('Resend Successful', result.message || 'A new OTP code has been sent to your email.');
-        } else {
-            Alert.alert('Resend Error', result.message || 'Unable to resend OTP. Please check your email.');
+        try {
+            const result = await forgotPassword(email);
+            if (result.success) {
+                Alert.alert('Resend Successful', result.message || 'A new OTP code has been sent to your email.');
+            } else {
+                Alert.alert('Resend Error', result.message || 'Unable to resend OTP.');
+            }
+        } catch (error) {
+             Alert.alert('Error', 'Network error.');
+        } finally {
+            setIsResending(false);
         }
     };
 
@@ -68,9 +74,10 @@ export default function VerifyOtpScreen() {
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false} 
         >
-            
+            {/* --- Logo Section --- */}
             <View style={styles.logoContainer}>
                 <View style={styles.divider} />
+                {/* Đảm bảo đường dẫn ảnh logo đúng */}
                 <Image 
                     source={require('../../assets/logo.png')} 
                     style={styles.logo} 
@@ -79,21 +86,25 @@ export default function VerifyOtpScreen() {
                 <View style={styles.divider} />
             </View>
             
-            <Text style={styles.welcomeText}>ENTER OTP</Text>
+            <Text style={styles.welcomeText} allowFontScaling={false}>ENTER OTP</Text>
             
+            {/* --- Card Section --- */}
             <View style={styles.cardWrapper}> 
                 <AuthCard style={styles.authCardCustom}> 
                     
-                    <Text style={styles.instructionText}>
-                        We have sent an OTP code to your email: {'\n'}
-                        <Text style={styles.emailText}>{email}</Text>
+                    {/* Hướng dẫn + Email */}
+                    <Text style={styles.instructionText} allowFontScaling={false}>
+                        We have sent an OTP code to your email:{'\n'}
+                        <Text style={styles.emailText}>{email || 'your email'}</Text>
                     </Text>
                     
+                    {/* Input OTP */}
                     <AuthOtpInput 
                         value={otp} 
                         onChange={setOtp} 
                     />
                     
+                    {/* Nút Verify */}
                     <TouchableOpacity 
                         style={styles.verifyButtonCustom} 
                         onPress={handleVerify} 
@@ -102,20 +113,20 @@ export default function VerifyOtpScreen() {
                         {isSubmitting ? (
                             <ActivityIndicator color="#fff" style={styles.loader} />
                         ) : (
-                            <Text style={styles.verifyText}>VERIFY OTP</Text>
+                            <Text style={styles.verifyText} allowFontScaling={false}>VERIFY OTP</Text>
                         )}
                     </TouchableOpacity>
                     
+                    {/* Nút Resend */}
                     <TouchableOpacity 
                         style={styles.resendButton} 
                         onPress={handleResend} 
                         disabled={isResending || isSubmitting}
                     >
                         {isResending ? (
-                            // Giữ màu ActivityIndicator tối để phù hợp với nền trắng
-                            <ActivityIndicator color="#212529" /> 
+                            <ActivityIndicator color="#212529" size="small"/> 
                         ) : (
-                            <Text style={styles.resendText}>Resend OTP code</Text>
+                            <Text style={styles.resendText} allowFontScaling={false}>Resend OTP code</Text>
                         )}
                     </TouchableOpacity>
                 </AuthCard>
@@ -130,9 +141,10 @@ const styles = StyleSheet.create({
         backgroundColor: '#f8f9fa', 
     },
     content: { 
-        paddingTop: width * 0.12, 
-        paddingBottom: width * 0.12, 
+        paddingTop: width * 0.1, 
+        paddingBottom: width * 0.1, 
         alignItems: 'center',
+        flexGrow: 1, // Giúp scrollview hoạt động tốt trên màn hình nhỏ
     },
     // --- Logo & Divider ---
     logoContainer: { 
@@ -140,12 +152,11 @@ const styles = StyleSheet.create({
         alignItems: 'center', 
         justifyContent: 'center', 
         width: '85%', 
-        marginTop: width * 0.08, 
-        marginBottom: width * 0.04, 
+        marginBottom: 30, 
     },
     logo: { 
-        width: width * 0.2,
-        height: width * 0.2, 
+        width: 80, // Fix cứng size logo để không bị nhảy
+        height: 80, 
         marginHorizontal: 15,
     },
     divider: { 
@@ -155,76 +166,76 @@ const styles = StyleSheet.create({
     },
     // --- Text Styles ---
     welcomeText: { 
-        fontSize: width * 0.07, 
+        fontSize: 24, 
         fontWeight: 'bold', 
         color: '#212529', 
-        marginBottom: width * 0.08, 
+        marginBottom: 20, 
         textAlign: 'center', 
     },
     instructionText: {
-        fontSize: width * 0.04,
+        fontSize: 14,
         color: '#6c757d', 
         textAlign: 'center',
-        lineHeight: width * 0.055, 
+        lineHeight: 22, 
         marginBottom: 10, 
+        width: '100%',
+        flexWrap: 'wrap', // QUAN TRỌNG: Cho phép xuống dòng nếu email dài
     },
     emailText: {
         fontWeight: 'bold',
         color: '#343a40', 
     },
-    // --- Card FIX ---
+    // --- Card Styles ---
     cardWrapper: { 
         width: '100%',
+        paddingHorizontal: 20, // Padding ngoài để card không dính sát lề màn hình
         alignItems: 'center',
-        paddingHorizontal: 25, 
-        alignSelf: 'stretch',
     },
     authCardCustom: {
         width: '100%', 
-        alignSelf: 'stretch',
-        paddingHorizontal: 30, 
-        paddingVertical: 35, 
+        paddingHorizontal: 20, 
+        paddingVertical: 30, 
         backgroundColor: '#fff',
-        borderRadius: 12, 
+        borderRadius: 16, 
+        // Shadow mềm mại
         shadowColor: '#000', 
-        shadowOffset: { width: 0, height: 5 }, 
-        shadowOpacity: 0.1, 
-        shadowRadius: 10, 
-        elevation: 8, 
+        shadowOffset: { width: 0, height: 4 }, 
+        shadowOpacity: 0.08, 
+        shadowRadius: 12, 
+        elevation: 5, 
     },
     // --- Buttons ---
     verifyButtonCustom: { 
-        backgroundColor: '#495057', // Đen nhạt/xám đậm
-        borderRadius: 10, 
-        paddingVertical: 16, 
-        marginTop: 30, 
-        width: '80%', // Chiều rộng 80%
-        alignSelf: 'center', 
+        backgroundColor: '#343a40', 
+        borderRadius: 8, 
+        paddingVertical: 14, 
+        marginTop: 10, 
+        width: '100%', 
+        alignItems: 'center',
+        justifyContent: 'center',
         shadowColor: '#000', 
-        shadowOffset: { width: 0, height: 4 }, 
+        shadowOffset: { width: 0, height: 2 }, 
         shadowOpacity: 0.2, 
-        shadowRadius: 5, 
-        elevation: 6, 
+        shadowRadius: 4, 
+        elevation: 3, 
     },
     verifyText: { 
         color: '#fff', 
-        fontSize: 17, 
+        fontSize: 16, 
         fontWeight: 'bold', 
-        textAlign: 'center', 
-        textTransform: 'uppercase', 
+        letterSpacing: 0.5,
     },
     loader: { 
-        marginVertical: 5, 
+        paddingVertical: 2, 
     },
     resendButton: { 
         marginTop: 20, 
+        padding: 10,
         alignItems: 'center', 
     },
     resendText: { 
-        // ⭐️ CHỈNH SỬA: Màu đen và bỏ gạch chân ⭐️
         color: '#212529', 
-        fontSize: 15, 
+        fontSize: 14, 
         fontWeight: '600', 
-        textDecorationLine: 'none', 
     },
 });

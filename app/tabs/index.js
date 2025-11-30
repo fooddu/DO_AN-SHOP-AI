@@ -18,7 +18,7 @@ import {
 import client from '../../api/axiosConfig';
 
 const COLORS = {
-    primary: '#000',      
+    primary: '#FF3366',      
     text: '#222',         
     muted: '#888',        
     bg: '#ffffff',        

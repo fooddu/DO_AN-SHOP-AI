@@ -1,5 +1,6 @@
-// app/(auth)/set-new-password.js (Đã fix lỗi căn giữa nút 80%)
+// app/(auth)/set-new-password.js
 
+import { Ionicons } from '@expo/vector-icons'; // Thêm thư viện Icon
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -7,7 +8,6 @@ import {
     Dimensions,
     Image,
     Modal,
-    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -17,49 +17,54 @@ import {
 import AuthCard from '../../components/AuthCard';
 import AuthTextInput from '../../components/AuthTextInput';
 import { useAuth } from '../../context/AuthContext';
-// import { AntDesign } from '@expo/vector-icons'; 
 
 // Lấy chiều rộng màn hình để tính toán responsive
 const { width } = Dimensions.get('window');
 
 const MIN_PASSWORD_LENGTH = 6;
+// 🎨 MÀU HỒNG CHỦ ĐẠO
+const APP_PINK = '#FF3366'; 
 
 // =========================================================
-// ⭐️ COMPONENT MODAL THÔNG BÁO THÀNH CÔNG/THẤT BẠI
+// ⭐️ COMPONENT MODAL THÔNG BÁO (ENGLISH + PINK BUTTON)
 // =========================================================
 
 const SuccessModal = ({ isVisible, title, message, onOKPress }) => {
-    // Nếu không visible, không render gì cả
     if (!isVisible) return null; 
 
-    // Thay đổi Icon dựa trên title (ví dụ: title chứa 'Lỗi' thì dùng ❌)
-    const icon = title?.toLowerCase().includes('lỗi') || title?.toLowerCase().includes('thất bại') ? '❌' : '✅';
+    // Kiểm tra xem đây là thông báo Thành công hay Lỗi
+    const isSuccess = title?.toLowerCase().includes('success');
+    
+    // Config màu sắc và icon dựa trên trạng thái
+    const iconName = isSuccess ? 'checkmark-sharp' : 'close-sharp';
+    const iconColor = isSuccess ? '#2ECC71' : '#dc3545'; // Xanh lá hoặc Đỏ
+    const buttonText = isSuccess ? 'OK' : 'TRY AGAIN';
 
     return (
         <Modal 
             transparent={true} 
             visible={isVisible}
-            animationType="fade" 
+            animationType="fade"
+            onRequestClose={onOKPress}
         >
             <View style={modalStyles.overlay}>
                 <View style={modalStyles.container}>
-                    {/* Icon hoặc biểu tượng */}
-                    <Text style={modalStyles.icon}>{icon}</Text> 
                     
-                    {/* Nội dung */}
+                    {/* --- ICON CONTAINER --- */}
+                    <View style={[modalStyles.iconContainer, { backgroundColor: iconColor }]}>
+                        <Ionicons name={iconName} size={40} color="#fff" />
+                    </View>
+                    
+                    {/* --- NỘI DUNG --- */}
                     <Text style={modalStyles.title}>{title}</Text>
                     <Text style={modalStyles.message}>{message}</Text>
 
-                    {/* Nút OK */}
+                    {/* --- NÚT BẤM MÀU HỒNG --- */}
                     <TouchableOpacity 
-                        style={[
-                            modalStyles.button, 
-                            // Thay đổi màu nút nếu là thông báo lỗi
-                            !title?.toLowerCase().includes('thành công') && { backgroundColor: '#dc3545' } 
-                        ]} 
+                        style={modalStyles.button} 
                         onPress={onOKPress}
                     >
-                        <Text style={modalStyles.buttonText}>OK</Text>
+                        <Text style={modalStyles.buttonText}>{buttonText}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -88,62 +93,59 @@ export default function SetNewPasswordScreen() {
     const handleModalOK = () => {
         setModalVisible(false);
         if (modalContent.isSuccess) {
-             router.replace('/(auth)/login'); // Chuyển về trang login khi thành công
+             router.replace('/(auth)/sign-in'); // Chuyển về trang login khi thành công
         }
     };
     
-    // Hàm hiển thị thông báo (sử dụng Modal cho cả Web/Mobile)
+    // Hàm hiển thị thông báo
     const showNotification = (title, message, isSuccess = true) => {
         setModalContent({ title, message, isSuccess });
         setModalVisible(true);
-
-        // 💡 DEBUG: Nếu đang ở Web, alert() tạm thời để đảm bảo hiển thị
-        if (Platform.OS === 'web' && !isSuccess) {
-             // Dùng Alert.alert() cho lỗi trên web chỉ khi Modal không hiển thị tốt
-             console.warn("WEB FALLBACK: Sử dụng Alert.alert cho lỗi nếu Modal không hoạt động.");
-        }
     };
     
     // Hàm xử lý logic chính
     const handleSetPassword = async () => {
-        // 1. Kiểm tra xác thực
+        // 1. Kiểm tra xác thực (Validation - English)
         if (!email) {
-            showNotification('Lỗi Dữ Liệu', 'Không nhận được địa chỉ email.', false);
-            router.replace('/(auth)/forgot-password');
+            showNotification('Error', 'Email address is missing.', false);
             return;
         }
         if (!password || !confirmPassword) {
-            showNotification('Lỗi', 'Vui lòng điền đầy đủ các trường mật khẩu.', false);
+            showNotification('Error', 'Please fill in all password fields.', false);
             return;
         }
         if (password.length < MIN_PASSWORD_LENGTH) {
-            showNotification('Lỗi', `Mật khẩu phải có ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`, false);
+            showNotification('Error', `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`, false);
             return;
         }
         if (password !== confirmPassword) {
-            showNotification('Lỗi', 'Mật khẩu xác nhận không khớp.', false);
+            showNotification('Error', 'Confirm password does not match.', false);
             return;
         }
         
         // 2. Gọi API
         setIsSubmitting(true);
-        const result = await setNewPassword(email, password); 
-        setIsSubmitting(false);
-
-        // 3. Xử lý kết quả API và hiển thị Modal
-        if (result?.success) {
-            showNotification(
-                'Thành Công', 
-                result.message || 'Mật khẩu đã được thay đổi. Vui lòng đăng nhập lại.',
-                true // isSuccess = true
-            );
-        } else {
-            // Xử lý lỗi
-            showNotification(
-                'Thất Bại', 
-                result?.message || 'Không thể đổi mật khẩu. Vui lòng thử lại.',
-                false // isSuccess = false
-            );
+        try {
+            const result = await setNewPassword(email, password); 
+            
+            // 3. Xử lý kết quả API
+            if (result?.success) {
+                showNotification(
+                    'Success', 
+                    'Password changed successfully.\nPlease login again.',
+                    true
+                );
+            } else {
+                showNotification(
+                    'Failed', 
+                    result?.message || 'Unable to change password. Please try again.',
+                    false
+                );
+            }
+        } catch (error) {
+            showNotification('Error', 'An unexpected error occurred.', false);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -159,6 +161,7 @@ export default function SetNewPasswordScreen() {
                 message={modalContent.message}
                 onOKPress={handleModalOK}
             />
+
             {/* Logo và Divider */}
             <View style={styles.logoContainer}>
                 <View style={styles.divider} />
@@ -204,22 +207,23 @@ export default function SetNewPasswordScreen() {
         </ScrollView>
     );
 }
+
 const styles = StyleSheet.create({
     container: { 
         flex: 1, 
-        backgroundColor: '#f8f9fa' // Nền xám nhạt
+        backgroundColor: '#f8f9fa' 
     },
     content: { 
         paddingTop: width * 0.1, 
         paddingBottom: width * 0.1, 
-        alignItems: 'center' // Căn giữa tất cả các thành phần con theo chiều ngang
+        alignItems: 'center' 
     },
     // --- Logo & Divider ---
     logoContainer: { 
         flexDirection: 'row', 
         alignItems: 'center', 
         justifyContent: 'center', 
-        width: '85%', // Vẫn giữ 85% để divider dài ra
+        width: '85%', 
         marginTop: 40, 
         marginBottom: 20,
     },
@@ -239,7 +243,7 @@ const styles = StyleSheet.create({
     // --- Card Wrapper ---
     cardWrapper: { 
         width: '100%', 
-        paddingHorizontal: 25, // Thêm padding để cách lề màn hình
+        paddingHorizontal: 25, 
         alignSelf: 'stretch',
     },
     authCardCustom: {
@@ -254,12 +258,12 @@ const styles = StyleSheet.create({
     },
     // --- Buttons ---
     signUpButton: { 
-        backgroundColor: '#333', 
+        backgroundColor: '#333', // Nút Change Password giữ màu đen/xám đậm
         borderRadius: 10, 
         paddingVertical: 16, 
         marginTop: 30, 
-        width: '80%', // Chiều rộng 80%
-        alignSelf: 'center', // ⭐️ FIX CĂN GIỮA NÚT TRONG CARD ⭐️
+        width: '80%', 
+        alignSelf: 'center', 
         shadowColor: '#000', 
         shadowOffset: { width: 0, height: 4 }, 
         shadowOpacity: 0.2, 
@@ -270,33 +274,41 @@ const styles = StyleSheet.create({
     loader: { marginVertical: 0 },
 });
 
-// --- Styles cho Modal ---
+// --- Styles cho Modal (Đã chỉnh sửa theo yêu cầu) ---
 const modalStyles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)', 
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', 
         justifyContent: 'center',
         alignItems: 'center',
     },
     container: {
-        width: '85%',
-        maxWidth: 350,
+        width: '80%',
         backgroundColor: 'white',
-        borderRadius: 12,
+        borderRadius: 20, // Bo góc tròn hơn giống ảnh
         padding: 25,
         alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.25,
         shadowRadius: 4,
+        elevation: 10,
+    },
+    iconContainer: {
+        width: 60,
+        height: 60,
+        borderRadius: 12, // Bo góc icon vuông nhẹ
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 15,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
         elevation: 5,
     },
-    icon: {
-        fontSize: 48,
-        marginBottom: 15,
-    },
     title: {
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: 'bold',
         marginBottom: 10,
         textAlign: 'center',
@@ -306,19 +318,28 @@ const modalStyles = StyleSheet.create({
         fontSize: 15,
         textAlign: 'center',
         marginBottom: 25,
-        color: '#555',
+        color: '#666',
+        lineHeight: 22,
     },
     button: {
-        backgroundColor: '#007AFF', // Màu xanh dương tiêu chuẩn
-        borderRadius: 8,
+        backgroundColor: APP_PINK, // <--- MÀU HỒNG
+        borderRadius: 10,
         paddingVertical: 12,
-        width: '80%', // Nút OK trong Modal cũng căn giữa 80%
-        marginTop: 10,
+        width: '100%', 
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#FFC107', // Viền vàng nhẹ giống ảnh (có thể bỏ nếu không thích)
+        shadowColor: APP_PINK,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 4,
     },
     buttonText: {
         color: 'white',
         fontSize: 16,
         fontWeight: 'bold',
         textAlign: 'center',
+        textTransform: 'uppercase',
     },
 });

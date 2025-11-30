@@ -1,26 +1,35 @@
-// [File] components/AuthOtpInput.js (Đã fix lỗi lề)
-
-import React from 'react';
-import { Dimensions, StyleSheet, TextInput, View } from 'react-native';
-
-const { width } = Dimensions.get('window');
+import { useRef } from 'react';
+import { StyleSheet, TextInput, View } from 'react-native';
 
 const AuthOtpInput = ({ value, onChange, length = 6 }) => {
-    // ... (logic component giữ nguyên) ...
+    // Tạo mảng code từ value hiện tại
     const code = value.split('').concat(Array(length).fill('')).slice(0, length);
     const inputs = Array(length).fill(0);
-    const refs = React.useRef([]);
+    const refs = useRef([]);
 
     const handleChange = (text, idx) => {
+        // Chỉ lấy số
         let ch = text.replace(/[^0-9]/g, '').slice(0, 1);
         let newValue = code.slice();
         newValue[idx] = ch;
+        
+        // Cập nhật giá trị
         const joined = newValue.join('').slice(0, length);
         onChange && onChange(joined);
+
+        // Tự động chuyển focus
         if (ch && idx < length - 1) {
             refs.current[idx + 1]?.focus();
         }
+        // Xóa thì lùi lại
         if (!ch && idx > 0) {
+            refs.current[idx - 1]?.focus();
+        }
+    };
+
+    // Xử lý khi bấm nút Backspace trên bàn phím (để xóa mượt hơn)
+    const handleKeyPress = (e, idx) => {
+        if (e.nativeEvent.key === 'Backspace' && !code[idx] && idx > 0) {
             refs.current[idx - 1]?.focus();
         }
     };
@@ -36,9 +45,12 @@ const AuthOtpInput = ({ value, onChange, length = 6 }) => {
                         maxLength={1}
                         value={code[idx]}
                         onChangeText={(text) => handleChange(text, idx)}
+                        onKeyPress={(e) => handleKeyPress(e, idx)}
                         ref={ref => refs.current[idx] = ref}
                         autoCorrect={false}
                         autoCapitalize="none"
+                        // Tắt phóng to chữ hệ thống để tránh vỡ layout
+                        allowFontScaling={false} 
                     />
                 ))}
             </View>
@@ -46,48 +58,39 @@ const AuthOtpInput = ({ value, onChange, length = 6 }) => {
     );
 };
 
-// Kích thước cố định được chọn để vừa với màn hình điện thoại phổ biến (~375px)
-const FIXED_CELL_SIZE = 40; 
-const FIXED_GAP = 8; // Tăng khoảng cách giữa các ô một chút
-
 const styles = StyleSheet.create({
     otpOuterContainer: {
-        // ⭐️ FIX: Thêm margin ngang 20 để tạo khoảng cách an toàn từ lề AuthCard ⭐️
         width: '100%', 
         alignSelf: 'center',
-        marginVertical: 20, // Tăng khoảng cách trên/dưới
-        paddingHorizontal: 0, 
-        marginHorizontal: 0, // Bỏ marginHorizontal cũ
-        paddingHorizontal: 20, // THAY VÌ MARGIN, SỬ DỤNG PADDING để tạo khoảng cách AN TOÀN từ lề Card.
+        marginVertical: 20,
     },
     otpContainer: {
         flexDirection: 'row',
-        // Tăng khoảng cách đều giữa các ô để sử dụng hết không gian còn lại
+        // Space-between giúp tự chia đều khoảng cách dựa trên chiều rộng màn hình
         justifyContent: 'space-between', 
-        gap: FIXED_GAP, 
         width: '100%', 
     },
     otpInput: {
-        // Cần tính toán lại width để đảm bảo 6 ô + 5 gap vừa với màn hình
-        // (Chi tiết về cách tính đã được ẩn bên dưới, ở đây giữ nguyên width 40 và dùng space-between)
-        width: FIXED_CELL_SIZE, 
-        height: FIXED_CELL_SIZE + 10,
+        // Kích thước ô linh hoạt: ~14% chiều rộng container cho mỗi ô (6 ô * 14% = 84%, còn lại là khoảng trống)
+        width: '14%', 
+        aspectRatio: 1, // Giữ ô luôn hình vuông hoặc gần vuông
+        height: 50,     // Chiều cao tối thiểu
         
-        borderRadius: 10, // Bo góc mềm mại hơn
+        borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#ddd', // Màu border nhẹ hơn
+        borderColor: '#dee2e6',
         textAlign: 'center',
-        fontSize: 24, 
-        fontWeight: '600',
-        color: '#333',
-        backgroundColor: '#fff', // Màu nền trắng
+        fontSize: 22, 
+        fontWeight: 'bold',
+        color: '#212529',
+        backgroundColor: '#fff',
         
-        // Shadow rõ hơn một chút để nổi bật ô nhập
+        // Shadow nhẹ
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.05,
         shadowRadius: 3,
-        elevation: 3,
+        elevation: 2,
     },
 });
 
