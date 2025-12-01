@@ -2,7 +2,7 @@
 // Đặt trong thư mục ../hooks/
 
 import { useEffect, useState } from 'react';
-import client from '../api/client';
+import client from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 
 const useProfileData = () => {

@@ -6,7 +6,7 @@ import { Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 // ⭐ IMPORT HOOK/CONTEXT: Giả định hook này tồn tại và trả về số chưa đọc ⭐
-import client from '../../api/client';
+import client from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
 
 const BADGE_COLOR = '#E91E63'; 

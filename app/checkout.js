@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import client from '../api/client';
+import client from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 
 // 🎨 MÀU HỒNG CHỦ ĐẠO

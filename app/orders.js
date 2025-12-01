@@ -29,7 +29,7 @@ const COLORS = {
 
 // ⭐️ API SERVICE: Sử dụng Axios đã cấu hình ⭐️
 const fetchOrdersAPI = async () => {
-    const url = `/orders/`; 
+    const url = `/orders/get/userorders`;
     
     try {
         const response = await client.get(url); 

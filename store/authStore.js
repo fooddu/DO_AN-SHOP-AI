@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import client from '../api/client';
+import client from '../api/axiosConfig';
 
 const useAuthStore = create((set) => ({
   user: null,
