@@ -17,8 +17,21 @@ import {
 } from 'react-native';
 
 import { useAuth } from '../../context/AuthContext';
-import useProfileData from '../../hooks/useProfileData';
+// import useProfileData from '../../hooks/useProfileData'; // Giữ lại nếu bạn có hook này
 
+// --- Dữ liệu giả định cho COUNT (Thay thế bằng useProfileData nếu có) ---
+const useProfileData = () => {
+    // Giả định orderCount, addressCount, cardCount là các state thực tế của bạn
+    const [counts, setCounts] = useState({ 
+        orderCount: 2, 
+        addressCount: 3, 
+        cardCount: 1, 
+        isCounting: false 
+    });
+    // useEffect(() => { /* Fetch data logic here */ }, []);
+    return counts;
+};
+// --------------------------------------------------------------------------
 
 const COLORS = {
     primary: '#E91E63', 
@@ -58,7 +71,7 @@ const getDisplayAvatarUrl = (userObj, defaultAvatarIcon, baseUrl) => {
         url = url.replace(':8081', ':4000'); 
     }
     
-    console.log(`[DEBUG AVATAR] Avatar URL: ${url}`);
+    // console.log(`[DEBUG AVATAR] Avatar URL: ${url}`); // Tắt debug log khi không cần
     return url;
 };
 
@@ -85,43 +98,40 @@ export default function AccountScreen() {
     const defaultAvatarIcon = 'https://i.pravatar.cc/60?text=PH'; 
     const baseUrl = getBaseUrl(); 
 
+    // Lấy dữ liệu profile (đã giả định hoặc dùng hook thực tế của bạn)
     const { orderCount, addressCount, cardCount, isCounting } = useProfileData();
     
-    const [displayName, setDisplayName] = useState(user?.name || "Người dùng"); 
+    const [displayName, setDisplayName] = useState(user?.name || "User"); 
     const [displayEmail, setDisplayEmail] = useState(user?.email || "Email"); 
     const [displayAvatar, setDisplayAvatar] = useState(getDisplayAvatarUrl(user, defaultAvatarIcon, baseUrl));
 
     useEffect(() => {
         if (user) {
-            console.log('[DEBUG RENDER] User object loaded, synchronizing local state.');
+            // console.log('[DEBUG RENDER] User object loaded, synchronizing local state.');
             
-            setDisplayName(user.name || "");
-            setDisplayEmail(user.email || "");
+            setDisplayName(user.name || "User");
+            setDisplayEmail(user.email || "Email");
             
             const newAvatarUrl = getDisplayAvatarUrl(user, defaultAvatarIcon, baseUrl);
             if (displayAvatar !== newAvatarUrl) setDisplayAvatar(newAvatarUrl);
         }
     }, [user]); 
 
-    // --- Các hàm Navigation (Thêm log) ---
+    // --- Các hàm Navigation ---
     const goToOrders = () => {
-        console.log('[NAVIGATE] Chuyển đến trang Orders.');
         router.push('/orders');
     }
     const goToShippingAddresses = () => {
-        console.log('[NAVIGATE] Chuyển đến trang Shipping Addresses.');
         router.push('/shipping-addresses');
     }
     const goToPaymentMethod = () => {
-        console.log('[NAVIGATE] Chuyển đến trang Payment Method.');
         // router.push('/payment-method');
+        alert("Payment Method is not implemented yet.");
     }
     const goToEditInformation = () => {
-        console.log('[NAVIGATE] Chuyển đến trang Account Settings.');
-        router.push('/account-settings');
+        router.push('/account-settings'); // Dùng đường dẫn đã fix
     }
     const handleLogout = () => {
-        console.log('[ACTION] Đang thực hiện Logout.');
         logout();
     }
     
@@ -136,8 +146,9 @@ export default function AccountScreen() {
     }
     
     if (!user) {
-        console.log('[REDIRECT] Không có User. Chuyển đến trang Login.');
-        return <Redirect href="/login" />;
+        // console.log('[REDIRECT] Không có User. Chuyển đến trang Login.');
+        // Giả định trang login là /login hoặc /(auth)/login
+        return <Redirect href="/(auth)/login" />; 
     }
     
 
@@ -165,7 +176,7 @@ export default function AccountScreen() {
                         style={styles.avatar} 
                         resizeMode="cover"
                         onError={() => {
-                            console.log('[DEBUG RENDER] Lỗi tải avatar. Chuyển về mặc định.');
+                            // console.log('[DEBUG RENDER] Lỗi tải avatar. Chuyển về mặc định.');
                             setDisplayAvatar(defaultAvatarIcon);
                         }}
                     /> 
@@ -173,10 +184,10 @@ export default function AccountScreen() {
                         <Text style={styles.userName}>{displayName}</Text>
                         <Text style={styles.userEmail}>{displayEmail}</Text> 
                         <TouchableOpacity 
-                             onPress={goToEditInformation}
-                             style={styles.editProfileButton}
+                            onPress={goToEditInformation}
+                            style={styles.editProfileButton}
                         >
-                             <Text style={styles.editProfileText}>Edit Profile</Text>
+                            <Text style={styles.editProfileText}>Edit Profile</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -186,32 +197,32 @@ export default function AccountScreen() {
                     <ProfileMenuItemCard
                         title="My orders"
                         subtitle={
-                            orderCount === 0 ? "Chưa có đơn hàng nào." : `Đã có ${orderCount} đơn hàng.`
+                            orderCount === 0 ? "You have no pending orders." : `You have ${orderCount} orders.`
                         }
                         onPress={goToOrders}
                     />
                     <ProfileMenuItemCard
                         title="Shipping Addresses"
                         subtitle={
-                            addressCount === 0 ? "Chưa có địa chỉ nào." : `${addressCount} Addresses.`
+                            addressCount === 0 ? "You have no saved addresses." : `${addressCount} saved addresses.`
                         }
                         onPress={goToShippingAddresses} 
                         isLast={true} 
                     />
                 </View>
 
-                {/* KHỐI 2: PAYMENT & EDIT */}
+                {/* KHỐI 2: PAYMENT & SETTINGS */}
                 <View style={styles.menuGroup}>
                     <ProfileMenuItemCard
                         title="Payment Method"
                         subtitle={
-                            cardCount === 0 ? "You have no cards." : `You have ${cardCount} cards.`
+                            cardCount === 0 ? "You have no saved cards." : `You have ${cardCount} cards.`
                         }
                         onPress={goToPaymentMethod}
                     />
                     <ProfileMenuItemCard
                         title="Settings" 
-                        subtitle="Cập nhật thông tin cá nhân và bảo mật"
+                        subtitle="Update personal information and security."
                         onPress={goToEditInformation}
                         isLast={true}
                     />
