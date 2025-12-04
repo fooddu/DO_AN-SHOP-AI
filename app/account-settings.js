@@ -1,4 +1,4 @@
-// EditProfileScreen.js (Đã loại bỏ Input Address và thay bằng nút)
+// app/account-settings.js (hoặc EditProfileScreen.js)
 
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,6 +17,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+// ✨ FIX: Đã sửa lỗi đường dẫn Context
 import { useAuth } from '../context/AuthContext';
 
 // --- HELPER FUNCTIONS & CONFIG ---
@@ -26,7 +27,8 @@ const isValidEmail = (email) => {
 };
 
 const getBaseUrl = (useLocal = true) => {
-    const LOCAL_IP = '192.168.1.2'; // Thay bằng IP của bạn
+    // THAY THẾ LOCAL_IP BẰNG IP CỦA MÁY CHẠY SERVER BACKEND CỦA BẠN
+    const LOCAL_IP = '192.168.1.2'; 
     const LOCAL_PORT = 4000;
     
     if (Platform.OS === 'web' && useLocal) {
@@ -60,7 +62,9 @@ const uploadImageToServer = async (uri, userId, mimeType, token) => {
 
     try {
         const response = await fetch(`${serverBaseUrl}/api/users/upload-avatar`, { 
-            method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData,
+            method: 'POST', 
+            headers: { 'Authorization': `Bearer ${token}` }, 
+            body: formData,
         });
 
         const data = await response.json();
@@ -114,7 +118,6 @@ export default function EditProfileScreen() {
     const [name, setName] = useState(user?.name || '');
     const [email, setEmail] = useState(user?.email || '');
     const [phone, setPhone] = useState(user?.phone || '');
-    // Giữ state address nhưng không hiển thị input
     const [address, setAddress] = useState(user?.address || ''); 
     const [avatar, setAvatar] = useState(getDisplayAvatarUrl(user));
     const [loading, setLoading] = useState(false);
@@ -209,7 +212,6 @@ export default function EditProfileScreen() {
                 avatarToSend = `/${avatarToSend}`; 
             }
             
-            // Dữ liệu gửi đi vẫn bao gồm address, sử dụng state address hiện tại
             const updatedData = { name, email, phone, address, avatar: avatarToSend }; 
             
             const response = await fetch(`${baseUrl}/api/users/${user._id}`, {
@@ -250,10 +252,13 @@ export default function EditProfileScreen() {
             return;
         }
         
-        let mediaTypeConfig = [ImagePicker.MediaType.Images]; 
-        
+        // ✨ FIX: Khắc phục lỗi runtime 'reading Images' bằng cách kiểm tra sự tồn tại.
+        const mediaType = ImagePicker.MediaType && ImagePicker.MediaType.Images 
+                      ? ImagePicker.MediaType.Images 
+                      : 'Images'; 
+
         let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: mediaTypeConfig, 
+            mediaTypes: mediaType, 
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.5,
@@ -384,15 +389,17 @@ export default function EditProfileScreen() {
                     {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
                 </View>
                 
-                {/* ⭐️ ĐÃ THAY THẾ Input Address bằng Nút điều hướng ⭐️ */}
+                {/* ⭐️ Nút điều hướng đến Địa chỉ (Tối ưu UX) ⭐️ */}
                 <Text style={styles.sectionTitle}>Addresses</Text>
                 <TouchableOpacity 
                     style={styles.optionRow}
                     onPress={navigateToShippingAddresses}
                     disabled={loading}>
-                    <View>
-                        <Text style={styles.label}>Default Address</Text>
-                        <Text style={styles.optionText}>{user?.address ? user.address : 'Click to manage addresses'}</Text>
+                    <View style={{flexShrink: 1}}>
+                        <Text style={[styles.label, {marginBottom: 2}]}>Default Address</Text>
+                        <Text style={styles.optionText} numberOfLines={2}>
+                            {user?.address ? user.address : 'Click here to add/manage your shipping addresses.'}
+                        </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color={COLORS.muted} />
                 </TouchableOpacity>
@@ -547,7 +554,6 @@ const styles = StyleSheet.create({
         marginTop: 20,
         marginBottom: 10,
     },
-    // Đã thay đổi styles.optionRow để hỗ trợ nội dung đa dòng cho địa chỉ
     optionRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -556,13 +562,13 @@ const styles = StyleSheet.create({
         padding: 15,
         borderRadius: 10, 
         marginTop: 5,
-        minHeight: 80, // Tăng chiều cao tối thiểu cho nội dung địa chỉ
+        minHeight: 80, 
     },
     optionText: {
         fontSize: 15,
         color: COLORS.text,
         fontWeight: '400',
-        flexShrink: 1, // Cho phép text co lại
+        flexShrink: 1, 
     },
     overlayContainer: {
         position: 'absolute',
