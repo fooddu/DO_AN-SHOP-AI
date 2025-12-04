@@ -93,7 +93,7 @@ export default function SetNewPasswordScreen() {
     const handleModalOK = () => {
         setModalVisible(false);
         if (modalContent.isSuccess) {
-             router.replace('/(auth)/sign-in'); // Chuyển về trang login khi thành công
+             router.replace('/(auth)/login'); // Chuyển về trang login khi thành công
         }
     };
     

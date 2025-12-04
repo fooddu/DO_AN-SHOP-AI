@@ -1,3 +1,5 @@
+// EditProfileScreen.js (Đã loại bỏ Input Address và thay bằng nút)
+
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -15,7 +17,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { useAuth } from '../../DO_AN-SHOP-AI/context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 // --- HELPER FUNCTIONS & CONFIG ---
 
@@ -34,7 +36,7 @@ const getBaseUrl = (useLocal = true) => {
 };
 
 const COLORS = {
-    primary: '#E91E63',    text: '#222',     muted: '#666',     bg: '#ffffff',     
+    primary: '#E91E63',    text: '#222',     muted: '#666',     bg: '#ffffff',     
     inputBg: '#f6f6f6', error: '#d32f2f', success: '#4CAF50', border: '#e0e0e0',
 };
 
@@ -57,7 +59,7 @@ const uploadImageToServer = async (uri, userId, mimeType, token) => {
     formData.append('avatar', fileToUpload); 
 
     try {
-        const response = await fetch(`${serverBaseUrl}/api/users/upload-avatar`, { // Đã sửa đường dẫn
+        const response = await fetch(`${serverBaseUrl}/api/users/upload-avatar`, { 
             method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData,
         });
 
@@ -112,7 +114,8 @@ export default function EditProfileScreen() {
     const [name, setName] = useState(user?.name || '');
     const [email, setEmail] = useState(user?.email || '');
     const [phone, setPhone] = useState(user?.phone || '');
-    const [address, setAddress] = useState(user?.address || '');
+    // Giữ state address nhưng không hiển thị input
+    const [address, setAddress] = useState(user?.address || ''); 
     const [avatar, setAvatar] = useState(getDisplayAvatarUrl(user));
     const [loading, setLoading] = useState(false);
     
@@ -125,7 +128,7 @@ export default function EditProfileScreen() {
             if (user.email) setEmail(user.email);
             if (user.phone) setPhone(user.phone);
             if (user.address) setAddress(user.address);
-
+            
             const newAvatarUrl = getDisplayAvatarUrl(user);
             if (avatar !== newAvatarUrl) setAvatar(newAvatarUrl);
         }
@@ -192,7 +195,7 @@ export default function EditProfileScreen() {
         const currentToken = userToken;
         if (!currentToken || !user || !user._id) {
             Alert.alert('Session Expired', 'Please login again to update your profile.');
-            router.replace('/login');
+            router.replace('/(auth)/login'); 
             return false;
         }
 
@@ -206,7 +209,8 @@ export default function EditProfileScreen() {
                 avatarToSend = `/${avatarToSend}`; 
             }
             
-            const updatedData = { name, email, phone, address, avatar: avatarToSend };
+            // Dữ liệu gửi đi vẫn bao gồm address, sử dụng state address hiện tại
+            const updatedData = { name, email, phone, address, avatar: avatarToSend }; 
             
             const response = await fetch(`${baseUrl}/api/users/${user._id}`, {
                 method: 'PUT',
@@ -284,6 +288,10 @@ export default function EditProfileScreen() {
         } else {
             router.replace('/tabs/account'); 
         }
+    };
+    
+    const navigateToShippingAddresses = () => {
+        router.push('/shipping-addresses'); 
     };
 
 
@@ -375,21 +383,20 @@ export default function EditProfileScreen() {
                     />
                     {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
                 </View>
-
-                {/* Address Input */}
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Address</Text>
-                    <TextInput
-                        style={[styles.input, styles.multilineInput]}
-                        value={address}
-                        onChangeText={setAddress}
-                        placeholder="Enter full address"
-                        autoCapitalize="sentences"
-                        multiline={true}
-                        numberOfLines={3}
-                        editable={!loading}
-                    />
-                </View>
+                
+                {/* ⭐️ ĐÃ THAY THẾ Input Address bằng Nút điều hướng ⭐️ */}
+                <Text style={styles.sectionTitle}>Addresses</Text>
+                <TouchableOpacity 
+                    style={styles.optionRow}
+                    onPress={navigateToShippingAddresses}
+                    disabled={loading}>
+                    <View>
+                        <Text style={styles.label}>Default Address</Text>
+                        <Text style={styles.optionText}>{user?.address ? user.address : 'Click to manage addresses'}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={COLORS.muted} />
+                </TouchableOpacity>
+                {/* ⭐️ END: Nút Address ⭐️ */}
 
                 {/* Update Button */}
                 <TouchableOpacity
@@ -413,6 +420,8 @@ export default function EditProfileScreen() {
                     <Text style={styles.optionText}>Change Password</Text>
                     <Ionicons name="chevron-forward" size={20} color={COLORS.muted} />
                 </TouchableOpacity>
+
+
             </ScrollView>
 
             {/* Success Overlay */}
@@ -538,6 +547,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
         marginBottom: 10,
     },
+    // Đã thay đổi styles.optionRow để hỗ trợ nội dung đa dòng cho địa chỉ
     optionRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -546,12 +556,13 @@ const styles = StyleSheet.create({
         padding: 15,
         borderRadius: 10, 
         marginTop: 5,
-        borderLeftWidth: 0, 
+        minHeight: 80, // Tăng chiều cao tối thiểu cho nội dung địa chỉ
     },
     optionText: {
-        fontSize: 16,
+        fontSize: 15,
         color: COLORS.text,
         fontWeight: '400',
+        flexShrink: 1, // Cho phép text co lại
     },
     overlayContainer: {
         position: 'absolute',
