@@ -41,7 +41,7 @@ export default function CheckoutScreen() {
         setCart(JSON.parse(data));
       }
     } catch (error) {
-      console.error('Error loading cart:', error);
+      console.error('Lỗi khi tải giỏ hàng:', error);
     }
   };
 
@@ -61,19 +61,19 @@ export default function CheckoutScreen() {
   };
 
   const submitOrder = async () => {
-    // 1. Validate Cart
+    // 1. Kiểm tra giỏ hàng
     if (cart.length === 0) {
-      Alert.alert('Notice', 'Your cart is empty!');
+      Alert.alert('Thông báo', 'Giỏ hàng của bạn đang trống!');
       return;
     }
-    // 2. Validate Info
+    // 2. Kiểm tra thông tin giao hàng
     if (!shippingInfo.recipientName || !shippingInfo.address || !shippingInfo.phoneNumber) {
-      Alert.alert('Notice', 'Please enter all shipping details!');
+      Alert.alert('Thông báo', 'Vui lòng điền đầy đủ thông tin giao hàng!');
       return;
     }
-    // 3. Validate User
+    // 3. Kiểm tra trạng thái đăng nhập
     if (!user || !user._id) { 
-        Alert.alert('Error', 'Session expired. Please login again.');
+        Alert.alert('Lỗi', 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
         return;
     }
     
@@ -103,12 +103,12 @@ export default function CheckoutScreen() {
         await AsyncStorage.removeItem('cart');
         router.replace('/order-success');
       } else {
-        Alert.alert('Error', response.data?.message || 'Unknown server error.');
+        Alert.alert('Lỗi', response.data?.message || 'Lỗi máy chủ không xác định.');
       }
 
     } catch (error) {
-        const errorMessage = error.response?.data?.message || error.message || 'Connection or server error.';
-        Alert.alert('Order Error', errorMessage);
+        const errorMessage = error.response?.data?.message || error.message || 'Lỗi kết nối hoặc máy chủ.';
+        Alert.alert('Lỗi đặt hàng', errorMessage);
     } finally {
         setIsLoading(false);
     }
@@ -116,10 +116,10 @@ export default function CheckoutScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* SHIPPING ADDRESS */}
+      {/* THÔNG TIN GIAO HÀNG */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Shipping Address</Text>
+          <Text style={styles.sectionTitle}>Thông tin giao hàng</Text>
           <TouchableOpacity>
             <Text style={styles.editIcon}>✎</Text>
           </TouchableOpacity>
@@ -127,29 +127,29 @@ export default function CheckoutScreen() {
 
         <TextInput
           style={styles.input}
-          placeholder="Recipient Name"
+          placeholder="Tên người nhận"
           value={shippingInfo.recipientName}
           onChangeText={(text) => setShippingInfo({...shippingInfo, recipientName: text})}
         />
         <TextInput
           style={styles.input}
-          placeholder="Address"
-          value={shippingInfo.address}
+          placeholder="Địa chỉ"
+          value={shipping formulate}
           onChangeText={(text) => setShippingInfo({...shippingInfo, address: text})}
           multiline
         />
         <TextInput
           style={styles.input}
-          placeholder="Phone Number"
+          placeholder="Số điện thoại"
           value={shippingInfo.phoneNumber}
           onChangeText={(text) => setShippingInfo({...shippingInfo, phoneNumber: text})}
           keyboardType="phone-pad"
         />
       </View>
 
-      {/* PAYMENT METHOD */}
+      {/* PHƯƠNG THỨC THANH TOÁN */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Payment method</Text>
+        <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
         
         <View style={styles.paymentOption}>
           <View style={styles.radioOuter}>
@@ -164,29 +164,29 @@ export default function CheckoutScreen() {
         </View>
       </View>
 
-      {/* ORDER SUMMARY */}
+      {/* TÓM TẮT ĐƠN HÀNG */}
       <View style={styles.section}>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Order:</Text>
+          <Text style={styles.summaryLabel}>Đơn hàng:</Text>
           <Text style={styles.summaryValue}>
             $ {calculateSubtotal().toFixed(2)}
           </Text>
         </View>
 
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Delivery:</Text>
+          <Text style={styles.summaryLabel}>Phí giao hàng:</Text>
           <Text style={styles.summaryValue}>$ {DELIVERY_FEE.toFixed(2)}</Text>
         </View>
 
         <View style={[styles.summaryRow, styles.totalRow]}>
-          <Text style={styles.totalLabel}>Total:</Text>
+          <Text style={styles.totalLabel}>Tổng cộng:</Text>
           <Text style={styles.totalValue}>
             $ {calculateTotal().toFixed(2)}
           </Text>
         </View>
       </View>
 
-      {/* Submit Button */}
+      {/* NÚT ĐẶT HÀNG */}
       <TouchableOpacity 
         style={styles.submitButton}
         onPress={submitOrder}
@@ -195,7 +195,7 @@ export default function CheckoutScreen() {
         {isLoading ? (
           <ActivityIndicator color="#FFF" />
         ) : (
-          <Text style={styles.submitButtonText}>SUBMIT ORDER</Text>
+          <Text style={styles.submitButtonText}>ĐẶT HÀNG</Text>
         )}
       </TouchableOpacity>
     </ScrollView>
@@ -282,13 +282,13 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     marginTop: 5,
   },
-  // ⭐️ Đã đổi chữ Total thành màu Hồng
+  // ⭐️ Đã đổi chữ "Tổng cộng" thành màu Hồng
   totalLabel: {
     fontSize: 16,
     fontWeight: 'bold',
     color: APP_PINK, 
   },
-  // ⭐️ Đã đổi số tiền Total thành màu Hồng
+  // ⭐️ Đã đổi số tiền "Tổng cộng" thành màu Hồng
   totalValue: {
     fontSize: 16,
     fontWeight: 'bold',
