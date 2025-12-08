@@ -18,17 +18,17 @@ import {
 import client from '../../api/axiosConfig';
 
 const COLORS = {
-    primary: '#FF3366',      
-    text: '#222',         
-    muted: '#888',        
-    bg: '#ffffff',        
-    surface: '#F6F6F6',   
-    borderColor: '#E8E8E8', 
+    primary: '#FF3366',
+    text: '#222',
+    muted: '#888',
+    bg: '#ffffff',
+    surface: '#F6F6F6',
+    borderColor: '#E8E8E8',
     shadow: '#000',
 };
 
 // Lấy URL cần thiết để thay thế localhost
-const API_BASE_URL_FOR_IMAGES = client.defaults.baseURL.replace('/api', ''); 
+const API_BASE_URL_FOR_IMAGES = client.defaults.baseURL.replace('/api', '');
 const LOCALHOST_URL = 'http://localhost:4000';
 const FALLBACK_IMAGE_URL = 'https://picsum.photos/400';
 
@@ -59,8 +59,8 @@ const ListHeader = ({ search, onSearch, categoriesList, activeCategory, onCatego
     <View>
         {/* TopBar: logo + cart */}
         <View style={styles.topBar}>
-            <View style={{ width: 30 }} /> 
-            <Text style={styles.logoText}>AI Shop</Text> 
+            <View style={{ width: 30 }} />
+            <Text style={styles.logoText}>AI Shop</Text>
             <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartBtn}>
                 <Ionicons name="cart-outline" size={24} color={COLORS.text} />
             </TouchableOpacity>
@@ -70,7 +70,7 @@ const ListHeader = ({ search, onSearch, categoriesList, activeCategory, onCatego
         <View style={styles.searchBox}>
             <Ionicons name="search" size={20} color={COLORS.muted} />
             <TextInput
-                placeholder="Search products..."
+                placeholder="Tìm kiếm sản phẩm..."
                 placeholderTextColor={COLORS.muted}
                 style={styles.searchInput}
                 value={search}
@@ -79,11 +79,11 @@ const ListHeader = ({ search, onSearch, categoriesList, activeCategory, onCatego
         </View>
 
         {/* Featured categories */}
-        <ScrollView 
-            horizontal 
+        <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.featureScroll}
-            keyboardShouldPersistTaps="handled" 
+            keyboardShouldPersistTaps="handled"
         >
             {categoriesList.map((cat) => {
                 const isActive = activeCategory === cat;
@@ -100,7 +100,7 @@ const ListHeader = ({ search, onSearch, categoriesList, activeCategory, onCatego
                 );
             })}
         </ScrollView>
-        
+
         {/* Status message and Loading state */}
         {loading ? (
             <View style={styles.statusContainer}>
@@ -120,14 +120,14 @@ function ProductCard({ item, onAdd, onPress }) {
     const imageSource = {
         uri: item.image || FALLBACK_IMAGE_URL
     };
-        
+
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
             <View style={styles.imageContainer}>
                 <Image source={imageSource} style={styles.image} />
             </View>
             <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-            
+
             {/* Khối cardFooter (ĐÃ SỬA LỖI CÚ PHÁP) */}
             <View style={styles.cardFooter}>
                 <Text style={styles.price}>$ {Number(item.price).toFixed(2)}</Text>
@@ -135,7 +135,7 @@ function ProductCard({ item, onAdd, onPress }) {
                     <Ionicons name="cart-outline" size={16} color="#fff" />
                 </TouchableOpacity>
             </View>
-            
+
         </TouchableOpacity>
     );
 }
@@ -160,14 +160,14 @@ export default function HomeScreen() {
         setLoading(true);
         setStatus(null);
         try {
-            
+
             const response = await client.get('/products');
-            
+
             let apiData = response.data;
             if (typeof apiData === 'string' || !apiData.success) {
-                 throw new Error("Invalid API response format: Did not receive JSON.");
+                throw new Error("Invalid API response format: Did not receive JSON.");
             }
-            
+
             let list = Array.isArray(apiData.data) ? apiData.data : [];
 
             // FIX LỖI ẢNH: Chuẩn hóa URL ảnh 
@@ -178,15 +178,15 @@ export default function HomeScreen() {
                 if (Array.isArray(product.image) && product.image.length > 0) {
                     imageUrl = product.image[0];
                 }
-                
+
                 // 2. Thay thế URL localhost bằng BASE_URL của client
                 if (imageUrl && imageUrl.includes(LOCALHOST_URL)) {
                     imageUrl = imageUrl.replace(LOCALHOST_URL, API_BASE_URL_FOR_IMAGES);
                 }
 
                 // 3. Trả về product mới với ảnh đã được chuẩn hóa
-                return { 
-                    ...product, 
+                return {
+                    ...product,
                     image: imageUrl
                 };
             });
@@ -196,19 +196,19 @@ export default function HomeScreen() {
                 setFiltered(list);
                 setStatus(null);
             } else {
-                setProducts(sampleProducts); 
+                setProducts(sampleProducts);
                 setFiltered(sampleProducts);
-                setStatus('Server returned empty data - showing sample products.');
+                setStatus('Server trả về dữ liệu trống - hiển thị sản phẩm mẫu.');
             }
         } catch (err) {
             console.error('[HomeScreen] API Error (Network/Parsing):', err.message);
 
             if (err.message.includes('Invalid API response')) {
-                setStatus('DATA ERROR: Server returned text/HTML instead of JSON.');
+                setStatus('LỖI DỮ LIỆU: Server trả về text/HTML thay vì JSON.');
             } else {
-                setStatus('Network connection failed - showing sample products.');
+                setStatus('Kết nối mạng thất bại - hiển thị sản phẩm mẫu.');
             }
-            
+
             setProducts(sampleProducts);
             setFiltered(sampleProducts);
 
@@ -221,7 +221,7 @@ export default function HomeScreen() {
         try {
             const raw = await AsyncStorage.getItem('cart');
             const cart = raw ? JSON.parse(raw) : [];
-            const idx = cart.findIndex((it) => it.productId === product._id); 
+            const idx = cart.findIndex((it) => it.productId === product._id);
 
             if (idx >= 0) {
                 cart[idx].quantity = (cart[idx].quantity || 1) + 1;
@@ -233,19 +233,19 @@ export default function HomeScreen() {
             }
 
             await AsyncStorage.setItem('cart', JSON.stringify(cart));
-            Alert.alert('Added to Cart', `${product.name} has been added to the cart.`);
+            Alert.alert('Đã thêm vào giỏ', `${product.name} đã được thêm vào giỏ hàng.`);
         } catch (e) {
             console.error('Error adding to cart:', e);
-            Alert.alert('Error', 'Failed to add item to cart.');
+            Alert.alert('Lỗi', 'Không thể thêm sản phẩm vào giỏ hàng.');
         }
     };
 
     const onSearch = (text) => {
         setSearch(text);
         const q = text.trim().toLowerCase();
-        
-        const baseList = activeCategory === 'All' 
-            ? products 
+
+        const baseList = activeCategory === 'All'
+            ? products
             : products.filter(p => (p.category || '').toLowerCase() === activeCategory.toLowerCase());
 
         if (!q) {
@@ -259,9 +259,9 @@ export default function HomeScreen() {
         setActiveCategory(cat);
 
         const low = cat.toLowerCase();
-        
-        const filteredByCategory = cat === 'All' 
-            ? products 
+
+        const filteredByCategory = cat === 'All'
+            ? products
             : products.filter((p) => (p.category || '').toLowerCase() === low);
 
         const q = search.trim().toLowerCase();
@@ -281,7 +281,7 @@ export default function HomeScreen() {
     return (
         <SafeAreaView style={styles.safe}>
             <View style={styles.container}>
-                
+
                 <FlatList
                     data={filtered}
                     renderItem={({ item }) => (
@@ -296,17 +296,17 @@ export default function HomeScreen() {
                     columnWrapperStyle={styles.columnWrap}
                     contentContainerStyle={styles.list}
                     showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled" 
-                    
+                    keyboardShouldPersistTaps="handled"
+
                     ListHeaderComponent={
-                        <ListHeader 
-                            search={search} 
-                            onSearch={onSearch} 
-                            categoriesList={categoriesList} 
-                            activeCategory={activeCategory} 
-                            onCategory={onCategory} 
-                            router={router} 
-                            styles={styles} 
+                        <ListHeader
+                            search={search}
+                            onSearch={onSearch}
+                            categoriesList={categoriesList}
+                            activeCategory={activeCategory}
+                            onCategory={onCategory}
+                            router={router}
+                            styles={styles}
                             COLORS={COLORS}
                             loading={loading}
                             status={status}
@@ -321,9 +321,9 @@ export default function HomeScreen() {
 /* Styles */
 const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: COLORS.bg },
-    container: { flex: 1, paddingHorizontal: 16 }, 
+    container: { flex: 1, paddingHorizontal: 16 },
     topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingTop: 12 },
-    logoText: { fontSize: 24, fontWeight: 'bold', color: COLORS.primary }, 
+    logoText: { fontSize: 24, fontWeight: 'bold', color: COLORS.primary },
     logo: { width: 40, height: 40 },
     cartBtn: { padding: 4 },
     searchBox: {
@@ -336,54 +336,54 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     searchInput: { marginLeft: 10, flex: 1, fontSize: 16, color: COLORS.text },
-    
+
     // Categories
-    featureScroll: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        paddingBottom: 8, 
-        paddingRight: 20 
+    featureScroll: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingBottom: 8,
+        paddingRight: 20
     },
     featureBtn: {
         paddingHorizontal: 14,
         paddingVertical: 8,
-        borderRadius: 8, 
+        borderRadius: 8,
         borderWidth: 1,
-        borderColor: COLORS.borderColor, 
-        marginRight: 8, 
+        borderColor: COLORS.borderColor,
+        marginRight: 8,
         backgroundColor: '#fff',
-        elevation: 0, 
-        shadowOpacity: 0, 
+        elevation: 0,
+        shadowOpacity: 0,
         shadowRadius: 0,
     },
-    featureActive: { 
-        backgroundColor: COLORS.primary, 
+    featureActive: {
+        backgroundColor: COLORS.primary,
         borderColor: COLORS.primary,
-        elevation: 0, 
-        shadowOpacity: 0, 
+        elevation: 0,
+        shadowOpacity: 0,
         shadowRadius: 0,
     },
-    featureText: { 
-        color: COLORS.text, 
-        fontSize: 14 
+    featureText: {
+        color: COLORS.text,
+        fontSize: 14
     },
-    featureTextActive: { 
-        color: '#fff', 
-        fontWeight: 'bold' 
+    featureTextActive: {
+        color: '#fff',
+        fontWeight: 'bold'
     },
-    
+
     // Status Box & Loading
     statusContainer: { paddingVertical: 30 },
-    statusBox: { 
-        backgroundColor: COLORS.surface, 
-        padding: 10, 
-        borderRadius: 8, 
+    statusBox: {
+        backgroundColor: COLORS.surface,
+        padding: 10,
+        borderRadius: 8,
         marginBottom: 10,
         borderLeftWidth: 3,
         borderLeftColor: COLORS.primary,
     },
     statusText: { color: COLORS.text, marginBottom: 0, textAlign: 'center', fontSize: 13, fontWeight: '500' },
-    
+
     list: { paddingBottom: 20, paddingTop: 0 },
     columnWrap: { justifyContent: 'space-between' },
 
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
         padding: 8,
         marginBottom: 18,
         alignItems: 'flex-start',
-        elevation: 1, 
+        elevation: 1,
         shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.08,
