@@ -28,9 +28,9 @@ const isValidEmail = (email) => {
 
 const getBaseUrl = (useLocal = true) => {
     // THAY THẾ LOCAL_IP BẰNG IP CỦA MÁY CHẠY SERVER BACKEND CỦA BẠN
-    const LOCAL_IP = '192.168.1.2'; 
+    const LOCAL_IP = '192.168.1.2';
     const LOCAL_PORT = 4000;
-    
+
     if (Platform.OS === 'web' && useLocal) {
         return `http://localhost:${LOCAL_PORT}`;
     }
@@ -38,7 +38,7 @@ const getBaseUrl = (useLocal = true) => {
 };
 
 const COLORS = {
-    primary: '#E91E63',    text: '#222',     muted: '#666',     bg: '#ffffff',     
+    primary: '#E91E63', text: '#222', muted: '#666', bg: '#ffffff',
     inputBg: '#f6f6f6', error: '#d32f2f', success: '#4CAF50', border: '#e0e0e0',
 };
 
@@ -48,7 +48,7 @@ const uploadImageToServer = async (uri, userId, mimeType, token) => {
     const filename = `avatar-${userId}-${Date.now()}.${ext}`;
     const formData = new FormData();
     const serverBaseUrl = getBaseUrl();
-    
+
     let fileToUpload;
     if (Platform.OS === 'web') {
         const response = await fetch(uri);
@@ -58,12 +58,12 @@ const uploadImageToServer = async (uri, userId, mimeType, token) => {
         fileToUpload = { uri: uri, name: filename, type: mimeType };
     }
 
-    formData.append('avatar', fileToUpload); 
+    formData.append('avatar', fileToUpload);
 
     try {
-        const response = await fetch(`${serverBaseUrl}/api/users/upload-avatar`, { 
-            method: 'POST', 
-            headers: { 'Authorization': `Bearer ${token}` }, 
+        const response = await fetch(`${serverBaseUrl}/api/users/upload-avatar`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData,
         });
 
@@ -74,7 +74,7 @@ const uploadImageToServer = async (uri, userId, mimeType, token) => {
         }
 
         const serverReturnedUrl = data.url;
-        
+
         if (serverReturnedUrl.startsWith('http://') || serverReturnedUrl.startsWith('https://')) {
             return serverReturnedUrl;
         }
@@ -95,33 +95,33 @@ export default function EditProfileScreen() {
     const router = useRouter();
     const { user, token: userToken, updateUser } = useAuth();
 
-    const defaultAvatarIcon = 'https://i.pravatar.cc/150'; 
-    
+    const defaultAvatarIcon = 'https://i.pravatar.cc/150';
+
     const getDisplayAvatarUrl = (userObj) => {
         const avatarUrl = userObj?.avatar;
         if (!avatarUrl || avatarUrl === defaultAvatarIcon) {
-            return defaultAvatarIcon; 
+            return defaultAvatarIcon;
         }
-        
+
         const baseUrl = getBaseUrl();
-        
+
         if (avatarUrl.startsWith('http')) {
             if (Platform.OS === 'web' && avatarUrl.includes('localhost') && avatarUrl.includes(':8081')) {
-                return avatarUrl.replace(':8081', ':4000'); 
+                return avatarUrl.replace(':8081', ':4000');
             }
             return avatarUrl;
         }
-        
+
         return `${baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl}${avatarUrl.startsWith('/') ? avatarUrl : '/' + avatarUrl}`;
     };
 
     const [name, setName] = useState(user?.name || '');
     const [email, setEmail] = useState(user?.email || '');
     const [phone, setPhone] = useState(user?.phone || '');
-    const [address, setAddress] = useState(user?.address || ''); 
+    const [address, setAddress] = useState(user?.address || '');
     const [avatar, setAvatar] = useState(getDisplayAvatarUrl(user));
     const [loading, setLoading] = useState(false);
-    
+
     const [errors, setErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
 
@@ -131,11 +131,11 @@ export default function EditProfileScreen() {
             if (user.email) setEmail(user.email);
             if (user.phone) setPhone(user.phone);
             if (user.address) setAddress(user.address);
-            
+
             const newAvatarUrl = getDisplayAvatarUrl(user);
             if (avatar !== newAvatarUrl) setAvatar(newAvatarUrl);
         }
-    }, [user]); 
+    }, [user]);
 
 
     const mapServerErrors = (serverMessage) => {
@@ -157,63 +157,63 @@ export default function EditProfileScreen() {
 
     const validateField = (fieldName, value) => {
         let error = '';
-        
+
         switch (fieldName) {
             case 'name':
                 if (!value || value.trim() === '') {
-                    error = 'Full Name is required.';
+                    error = 'Họ tên là bắt buộc.';
                 }
                 break;
             case 'email':
                 if (!value || value.trim() === '') {
-                    error = 'Email is required.';
+                    error = 'Email là bắt buộc.';
                 } else if (!isValidEmail(value)) {
-                    error = 'Invalid email address.';
+                    error = 'Địa chỉ email không hợp lệ.';
                 }
                 break;
             case 'phone':
                 if (value && value.length > 0) {
                     if (isNaN(Number(value))) {
-                        error = 'Phone number must contain digits only.';
+                        error = 'Số điện thoại chỉ được chứa chữ số.';
                     } else if (value.length < 9) {
-                        error = 'Phone number must be at least 9 digits.';
-                    } 
+                        error = 'Số điện thoại phải có ít nhất 9 chữ số.';
+                    }
                 }
                 break;
         }
-        
+
         setErrors(prev => ({ ...prev, [fieldName]: error }));
-        return error === ''; 
+        return error === '';
     };
 
     const handleUpdateProfile = async (newAvatarUrl = avatar) => {
         const isNameValid = validateField('name', name);
         const isEmailValid = validateField('email', email);
         const isPhoneValid = validateField('phone', phone);
-        
+
         if (!isNameValid || !isEmailValid || !isPhoneValid) {
             return false;
         }
 
         const currentToken = userToken;
         if (!currentToken || !user || !user._id) {
-            Alert.alert('Session Expired', 'Please login again to update your profile.');
-            router.replace('/(auth)/login'); 
+            Alert.alert('Phiên đăng nhập hết hạn', 'Vui lòng đăng nhập lại để cập nhật hồ sơ.');
+            router.replace('/(auth)/login');
             return false;
         }
 
         try {
             let avatarToSend = newAvatarUrl;
             const baseUrl = getBaseUrl();
-            
+
             if (newAvatarUrl.startsWith(baseUrl)) {
                 avatarToSend = newAvatarUrl.substring(baseUrl.length);
             } else if (!newAvatarUrl.startsWith('http') && !newAvatarUrl.startsWith('/')) {
-                avatarToSend = `/${avatarToSend}`; 
+                avatarToSend = `/${avatarToSend}`;
             }
-            
-            const updatedData = { name, email, phone, address, avatar: avatarToSend }; 
-            
+
+            const updatedData = { name, email, phone, address, avatar: avatarToSend };
+
             const response = await fetch(`${baseUrl}/api/users/${user._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}` },
@@ -221,44 +221,44 @@ export default function EditProfileScreen() {
             });
 
             const data = await response.json();
-            
+
             if (response.status !== 200) {
                 if (data.message) mapServerErrors(data.message);
-                else Alert.alert('Update Error', `Update failed. Status: ${response.status}`);
+                else Alert.alert('Lỗi cập nhật', `Cập nhật thất bại. Mã lỗi: ${response.status}`);
                 return false;
             }
-            
+
             if (data.success) {
                 updateUser(data.data);
                 setAvatar(getDisplayAvatarUrl(data.data));
-                setSuccessMessage('Profile updated successfully!');
-                setTimeout(() => { setSuccessMessage(''); }, 3000); 
+                setSuccessMessage('Cập nhật hồ sơ thành công!');
+                setTimeout(() => { setSuccessMessage(''); }, 3000);
                 return true;
             } else {
-                Alert.alert('Update Error', data.message || 'Unknown error.');
+                Alert.alert('Lỗi cập nhật', data.message || 'Lỗi không xác định.');
                 return false;
             }
 
         } catch (error) {
-            Alert.alert('Network Error', `Cannot connect to server. Please check your connection.`);
+            Alert.alert('Lỗi mạng', `Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối.`);
             return false;
         }
     };
-    
+
     const handleChoosePhoto = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission Denied', 'Camera roll permission is required to change avatar.');
+            Alert.alert('Quyền bị từ chối', 'Cần cấp quyền truy cập thư viện ảnh để thay đổi ảnh đại diện.');
             return;
         }
-        
+
         // ✨ FIX: Khắc phục lỗi runtime 'reading Images' bằng cách kiểm tra sự tồn tại.
-        const mediaType = ImagePicker.MediaType && ImagePicker.MediaType.Images 
-                      ? ImagePicker.MediaType.Images 
-                      : 'Images'; 
+        const mediaType = ImagePicker.MediaType && ImagePicker.MediaType.Images
+            ? ImagePicker.MediaType.Images
+            : 'Images';
 
         let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: mediaType, 
+            mediaTypes: mediaType,
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.5,
@@ -267,36 +267,36 @@ export default function EditProfileScreen() {
         if (!result.canceled) {
             setLoading(true);
             const currentToken = userToken;
-            
+
             if (!currentToken || !user || !user._id) {
-                Alert.alert('Error', 'Invalid session.');
+                Alert.alert('Lỗi', 'Phiên đăng nhập không hợp lệ.');
                 setLoading(false);
                 return;
             }
             try {
                 const asset = result.assets[0];
-                
+
                 const newAvatarUrl = await uploadImageToServer(asset.uri, user._id, asset.mimeType, currentToken);
-                
+
                 await handleUpdateProfile(newAvatarUrl);
             } catch (error) {
-                Alert.alert('Error', error.message || 'Failed to upload image.');
+                Alert.alert('Lỗi', error.message || 'Tải ảnh lên thất bại.');
             } finally {
-                setLoading(false); 
+                setLoading(false);
             }
         }
     };
-    
+
     const handleGoBack = () => {
         if (router.canGoBack()) {
             router.back();
         } else {
-            router.replace('/tabs/account'); 
+            router.replace('/tabs/account');
         }
     };
-    
+
     const navigateToShippingAddresses = () => {
-        router.push('/shipping-addresses'); 
+        router.push('/shipping-addresses');
     };
 
 
@@ -311,19 +311,19 @@ export default function EditProfileScreen() {
                 <TouchableOpacity onPress={handleGoBack} style={styles.headerBtn} disabled={loading}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Edit Profile</Text>
+                <Text style={styles.headerTitle}>Chỉnh sửa hồ sơ</Text>
                 <View style={styles.headerBtn} />
             </View>
-            
-            <ScrollView 
+
+            <ScrollView
                 contentContainerStyle={styles.container}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Avatar */}
                 <View style={styles.avatarContainer}>
-                    <Image 
-                        source={{ uri: avatar }} 
-                        style={styles.avatar} 
+                    <Image
+                        source={{ uri: avatar }}
+                        style={styles.avatar}
                         resizeMode="cover"
                         onError={() => {
                             if (avatar !== defaultAvatarIcon) {
@@ -333,14 +333,14 @@ export default function EditProfileScreen() {
                     />
                     <View style={styles.avatarButtonRow}>
                         <TouchableOpacity onPress={handleChoosePhoto} disabled={loading}>
-                            <Text style={styles.changeAvatarText}>Change Photo</Text>
+                            <Text style={styles.changeAvatarText}>Thay đổi ảnh</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
-                
+
                 {/* Name Input */}
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Full Name</Text>
+                    <Text style={styles.label}>Họ và tên</Text>
                     <TextInput
                         style={[styles.input, errors.name && styles.inputError]}
                         value={name}
@@ -348,7 +348,7 @@ export default function EditProfileScreen() {
                             setName(text);
                             validateField('name', text);
                         }}
-                        placeholder="Enter full name"
+                        placeholder="Nhập họ và tên"
                         autoCapitalize="words"
                         editable={!loading}
                     />
@@ -365,7 +365,7 @@ export default function EditProfileScreen() {
                             setEmail(text);
                             validateField('email', text);
                         }}
-                        placeholder="Enter email address"
+                        placeholder="Nhập địa chỉ email"
                         keyboardType="email-address"
                         editable={!loading}
                     />
@@ -374,7 +374,7 @@ export default function EditProfileScreen() {
 
                 {/* Phone Input */}
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Phone Number</Text>
+                    <Text style={styles.label}>Số điện thoại</Text>
                     <TextInput
                         style={[styles.input, errors.phone && styles.inputError]}
                         value={phone}
@@ -382,23 +382,23 @@ export default function EditProfileScreen() {
                             setPhone(text);
                             validateField('phone', text);
                         }}
-                        placeholder="Enter phone number"
+                        placeholder="Nhập số điện thoại"
                         keyboardType="phone-pad"
                         editable={!loading}
                     />
                     {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
                 </View>
-                
+
                 {/* ⭐️ Nút điều hướng đến Địa chỉ (Tối ưu UX) ⭐️ */}
-                <Text style={styles.sectionTitle}>Addresses</Text>
-                <TouchableOpacity 
+                <Text style={styles.sectionTitle}>Địa chỉ</Text>
+                <TouchableOpacity
                     style={styles.optionRow}
                     onPress={navigateToShippingAddresses}
                     disabled={loading}>
-                    <View style={{flexShrink: 1}}>
-                        <Text style={[styles.label, {marginBottom: 2}]}>Default Address</Text>
+                    <View style={{ flexShrink: 1 }}>
+                        <Text style={[styles.label, { marginBottom: 2 }]}>Địa chỉ mặc định</Text>
                         <Text style={styles.optionText} numberOfLines={2}>
-                            {user?.address ? user.address : 'Click here to add/manage your shipping addresses.'}
+                            {user?.address ? user.address : 'Nhấn vào đây để thêm/quản lý địa chỉ giao hàng.'}
                         </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color={COLORS.muted} />
@@ -414,17 +414,17 @@ export default function EditProfileScreen() {
                     {loading ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
-                        <Text style={styles.saveButtonText}>SAVE CHANGES</Text>
+                        <Text style={styles.saveButtonText}>LƯU THAY ĐỔI</Text>
                     )}
                 </TouchableOpacity>
 
                 {/* Security Section */}
-                <Text style={styles.sectionTitle}>Security</Text>
-                <TouchableOpacity 
+                <Text style={styles.sectionTitle}>Bảo mật</Text>
+                <TouchableOpacity
                     style={styles.optionRow}
                     onPress={() => router.push('/change-password')}
                     disabled={loading}>
-                    <Text style={styles.optionText}>Change Password</Text>
+                    <Text style={styles.optionText}>Đổi mật khẩu</Text>
                     <Ionicons name="chevron-forward" size={20} color={COLORS.muted} />
                 </TouchableOpacity>
 
@@ -465,54 +465,54 @@ const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 20,
         paddingVertical: 20,
-        paddingBottom: 50, 
+        paddingBottom: 50,
         flexGrow: 1,
     },
     avatarContainer: {
         alignItems: 'center',
-        marginBottom: 30, 
+        marginBottom: 30,
         marginTop: 10,
     },
     avatar: {
-        width: 100, 
+        width: 100,
         height: 100,
         borderRadius: 50,
         marginBottom: 10,
-        borderWidth: 1, 
+        borderWidth: 1,
         borderColor: COLORS.inputBg,
     },
     avatarButtonRow: {
-        flexDirection: 'column', 
+        flexDirection: 'column',
         alignItems: 'center',
     },
     changeAvatarText: {
         color: COLORS.primary,
         fontSize: 14,
         fontWeight: '500',
-        marginBottom: 5, 
+        marginBottom: 5,
     },
-    
+
     inputGroup: {
-        marginBottom: 20, 
+        marginBottom: 20,
     },
     label: {
         fontSize: 14,
-        color: COLORS.text, 
+        color: COLORS.text,
         marginTop: 0,
-        marginBottom: 5, 
+        marginBottom: 5,
         fontWeight: '500',
     },
     input: {
         backgroundColor: COLORS.inputBg,
-        height: 50, 
-        borderRadius: 10, 
+        height: 50,
+        borderRadius: 10,
         paddingHorizontal: 15,
         fontSize: 16,
         color: COLORS.text,
-        borderWidth: 1, 
-        borderColor: COLORS.inputBg, 
+        borderWidth: 1,
+        borderColor: COLORS.inputBg,
     },
-    inputError: { 
+    inputError: {
         borderColor: COLORS.error,
         borderWidth: 1,
     },
@@ -529,15 +529,15 @@ const styles = StyleSheet.create({
         paddingBottom: 15,
         textAlignVertical: 'top',
     },
-    
+
     saveButton: {
         backgroundColor: COLORS.primary,
         height: 50,
         borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 10, 
-        marginBottom: 20, 
+        marginTop: 10,
+        marginBottom: 20,
     },
     saveButtonDisabled: {
         backgroundColor: '#f59aab',
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     sectionTitle: {
-        fontSize: 16, 
+        fontSize: 16,
         fontWeight: '600',
         color: COLORS.text,
         marginTop: 20,
@@ -560,15 +560,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: COLORS.inputBg,
         padding: 15,
-        borderRadius: 10, 
+        borderRadius: 10,
         marginTop: 5,
-        minHeight: 80, 
+        minHeight: 80,
     },
     optionText: {
         fontSize: 15,
         color: COLORS.text,
         fontWeight: '400',
-        flexShrink: 1, 
+        flexShrink: 1,
     },
     overlayContainer: {
         position: 'absolute',
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingTop: Platform.OS === 'android' ? 50 : 20,
         zIndex: 100,
-        pointerEvents: 'box-none', 
+        pointerEvents: 'box-none',
     },
     successContainerOverlay: {
         flexDirection: 'row',
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignSelf: 'center',
         minWidth: 250,
-        pointerEvents: 'none', 
+        pointerEvents: 'none',
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
