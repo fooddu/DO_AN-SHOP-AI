@@ -1,272 +1,410 @@
-// [File] app/tabs/favorites.js
-
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     Image,
     SafeAreaView,
+    ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
 import client from '../../api/axiosConfig';
-import { useFavorites } from '../../contexts/FavoritesContext';
 
-// 🎨 COLORS: Định nghĩa bảng màu rõ ràng
 const COLORS = {
-    primary: '#E91E63', // Hồng nổi bật
-    text: '#222', // Màu chữ đậm
-    muted: '#888', // Màu chữ phụ
-    bg: '#ffffff', // Nền chính (Trắng)
-    surface: '#F6F6F6', // Nền phụ (Light Gray)
-    lightGrey: '#E0E0E0', // Màu viền/placeholder
+    primary: '#FF3366',
+    text: '#222',
+    muted: '#888',
+    bg: '#ffffff',
+    surface: '#F6F6F6',
+    borderColor: '#E8E8E8',
+    shadow: '#000',
 };
 
-// ⭐️ IMAGE FIX: Lấy BASE URL từ client đã cấu hình ⭐️
+// Lấy URL cần thiết để thay thế localhost
 const API_BASE_URL_FOR_IMAGES = client.defaults.baseURL.replace('/api', '');
 const LOCALHOST_URL = 'http://localhost:4000';
-const FALLBACK_IMAGE_URL = 'https://picsum.photos/200';
+const FALLBACK_IMAGE_URL = 'https://picsum.photos/400';
 
-// Component Card cho sản phẩm yêu thích (Render Item)
-const FavoriteCard = ({ item }) => {
+// Sample data for fallback
+const sampleProducts = [
+    {
+        _id: 's1', name: 'POLK DRESS', price: 75.00, category: 'T-Shirt',
+        image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500', stock: 50
+    },
+    {
+        _id: 's2', name: 'Basic Black T-Shirt', price: 35.00, category: 'T-Shirt',
+        image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500', stock: 100
+    },
+    {
+        _id: 's3', name: 'White Plain T-Shirt', price: 33.00, category: 'Polo',
+        image: 'https://images.unsplash.com/photo-1622445275576-721325763afe?w=500', stock: 80
+    },
+    {
+        _id: 's4', name: 'POLK DRESS Beige', price: 28.00, category: 'Short',
+        image: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=500', stock: 60
+    },
+];
+
+const FIXED_CATEGORIES = ['T-Shirt', 'Polo', 'Short', 'Pant', 'Jean', 'Jacket', 'Hoodie', 'Dress'];
+
+// Component Header cho FlatList (Gồm TopBar, Search và Categories)
+const ListHeader = ({ search, onSearch, categoriesList, activeCategory, onCategory, router, styles, COLORS, loading, status }) => (
+    <View>
+        {/* TopBar: logo + cart */}
+        <View style={styles.topBar}>
+            <View style={{ width: 30 }} />
+            <Text style={styles.logoText}>AI Shop</Text>
+            <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartBtn}>
+                <Ionicons name="cart-outline" size={24} color={COLORS.text} />
+            </TouchableOpacity>
+        </View>
+
+        {/* Search */}
+        <View style={styles.searchBox}>
+            <Ionicons name="search" size={20} color={COLORS.muted} />
+            <TextInput
+                placeholder="Tìm kiếm sản phẩm..."
+                placeholderTextColor={COLORS.muted}
+                style={styles.searchInput}
+                value={search}
+                onChangeText={onSearch}
+            />
+        </View>
+
+        {/* Featured categories */}
+        <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.featureScroll}
+            keyboardShouldPersistTaps="handled"
+        >
+            {categoriesList.map((cat) => {
+                const isActive = activeCategory === cat;
+                return (
+                    <TouchableOpacity
+                        key={cat}
+                        style={[styles.featureBtn, isActive && styles.featureActive]}
+                        onPress={() => onCategory(cat)}
+                    >
+                        <Text style={[styles.featureText, isActive && styles.featureTextActive]}>
+                            {cat}
+                        </Text>
+                    </TouchableOpacity>
+                );
+            })}
+        </ScrollView>
+
+        {/* Status message and Loading state */}
+        {loading ? (
+            <View style={styles.statusContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+            </View>
+        ) : status ? (
+            <View style={styles.statusBox}>
+                <Text style={styles.statusText}>{status}</Text>
+            </View>
+        ) : <View style={{ height: 10 }} />}
+    </View>
+);
+
+
+function ProductCard({ item, onAdd, onPress }) {
+    // Sử dụng fallback cho Image Source
+    const imageSource = {
+        uri: item.image || FALLBACK_IMAGE_URL
+    };
+
+    return (
+        <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+            <View style={styles.imageContainer}>
+                <Image source={imageSource} style={styles.image} />
+            </View>
+            <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+
+            {/* Khối cardFooter (ĐÃ SỬA LỖI CÚ PHÁP) */}
+            <View style={styles.cardFooter}>
+                <Text style={styles.price}>$ {Number(item.price).toFixed(2)}</Text>
+                <TouchableOpacity style={styles.addBtn} onPress={() => onAdd(item)}>
+                    <Ionicons name="cart-outline" size={16} color="#fff" />
+                </TouchableOpacity>
+            </View>
+
+        </TouchableOpacity>
+    );
+}
+
+export default function HomeScreen() {
     const router = useRouter();
-    const { toggleFavorite } = useFavorites();
+    const [products, setProducts] = useState([]);
+    const [filtered, setFiltered] = useState([]);
+    const [search, setSearch] = useState('');
+    const [activeCategory, setActiveCategory] = useState('All');
+    const [loading, setLoading] = useState(false);
+    const [status, setStatus] = useState(null);
 
-    const goToDetail = () => {
+    const categoriesList = useMemo(() => ['All', ...FIXED_CATEGORIES], []);
+
+    useEffect(() => {
+        loadProducts();
+    }, []);
+
+
+    const loadProducts = async () => {
+        setLoading(true);
+        setStatus(null);
+        try {
+
+            const response = await client.get('/products');
+
+            let apiData = response.data;
+            if (typeof apiData === 'string' || !apiData.success) {
+                throw new Error("Invalid API response format: Did not receive JSON.");
+            }
+
+            let list = Array.isArray(apiData.data) ? apiData.data : [];
+
+            // FIX LỖI ẢNH: Chuẩn hóa URL ảnh 
+            list = list.map(product => {
+                let imageUrl = product.image;
+
+                // 1. Nếu là Mảng ảnh
+                if (Array.isArray(product.image) && product.image.length > 0) {
+                    imageUrl = product.image[0];
+                }
+
+                // 2. Thay thế URL localhost bằng BASE_URL của client
+                if (imageUrl && imageUrl.includes(LOCALHOST_URL)) {
+                    imageUrl = imageUrl.replace(LOCALHOST_URL, API_BASE_URL_FOR_IMAGES);
+                }
+
+                // 3. Trả về product mới với ảnh đã được chuẩn hóa
+                return {
+                    ...product,
+                    image: imageUrl
+                };
+            });
+
+            if (list.length > 0) {
+                setProducts(list);
+                setFiltered(list);
+                setStatus(null);
+            } else {
+                setProducts(sampleProducts);
+                setFiltered(sampleProducts);
+                setStatus('Server trả về dữ liệu trống - hiển thị sản phẩm mẫu.');
+            }
+        } catch (err) {
+            console.error('[HomeScreen] API Error (Network/Parsing):', err.message);
+
+            if (err.message.includes('Invalid API response')) {
+                setStatus('LỖI DỮ LIỆU: Server trả về text/HTML thay vì JSON.');
+            } else {
+                setStatus('Kết nối mạng thất bại - hiển thị sản phẩm mẫu.');
+            }
+
+            setProducts(sampleProducts);
+            setFiltered(sampleProducts);
+
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const addToCart = async (product) => {
+        try {
+            const raw = await AsyncStorage.getItem('cart');
+            const cart = raw ? JSON.parse(raw) : [];
+            const idx = cart.findIndex((it) => it.productId === product._id);
+
+            if (idx >= 0) {
+                cart[idx].quantity = (cart[idx].quantity || 1) + 1;
+            } else {
+                cart.push({
+                    productId: product._id, name: product.name, price: product.price,
+                    image: product.image, quantity: 1
+                });
+            }
+
+            await AsyncStorage.setItem('cart', JSON.stringify(cart));
+            Alert.alert('Đã thêm vào giỏ', `${product.name} đã được thêm vào giỏ hàng.`);
+        } catch (e) {
+            console.error('Error adding to cart:', e);
+            Alert.alert('Lỗi', 'Không thể thêm sản phẩm vào giỏ hàng.');
+        }
+    };
+
+    const onSearch = (text) => {
+        setSearch(text);
+        const q = text.trim().toLowerCase();
+
+        const baseList = activeCategory === 'All'
+            ? products
+            : products.filter(p => (p.category || '').toLowerCase() === activeCategory.toLowerCase());
+
+        if (!q) {
+            setFiltered(baseList);
+            return;
+        }
+        setFiltered(baseList.filter((p) => (p.name || '').toLowerCase().includes(q)));
+    };
+
+    const onCategory = (cat) => {
+        setActiveCategory(cat);
+
+        const low = cat.toLowerCase();
+
+        const filteredByCategory = cat === 'All'
+            ? products
+            : products.filter((p) => (p.category || '').toLowerCase() === low);
+
+        const q = search.trim().toLowerCase();
+        if (q) {
+            setFiltered(filteredByCategory.filter((p) => (p.name || '').toLowerCase().includes(q)));
+        } else {
+            setFiltered(filteredByCategory);
+        }
+    };
+
+    const handleProductPress = (item) => {
+
         router.push(`/products/${item._id}`);
     };
 
-    // Xử lý URL ảnh (Đảm bảo lấy ảnh đầu tiên và thay thế localhost)
-    let displayImageUrl = '';
-
-    if (Array.isArray(item.image) && item.image.length > 0) {
-        displayImageUrl = item.image[0];
-    } else if (typeof item.image === 'string') {
-        displayImageUrl = item.image;
-    }
-
-    if (displayImageUrl && displayImageUrl.includes(LOCALHOST_URL)) {
-        displayImageUrl = displayImageUrl.replace(LOCALHOST_URL, API_BASE_URL_FOR_IMAGES);
-    }
-
-    const imageSource = {
-        uri: displayImageUrl || FALLBACK_IMAGE_URL
-    };
-
 
     return (
-        <View style={styles.card}>
-            {/* Ảnh sản phẩm */}
-            <TouchableOpacity onPress={goToDetail} activeOpacity={0.8}>
-                <Image
-                    source={imageSource}
-                    style={styles.image}
+        <SafeAreaView style={styles.safe}>
+            <View style={styles.container}>
+
+                <FlatList
+                    data={filtered}
+                    renderItem={({ item }) => (
+                        <ProductCard
+                            item={item}
+                            onAdd={addToCart}
+                            onPress={() => handleProductPress(item)}
+                        />
+                    )}
+                    keyExtractor={(it) => it._id || it.id}
+                    numColumns={2}
+                    columnWrapperStyle={styles.columnWrap}
+                    contentContainerStyle={styles.list}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+
+                    ListHeaderComponent={
+                        <ListHeader
+                            search={search}
+                            onSearch={onSearch}
+                            categoriesList={categoriesList}
+                            activeCategory={activeCategory}
+                            onCategory={onCategory}
+                            router={router}
+                            styles={styles}
+                            COLORS={COLORS}
+                            loading={loading}
+                            status={status}
+                        />
+                    }
                 />
-            </TouchableOpacity>
-
-            {/* Thông tin sản phẩm */}
-            <View style={styles.infoContainer}>
-                <TouchableOpacity onPress={goToDetail}>
-                    <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
-                </TouchableOpacity>
-                <Text style={styles.price}>$ {Number(item.price).toFixed(2)}</Text>
             </View>
-
-            {/* NÚT BỎ THÍCH - Đặt trong luồng flex để căn giữa dọc */}
-            <TouchableOpacity
-                style={styles.heartBtn}
-                onPress={() => toggleFavorite(item)}
-                activeOpacity={0.7}
-            >
-                <Ionicons name="heart" size={24} color={COLORS.primary} />
-            </TouchableOpacity>
-        </View>
-    );
-};
-
-
-// Component Chính
-export default function FavoritesScreen() {
-    const router = useRouter();
-    const { favoriteProducts, loading, loadFavorites } = useFavorites();
-
-    const goToHome = () => router.push('/tabs');
-    const goToCart = () => router.push('/cart');
-    const goToSearch = () => router.push('/search');
-
-    const EmptyListPlaceholder = () => (
-        <View style={styles.emptyContainer}>
-            <Ionicons name="heart-dislike-outline" size={80} color={COLORS.lightGrey} style={styles.emptyIcon} />
-
-            <Text style={styles.emptyTitle}>Danh sách yêu thích trống</Text>
-            <Text style={styles.emptySubText}>Khám phá sản phẩm tuyệt vời và thêm vào yêu thích!</Text>
-
-            <TouchableOpacity onPress={goToHome} style={styles.exploreButton} activeOpacity={0.8}>
-                <Text style={styles.exploreButtonText}>Khám phá ngay</Text>
-            </TouchableOpacity>
-        </View>
-    );
-
-    // Component Header với Icons (Search - Favorites - Cart)
-    const HeaderWithIcons = () => (
-        <View style={styles.newHeaderContainer}>
-            <TouchableOpacity onPress={goToSearch} style={styles.headerIcon}>
-                <Ionicons name="search-outline" size={26} color={COLORS.text} />
-            </TouchableOpacity>
-
-            <Text style={styles.newHeaderTitle}>Yêu thích</Text>
-
-            <TouchableOpacity onPress={goToCart} style={styles.headerIcon}>
-                <Ionicons name="cart-outline" size={26} color={COLORS.text} />
-            </TouchableOpacity>
-        </View>
-    );
-
-    if (loading && favoriteProducts.length === 0) {
-        return (
-            <SafeAreaView style={styles.safeArea}>
-                <HeaderWithIcons />
-                <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 50 }} />
-            </SafeAreaView>
-        );
-    }
-
-    return (
-        <SafeAreaView style={styles.safeArea}>
-            <HeaderWithIcons />
-
-            <FlatList
-                data={favoriteProducts}
-                renderItem={({ item }) => <FavoriteCard item={item} />}
-                keyExtractor={(item) => item._id}
-                contentContainerStyle={styles.listContainer}
-                showsVerticalScrollIndicator={false}
-                onRefresh={loadFavorites}
-                refreshing={loading}
-                ListEmptyComponent={EmptyListPlaceholder}
-            />
         </SafeAreaView>
     );
 }
 
-// 💅 STYLES ĐÃ ĐƯỢC CẬP NHẬT VÀ TỐI ƯU HÓA 💅
+/* Styles */
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: COLORS.bg },
-
-    // Header
-    newHeaderContainer: {
+    safe: { flex: 1, backgroundColor: COLORS.bg },
+    container: { flex: 1, paddingHorizontal: 16 },
+    topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingTop: 12 },
+    logoText: { fontSize: 24, fontWeight: 'bold', color: COLORS.primary },
+    logo: { width: 40, height: 40 },
+    cartBtn: { padding: 4 },
+    searchBox: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: COLORS.bg,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.lightGrey,
-    },
-    newHeaderTitle: {
-        fontSize: 18,
-        fontWeight: '500',
-        color: COLORS.text,
-        textAlign: 'center',
-        flex: 1,
-    },
-    headerIcon: {
-        padding: 8,
-    },
-
-    // List Container
-    listContainer: {
-        flexGrow: 1,
-        paddingHorizontal: 16,
-        paddingTop: 10,
-        paddingBottom: 20,
-    },
-
-    // Card (Sản phẩm) - Đã làm nhỏ chiều cao và căn giữa nút tim
-    card: {
-        flexDirection: 'row',
-        backgroundColor: COLORS.bg,
-        borderRadius: 15,
-        padding: 12, // Giảm padding
+        backgroundColor: COLORS.surface,
+        borderRadius: 10,
+        paddingHorizontal: 15,
+        paddingVertical: 10,
         marginBottom: 15,
-        elevation: 3,
-        shadowColor: '#000',
+    },
+    searchInput: { marginLeft: 10, flex: 1, fontSize: 16, color: COLORS.text },
+
+    // Categories
+    featureScroll: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingBottom: 8,
+        paddingRight: 20
+    },
+    featureBtn: {
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: COLORS.borderColor,
+        marginRight: 8,
+        backgroundColor: '#fff',
+        elevation: 0,
+        shadowOpacity: 0,
+        shadowRadius: 0,
+    },
+    featureActive: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
+        elevation: 0,
+        shadowOpacity: 0,
+        shadowRadius: 0,
+    },
+    featureText: {
+        color: COLORS.text,
+        fontSize: 14
+    },
+    featureTextActive: {
+        color: '#fff',
+        fontWeight: 'bold'
+    },
+
+    // Status Box & Loading
+    statusContainer: { paddingVertical: 30 },
+    statusBox: {
+        backgroundColor: COLORS.surface,
+        padding: 10,
+        borderRadius: 8,
+        marginBottom: 10,
+        borderLeftWidth: 3,
+        borderLeftColor: COLORS.primary,
+    },
+    statusText: { color: COLORS.text, marginBottom: 0, textAlign: 'center', fontSize: 13, fontWeight: '500' },
+
+    list: { paddingBottom: 20, paddingTop: 0 },
+    columnWrap: { justifyContent: 'space-between' },
+
+    // Product Card
+    card: {
+        width: '48%',
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        padding: 8,
+        marginBottom: 18,
+        alignItems: 'flex-start',
+        elevation: 1,
+        shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.08,
-        shadowRadius: 4,
-        borderWidth: 1,
-        borderColor: COLORS.lightGrey,
-        alignItems: 'center', // Căn giữa các thành phần con theo chiều dọc
+        shadowRadius: 2,
     },
-    image: {
-        width: 90, // Giảm kích thước ảnh
-        height: 90, // Giảm kích thước ảnh
-        borderRadius: 8,
-        backgroundColor: COLORS.surface,
-        marginRight: 15,
-        resizeMode: 'cover',
-    },
-    infoContainer: {
-        flex: 1,
-        justifyContent: 'center', // Căn giữa nội dung info container theo chiều dọc
-        paddingVertical: 0,
-    },
-    name: {
-        fontSize: 15,
-        fontWeight: '500',
-        color: COLORS.text,
-        marginBottom: 4,
-        lineHeight: 20,
-    },
-    price: {
-        fontSize: 17,
-        fontWeight: '700',
-        color: COLORS.primary,
-        marginTop: 0,
-    },
-    heartBtn: {
-        // Không dùng position: 'absolute' nữa để nó nằm trong luồng flex và được căn giữa bởi card.
-        padding: 8,
-        backgroundColor: 'transparent',
-    },
-
-    // Empty State
-    emptyContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 100,
-        paddingHorizontal: 30,
-    },
-    emptyIcon: {
-        marginBottom: 20,
-    },
-    emptyTitle: {
-        fontSize: 20,
-        fontWeight: '600',
-        color: COLORS.text,
-        textAlign: 'center',
-        marginBottom: 8,
-    },
-    emptySubText: {
-        fontSize: 15,
-        color: COLORS.muted,
-        textAlign: 'center',
-        marginBottom: 30,
-    },
-    exploreButton: {
-        backgroundColor: COLORS.primary,
-        paddingHorizontal: 30,
-        paddingVertical: 14,
-        borderRadius: 30,
-    },
-    exploreButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
+    imageContainer: { width: '100%', alignItems: 'center', marginBottom: 5 },
+    image: { width: '100%', aspectRatio: 1, borderRadius: 6 },
+    name: { fontSize: 14, color: COLORS.text, textAlign: 'left', fontWeight: '600', width: '100%', marginTop: 4 },
+    cardFooter: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+    price: { color: COLORS.text, fontWeight: '700', fontSize: 15 },
+    addBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
 });
