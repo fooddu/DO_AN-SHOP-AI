@@ -16,9 +16,9 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 const COLORS = {
-    primary: '#222', 
+    primary: '#222',
     grey: '#888',
-    lightGrey: '#ddd', 
+    lightGrey: '#ddd',
     text: '#222',
     bg: '#fff',
 };
@@ -29,7 +29,7 @@ export default function LoginScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
-    const { login } = useAuth(); 
+    const { login } = useAuth();
     const handleLogin = async () => {
         if (!email || !password) {
             Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ email và mật khẩu.');
@@ -40,7 +40,7 @@ export default function LoginScreen() {
         setIsSubmitting(false);
 
         if (result.success) {
-            router.replace('/tabs'); 
+            router.replace('/tabs');
         } else {
             Alert.alert('Đăng nhập thất bại', result.error);
         }
@@ -49,20 +49,20 @@ export default function LoginScreen() {
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
             <View style={styles.container}>
-                
+
                 {/* Khu vực Logo */}
                 <View style={styles.logoArea}>
                     <View style={styles.line} />
-                    <Image 
-                        source={require('../../assets/logo.png')} 
-                        style={styles.logo} 
-                        resizeMode="contain" 
+                    <Image
+                        source={require('../../assets/logo.png')}
+                        style={styles.logo}
+                        resizeMode="contain"
                     />
                     <View style={styles.line} />
-                </View>  
+                </View>
                 {/* Tiêu đề */}
-                <Text style={styles.titleHello}>Hello!</Text>
-                <Text style={styles.titleWelcome}>WELCOME BACK</Text>
+                <Text style={styles.titleHello}>Xin chào!</Text>
+                <Text style={styles.titleWelcome}>CHÀO MỪNG QUAY TRỞ LẠI</Text>
                 {/* Form */}
                 <View style={styles.form}>
                     <View style={styles.inputContainer}>
@@ -76,7 +76,7 @@ export default function LoginScreen() {
                         />
                     </View>
                     <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Password</Text>
+                        <Text style={styles.label}>Mật khẩu</Text>
                         <View style={styles.passwordWrapper}>
                             <TextInput
                                 style={styles.input}
@@ -91,24 +91,24 @@ export default function LoginScreen() {
                     </View>
                     {/* ⬇️ ĐÃ CẬP NHẬT ONPRESS CHO NÚT NÀY ⬇️ */}
                     <TouchableOpacity onPress={() => router.push('/forgot-password')}>
-                        <Text style={styles.forgotPasswordText}>Forgot Password</Text>
+                        <Text style={styles.forgotPasswordText}>Quên mật khẩu</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
-                        style={styles.button} 
-                        onPress={handleLogin} 
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={handleLogin}
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.buttonText}>Log in</Text>
+                            <Text style={styles.buttonText}>Đăng nhập</Text>
                         )}
                     </TouchableOpacity>
                 </View>
                 {/* Nút Sign Up */}
                 <TouchableOpacity onPress={() => router.push('/register')}>
-                    <Text style={styles.signUpText}>SIGN UP</Text>
+                    <Text style={styles.signUpText}>ĐĂNG KÝ</Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
         fontSize: 32,
         color: COLORS.grey,
         fontWeight: '300',
-        fontFamily: 'serif', 
+        fontFamily: 'serif',
     },
     titleWelcome: {
         fontSize: 32,
