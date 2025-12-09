@@ -1,6 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function OrderSuccessScreen() {
   const router = useRouter();
@@ -13,27 +12,27 @@ export default function OrderSuccessScreen() {
       </View>
 
       {/* Title */}
-      <Text style={styles.title}>SUCCESS!</Text>
+      <Text style={styles.title}>THÀNH CÔNG!</Text>
 
       {/* Message */}
       <Text style={styles.message}>
-        Your order will be delivered soon.{'\n'}
-        Thank you for choosing our app!
+        Đơn hàng của bạn sẽ được giao sớm.{'\n'}
+        Cảm ơn bạn đã sử dụng ứng dụng của chúng tôi!
       </Text>
 
       {/* Buttons */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.trackButton}
         onPress={() => router.push('/orders')}
       >
-        <Text style={styles.trackButtonText}>Track your orders</Text>
+        <Text style={styles.trackButtonText}>Theo dõi đơn hàng</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.homeButton}
         onPress={() => router.replace('/')}
       >
-        <Text style={styles.homeButtonText}>BACK TO HOME</Text>
+        <Text style={styles.homeButtonText}>VỀ TRANG CHỦ</Text>
       </TouchableOpacity>
     </View>
   );

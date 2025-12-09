@@ -27,7 +27,7 @@ export default function CartScreen() {
         loadCart();
     }, []);
 
-    // --- LOGIC ASYNC STORAGE ---
+    // --- LOGIC LƯU TRỮ DỮ LIỆU (AsyncStorage) ---
 
     const loadCart = async () => {
         try {
@@ -35,22 +35,22 @@ export default function CartScreen() {
             if (data) {
                 const parsedData = JSON.parse(data);
                 setCart(parsedData);
-                console.log("--- LOAD CART: Đã tải", parsedData.length, "sản phẩm từ AsyncStorage.");
+                console.log("--- TẢI GIỎ HÀNG: Đã tải", parsedData.length, "sản phẩm từ AsyncStorage.");
             }
         } catch (error) {
-            console.error('Error loading cart:', error);
+            console.error('Lỗi khi tải giỏ hàng:', error);
         }
     };
 
     const saveCart = async (newCart) => {
         try {
             const cleanCart = newCart.filter(item => item.quantity > 0);
-            console.log("--- LOG 4: SAVE CART: Đang lưu giỏ hàng mới:", cleanCart.length, "sản phẩm.");
+            console.log("--- LOG 4: LƯU GIỎ HÀNG: Đang lưu giỏ hàng mới:", cleanCart.length, "sản phẩm.");
             
             await AsyncStorage.setItem('cart', JSON.stringify(cleanCart));
             setCart(cleanCart);
         } catch (error) {
-            console.error('Error saving cart:', error);
+            console.error('Lỗi khi lưu giỏ hàng:', error);
         }
     };
 
@@ -101,10 +101,10 @@ export default function CartScreen() {
     const applyPromoCode = () => {
         if (promoCode.toUpperCase() === 'FREE5') {
             setDiscount(5.00); 
-            Alert.alert('Success', 'Promo code applied! $5 discount.');
+            Alert.alert('Thành công', 'Mã khuyến mãi đã được áp dụng! Giảm $5.');
         } else {
             setDiscount(0.00);
-            Alert.alert('Error', 'Invalid promo code.');
+            Alert.alert('Lỗi', 'Mã khuyến mãi không hợp lệ.');
         }
     };
 
@@ -126,13 +126,13 @@ export default function CartScreen() {
 
     const goToCheckout = () => {
         if (cart.length === 0) {
-            Alert.alert('Notice', 'Your cart is empty!');
+            Alert.alert('Thông báo', 'Giỏ hàng của bạn đang trống!');
             return;
         }
         router.push('/checkout');
     };
 
-    // --- RENDER ITEM ---
+    // --- RENDER MỖI MỤC TRONG GIỎ HÀNG ---
 
     const renderCartItem = ({ item }) => (
         <View style={styles.cartItem}>
@@ -189,12 +189,12 @@ export default function CartScreen() {
     const total = calculateTotal();
 
 
-    // --- RETURN ---
+    // --- RENDER GIAO DIỆN ---
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                {/* Header */}
+                {/* Tiêu đề */}
                 <View style={styles.header}>
                     <TouchableOpacity 
                         style={styles.backButton}
@@ -202,14 +202,14 @@ export default function CartScreen() {
                     >
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>My cart</Text>
+                    <Text style={styles.headerTitle}>Giỏ hàng</Text>
                     <View style={styles.backButton} /> 
                 </View>
 
                 {/* Danh sách sản phẩm */}
                 {cart.length === 0 ? (
                     <View style={styles.emptyCart}>
-                        <Text style={styles.emptyText}>Cart is empty</Text>
+                        <Text style={styles.emptyText}>Giỏ hàng trống</Text>
                     </View>
                 ) : (
                     <>
@@ -221,11 +221,11 @@ export default function CartScreen() {
                             showsVerticalScrollIndicator={false}
                         />
 
-                        {/* Promo Code */}
+                        {/* Nhập mã khuyến mãi */}
                         <View style={styles.promoContainer}>
                             <TextInput
                                 style={styles.promoInput}
-                                placeholder="Enter your promo code"
+                                placeholder="Nhập mã khuyến mãi"
                                 placeholderTextColor="#888"
                                 autoCapitalize="none"
                                 value={promoCode}
@@ -239,22 +239,22 @@ export default function CartScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Tổng tiền */}
+                        {/* Tóm tắt tổng tiền */}
                         <View style={styles.summaryContainer}>
                             <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Order:</Text>
+                                <Text style={styles.summaryLabel}>Tạm tính:</Text>
                                 <Text style={styles.summaryValue}>
                                     $ {finalOrder.toFixed(2)}
                                 </Text>
                             </View>
 
                             <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Delivery:</Text>
+                                <Text style={styles.summaryLabel}>Phí giao hàng:</Text>
                                 <Text style={styles.summaryValue}>$ {DELIVERY_FEE.toFixed(2)}</Text>
                             </View>
 
                             <View style={[styles.summaryRow, styles.totalRow]}>
-                                <Text style={styles.totalLabel}>Total:</Text>
+                                <Text style={styles.totalLabel}>Tổng cộng:</Text>
                                 <Text style={styles.totalValue}>
                                     $ {total.toFixed(2)}
                                 </Text>
@@ -264,14 +264,14 @@ export default function CartScreen() {
                 )}
             </View>
             
-            {/* Nút Check out */}
+            {/* Nút Thanh toán */}
             {cart.length > 0 && (
                 <View style={styles.checkoutFooter}>
                     <TouchableOpacity 
                         style={styles.checkoutButton}
                         onPress={goToCheckout}
                     >
-                        <Text style={styles.checkoutButtonText}>Check out</Text>
+                        <Text style={styles.checkoutButtonText}>Thanh toán</Text>
                     </TouchableOpacity>
                 </View>
             )}

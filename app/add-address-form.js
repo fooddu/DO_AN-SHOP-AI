@@ -34,8 +34,8 @@ const PROVINCE_API = 'https://provinces.open-api.vn/api';
 
 const validatePhoneNumber = (phone) => {
     const cleaned = phone.replace(/[^0-9]/g, '');
-    if (cleaned.length === 0) return "Phone number is required.";
-    if (cleaned.length < 10 || cleaned.length > 11) return "Phone number must be 10-11 digits.";
+    if (cleaned.length === 0) return "Số điện thoại là bắt buộc.";
+    if (cleaned.length < 10 || cleaned.length > 11) return "Số điện thoại phải có 10-11 chữ số.";
     return '';
 };
 
@@ -51,7 +51,7 @@ const SelectionModal = ({ visible, title, data, onClose, onSelect, loading }) =>
                             <Ionicons name="close" size={24} color="#000" />
                         </TouchableOpacity>
                     </View>
-                    
+
                     {loading ? (
                         <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
                     ) : (
@@ -59,8 +59,8 @@ const SelectionModal = ({ visible, title, data, onClose, onSelect, loading }) =>
                             data={data}
                             keyExtractor={(item) => item.code.toString()}
                             renderItem={({ item }) => (
-                                <TouchableOpacity 
-                                    style={styles.modalItem} 
+                                <TouchableOpacity
+                                    style={styles.modalItem}
                                     onPress={() => onSelect(item)}
                                 >
                                     <Text style={styles.modalItemText}>{item.name}</Text>
@@ -77,11 +77,11 @@ const SelectionModal = ({ visible, title, data, onClose, onSelect, loading }) =>
 
 export default function AddAddressFormScreen() {
     const router = useRouter();
-    
+
     // --- STATE ĐỊA CHỈ ---
     const [recipientName, setRecipientName] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
-    const [streetDetail, setStreetDetail] = useState(''); 
+    const [streetDetail, setStreetDetail] = useState('');
     const [isDefault, setIsDefault] = useState(false);
 
     // --- STATE HÀNH CHÍNH ---
@@ -94,7 +94,7 @@ export default function AddAddressFormScreen() {
     const [selectedWard, setSelectedWard] = useState(null);
 
     // --- STATE MODAL & LOADING ---
-    const [modalType, setModalType] = useState(null); 
+    const [modalType, setModalType] = useState(null);
     const [loadingData, setLoadingData] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
@@ -108,7 +108,7 @@ export default function AddAddressFormScreen() {
                 const data = await res.json();
                 setCities(data);
             } catch (e) {
-                Alert.alert("Error", "Failed to load cities data.");
+                Alert.alert("Lỗi", "Không thể tải dữ liệu tỉnh/thành phố.");
             }
         };
         fetchCities();
@@ -120,14 +120,14 @@ export default function AddAddressFormScreen() {
         setSelectedDistrict(null);
         setSelectedWard(null);
         setModalType(null);
-        
+
         setLoadingData(true);
         try {
             const res = await fetch(`${PROVINCE_API}/p/${city.code}?depth=2`);
             const data = await res.json();
             setDistricts(data.districts);
         } catch (e) {
-            Alert.alert("Error", "Failed to load districts data.");
+            Alert.alert("Lỗi", "Không thể tải dữ liệu quận/huyện.");
         } finally {
             setLoadingData(false);
         }
@@ -138,14 +138,14 @@ export default function AddAddressFormScreen() {
         setSelectedDistrict(district);
         setSelectedWard(null);
         setModalType(null);
-        
+
         setLoadingData(true);
         try {
             const res = await fetch(`${PROVINCE_API}/d/${district.code}?depth=2`);
             const data = await res.json();
             setWards(data.wards);
         } catch (e) {
-            Alert.alert("Error", "Failed to load wards data.");
+            Alert.alert("Lỗi", "Không thể tải dữ liệu phường/xã.");
         } finally {
             setLoadingData(false);
         }
@@ -159,11 +159,11 @@ export default function AddAddressFormScreen() {
     // --- XỬ LÝ LƯU ---
     const handleSave = async () => {
         const errs = {};
-        if (!recipientName.trim()) errs.name = "Recipient name is required.";
-        if (!selectedCity) errs.city = "Please select a City/Province.";
-        if (!selectedDistrict) errs.district = "Please select a District.";
-        if (!selectedWard) errs.ward = "Please select a Ward/Commune.";
-        if (!streetDetail.trim()) errs.street = "Street address is required.";
+        if (!recipientName.trim()) errs.name = "Tên người nhận là bắt buộc.";
+        if (!selectedCity) errs.city = "Vui lòng chọn Tỉnh/Thành phố.";
+        if (!selectedDistrict) errs.district = "Vui lòng chọn Quận/Huyện.";
+        if (!selectedWard) errs.ward = "Vui lòng chọn Phường/Xã.";
+        if (!streetDetail.trim()) errs.street = "Địa chỉ đường là bắt buộc.";
         const phoneErr = validatePhoneNumber(phoneNumber);
         if (phoneErr) errs.phone = phoneErr;
 
@@ -172,7 +172,7 @@ export default function AddAddressFormScreen() {
 
         // Ghép chuỗi địa chỉ
         const fullAddressStr = `${streetDetail}, ${selectedWard.name}, ${selectedDistrict.name}, ${selectedCity.name}`;
-        
+
         const payload = {
             recipientName,
             fullAddress: fullAddressStr,
@@ -186,16 +186,16 @@ export default function AddAddressFormScreen() {
         try {
             const response = await client.post('/addresses', payload);
             if (response.data.success) {
-                setSuccessMessage("Address added successfully!");
+                setSuccessMessage("Thêm địa chỉ thành công!");
                 setTimeout(() => {
                     setSuccessMessage('');
                     router.back();
                 }, 2000);
             } else {
-                Alert.alert("Error", response.data.message || "Server error.");
+                Alert.alert("Lỗi", response.data.message || "Lỗi máy chủ.");
             }
         } catch (error) {
-            Alert.alert("Failed", error.response?.data?.message || "Connection error.");
+            Alert.alert("Thất bại", error.response?.data?.message || "Lỗi kết nối.");
         } finally {
             if (!successMessage) setSubmitting(false);
         }
@@ -207,18 +207,18 @@ export default function AddAddressFormScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.headerIcon}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Add New Address</Text>
+                <Text style={styles.headerTitle}>Thêm địa chỉ mới</Text>
                 <View style={styles.headerIcon} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-                
+
                 {/* 1. Contact Info Section */}
-                <Text style={styles.sectionLabel}>Contact Information</Text>
-                
+                <Text style={styles.sectionLabel}>Thông tin liên hệ</Text>
+
                 <TextInput
                     style={[styles.input, errors.name && styles.inputError]}
-                    placeholder="Recipient Name"
+                    placeholder="Tên người nhận"
                     placeholderTextColor={COLORS.muted}
                     value={recipientName}
                     onChangeText={setRecipientName}
@@ -227,7 +227,7 @@ export default function AddAddressFormScreen() {
 
                 <TextInput
                     style={[styles.input, errors.phone && styles.inputError]}
-                    placeholder="Phone Number"
+                    placeholder="Số điện thoại"
                     placeholderTextColor={COLORS.muted}
                     value={phoneNumber}
                     onChangeText={(t) => setPhoneNumber(t.replace(/[^0-9]/g, ''))}
@@ -237,49 +237,49 @@ export default function AddAddressFormScreen() {
                 {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
 
                 {/* 2. Address Section */}
-                <Text style={styles.sectionLabel}>Address Details</Text>
-                
+                <Text style={styles.sectionLabel}>Chi tiết địa chỉ</Text>
+
                 {/* Select City */}
-                <TouchableOpacity 
-                    style={[styles.selectBox, errors.city && styles.inputError]} 
+                <TouchableOpacity
+                    style={[styles.selectBox, errors.city && styles.inputError]}
                     onPress={() => setModalType('CITY')}
                 >
                     <Text style={selectedCity ? styles.selectText : styles.placeholderText}>
-                        {selectedCity ? selectedCity.name : "Select Province / City"}
+                        {selectedCity ? selectedCity.name : "Chọn Tỉnh/Thành phố"}
                     </Text>
                     <Ionicons name="chevron-down" size={20} color={COLORS.muted} />
                 </TouchableOpacity>
                 {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
 
                 {/* Select District */}
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[
-                        styles.selectBox, 
+                        styles.selectBox,
                         !selectedCity && styles.disabledBox,
                         errors.district && styles.inputError
-                    ]} 
+                    ]}
                     onPress={() => selectedCity && setModalType('DISTRICT')}
                     disabled={!selectedCity}
                 >
                     <Text style={selectedDistrict ? styles.selectText : styles.placeholderText}>
-                        {selectedDistrict ? selectedDistrict.name : "Select District"}
+                        {selectedDistrict ? selectedDistrict.name : "Chọn Quận/Huyện"}
                     </Text>
                     <Ionicons name="chevron-down" size={20} color={COLORS.muted} />
                 </TouchableOpacity>
                 {errors.district && <Text style={styles.errorText}>{errors.district}</Text>}
 
                 {/* Select Ward */}
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[
-                        styles.selectBox, 
+                        styles.selectBox,
                         !selectedDistrict && styles.disabledBox,
                         errors.ward && styles.inputError
-                    ]} 
+                    ]}
                     onPress={() => selectedDistrict && setModalType('WARD')}
                     disabled={!selectedDistrict}
                 >
                     <Text style={selectedWard ? styles.selectText : styles.placeholderText}>
-                        {selectedWard ? selectedWard.name : "Select Ward / Commune"}
+                        {selectedWard ? selectedWard.name : "Chọn Phường/Xã"}
                     </Text>
                     <Ionicons name="chevron-down" size={20} color={COLORS.muted} />
                 </TouchableOpacity>
@@ -289,7 +289,7 @@ export default function AddAddressFormScreen() {
                 <View style={[styles.inputContainer, errors.street && styles.inputError]}>
                     <TextInput
                         style={styles.textArea}
-                        placeholder="House no., street name..."
+                        placeholder="Số nhà, tên đường..."
                         placeholderTextColor={COLORS.muted}
                         value={streetDetail}
                         onChangeText={setStreetDetail}
@@ -299,52 +299,52 @@ export default function AddAddressFormScreen() {
                 {errors.street && <Text style={styles.errorText}>{errors.street}</Text>}
 
                 {/* Default Checkbox */}
-                <TouchableOpacity 
-                    style={styles.defaultCheckbox} 
+                <TouchableOpacity
+                    style={styles.defaultCheckbox}
                     onPress={() => setIsDefault(!isDefault)}
                 >
-                    <Ionicons 
-                        name={isDefault ? "checkbox" : "square-outline"} 
-                        size={24} 
+                    <Ionicons
+                        name={isDefault ? "checkbox" : "square-outline"}
+                        size={24}
                         color={isDefault ? COLORS.primary : COLORS.muted}
                     />
-                    <Text style={styles.checkboxText}>Set as default address</Text>
+                    <Text style={styles.checkboxText}>Đặt làm địa chỉ mặc định</Text>
                 </TouchableOpacity>
 
                 {/* Submit Button */}
-                <TouchableOpacity 
-                    style={styles.saveButton} 
+                <TouchableOpacity
+                    style={styles.saveButton}
                     onPress={handleSave}
                     disabled={submitting}
                 >
                     {submitting ? (
                         <ActivityIndicator color="#FFF" />
                     ) : (
-                        <Text style={styles.saveButtonText}>COMPLETE</Text>
+                        <Text style={styles.saveButtonText}>HOÀN TẤT</Text>
                     )}
                 </TouchableOpacity>
             </ScrollView>
 
             {/* --- MODALS --- */}
-            <SelectionModal 
-                visible={modalType === 'CITY'} 
-                title="Select Province / City"
+            <SelectionModal
+                visible={modalType === 'CITY'}
+                title="Chọn Tỉnh/Thành phố"
                 data={cities}
                 onClose={() => setModalType(null)}
                 onSelect={handleSelectCity}
                 loading={false}
             />
-            <SelectionModal 
-                visible={modalType === 'DISTRICT'} 
-                title="Select District"
+            <SelectionModal
+                visible={modalType === 'DISTRICT'}
+                title="Chọn Quận/Huyện"
                 data={districts}
                 onClose={() => setModalType(null)}
                 onSelect={handleSelectDistrict}
                 loading={loadingData}
             />
-            <SelectionModal 
-                visible={modalType === 'WARD'} 
-                title="Select Ward / Commune"
+            <SelectionModal
+                visible={modalType === 'WARD'}
+                title="Chọn Phường/Xã"
                 data={wards}
                 onClose={() => setModalType(null)}
                 onSelect={handleSelectWard}
@@ -369,75 +369,75 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, paddingTop: 20 },
     headerIcon: { width: 30, alignItems: 'center' },
     headerTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.text },
-    
+
     scrollContainer: { padding: 20 },
-    
-    sectionLabel: { 
-        fontSize: 16, 
-        fontWeight: 'bold', 
-        marginBottom: 10, 
-        marginTop: 10, 
-        color: COLORS.text 
+
+    sectionLabel: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 10,
+        marginTop: 10,
+        color: COLORS.text
     },
-    
+
     // Inputs & Selects
-    input: { 
-        borderWidth: 1, 
-        borderColor: COLORS.inputBorder, 
-        borderRadius: 8, 
+    input: {
+        borderWidth: 1,
+        borderColor: COLORS.inputBorder,
+        borderRadius: 8,
         paddingHorizontal: 15,
-        paddingVertical: 12, 
-        fontSize: 15, 
-        marginBottom: 12, 
-        color: COLORS.text, 
-        backgroundColor: '#fff' 
+        paddingVertical: 12,
+        fontSize: 15,
+        marginBottom: 12,
+        color: COLORS.text,
+        backgroundColor: '#fff'
     },
     inputContainer: {
-        borderWidth: 1, 
-        borderColor: COLORS.inputBorder, 
-        borderRadius: 8, 
-        marginBottom: 12, 
+        borderWidth: 1,
+        borderColor: COLORS.inputBorder,
+        borderRadius: 8,
+        marginBottom: 12,
         backgroundColor: '#fff',
         padding: 5
     },
-    textArea: { 
-        minHeight: 80, 
+    textArea: {
+        minHeight: 80,
         textAlignVertical: 'top',
         paddingHorizontal: 10,
         fontSize: 15,
         color: COLORS.text
     },
     inputError: { borderColor: COLORS.error },
-    
-    selectBox: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        borderWidth: 1, 
-        borderColor: COLORS.inputBorder, 
-        borderRadius: 8, 
-        paddingHorizontal: 15, 
+
+    selectBox: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.inputBorder,
+        borderRadius: 8,
+        paddingHorizontal: 15,
         paddingVertical: 12,
-        marginBottom: 12, 
+        marginBottom: 12,
         backgroundColor: '#fff'
     },
     disabledBox: { backgroundColor: '#f9f9f9', borderColor: '#eee' },
     selectText: { fontSize: 15, color: COLORS.text },
     placeholderText: { fontSize: 15, color: COLORS.muted },
-    
+
     errorText: { color: COLORS.error, fontSize: 12, marginBottom: 10, marginLeft: 5, marginTop: -8 },
 
     // Checkbox & Button
     defaultCheckbox: { flexDirection: 'row', alignItems: 'center', marginVertical: 10 },
     checkboxText: { marginLeft: 10, fontSize: 15, color: COLORS.text },
-    
-    saveButton: { 
+
+    saveButton: {
         backgroundColor: COLORS.primary, // Màu đen theo ảnh
-        paddingVertical: 16, 
-        borderRadius: 8, 
-        alignItems: 'center', 
-        marginTop: 20, 
-        marginBottom: 40 
+        paddingVertical: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginTop: 20,
+        marginBottom: 40
     },
     saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
 
@@ -451,6 +451,6 @@ const styles = StyleSheet.create({
 
     // Notification
     overlayContainer: { position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center', paddingTop: 60, zIndex: 100 },
-    successContainerOverlay: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.success, padding: 12, borderRadius: 8, alignSelf: 'center', minWidth: 250, shadowColor: "#000", shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 },
+    successContainerOverlay: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.success, padding: 12, borderRadius: 8, alignSelf: 'center', minWidth: 250, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 },
     successTextOverlay: { color: '#fff', fontWeight: '600', marginLeft: 10 },
 });

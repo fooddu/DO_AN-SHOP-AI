@@ -30,15 +30,15 @@ const COLORS = {
 // ⭐️ API SERVICE: Sử dụng Axios đã cấu hình ⭐️
 const fetchOrdersAPI = async () => {
     const url = `/orders/get/userorders`;
-    
+
     try {
-        const response = await client.get(url); 
+        const response = await client.get(url);
         if (!response.data || !response.data.success) {
-            throw new Error(response.data.message || "Failed to load orders.");
+            throw new Error(response.data.message || "Không thể tải đơn hàng.");
         }
         return response.data.data;
     } catch (error) {
-        const errorMessage = error.message || error.response?.data?.message || 'Network error or server failed to respond.';
+        const errorMessage = error.message || error.response?.data?.message || 'Lỗi mạng hoặc máy chủ không phản hồi.';
         throw new Error(errorMessage);
     }
 };
@@ -49,10 +49,10 @@ const OrderItem = ({ order, onPress }) => {
     const firstProductDetail = firstProductItem ? firstProductItem.product : null;
 
     const itemQuantity = order.products ? order.products.length : 0;
-    
-    const productName = firstProductDetail?.name || "Unknown Product"; 
+
+    const productName = firstProductDetail?.name || "Sản phẩm không xác định";
     const productImage = firstProductDetail?.image?.[0] || 'https://via.placeholder.com/60';
-    
+
     const statusColor = (status) => {
         switch (status) {
             case 'delivered': return COLORS.success;
@@ -65,7 +65,7 @@ const OrderItem = ({ order, onPress }) => {
     return (
         <TouchableOpacity style={itemStyles.card} onPress={onPress}>
             <View style={itemStyles.header}>
-                <Text style={itemStyles.idText}>Order ID: #{order._id.slice(-6)}</Text> 
+                <Text style={itemStyles.idText}>Mã đơn: #{order._id.slice(-6)}</Text>
                 <Text style={{ ...itemStyles.statusText, color: statusColor(order.status) }}>
                     {order.status.toUpperCase()}
                 </Text>
@@ -73,25 +73,25 @@ const OrderItem = ({ order, onPress }) => {
 
             <View style={itemStyles.contentRow}>
                 {/* Thumbnail product */}
-                <Image 
-                    source={{ uri: productImage }} 
+                <Image
+                    source={{ uri: productImage }}
                     style={itemStyles.image}
                     resizeMode="cover"
                 />
-                
+
                 {/* Main Info */}
                 <View style={itemStyles.infoContainer}>
                     <Text style={itemStyles.productName} numberOfLines={1}>
                         {productName}
                     </Text>
                     <Text style={itemStyles.dateText}>
-                        {itemQuantity} item type{itemQuantity > 1 ? 's' : ''} | Date: {new Date(order.orderDate).toLocaleDateString('en-US')}
+                        {itemQuantity} loại sản phẩm | Ngày: {new Date(order.orderDate).toLocaleDateString('vi-VN')}
                     </Text>
                 </View>
             </View>
 
             <Text style={itemStyles.totalText}>
-                Total: {order.total ? order.total.toLocaleString('en-US', { style: 'currency', currency: 'VND' }) : '0₫'}
+                Tổng: {order.total ? order.total.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }) : '0₫'}
             </Text>
         </TouchableOpacity>
     );
@@ -99,19 +99,19 @@ const OrderItem = ({ order, onPress }) => {
 
 export default function OrdersScreen() {
     const router = useRouter();
-    const { token } = useAuth(); 
+    const { token } = useAuth();
 
     const [orders, setOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    
+
     // ⭐️ LOGIC TẢI LẠI TỰ ĐỘNG BẰNG useFocusEffect ⭐️
     useFocusEffect(
         useCallback(() => {
             const loadOrders = async () => {
                 if (!token) {
                     setIsLoading(false);
-                    return; 
+                    return;
                 }
 
                 setIsLoading(true);
@@ -120,14 +120,14 @@ export default function OrdersScreen() {
                     const fetchedOrders = await fetchOrdersAPI();
                     setOrders(fetchedOrders);
                 } catch (err) {
-                    setError(err.message || 'Could not load orders. Please check your connection.'); 
+                    setError(err.message || 'Không thể tải đơn hàng. Vui lòng kiểm tra kết nối.');
                 } finally {
                     setIsLoading(false);
                 }
             };
 
             loadOrders();
-        }, [token]) 
+        }, [token])
     );
 
     const handleOrderPress = (orderId) => {
@@ -140,7 +140,7 @@ export default function OrdersScreen() {
             return (
                 <View style={styles.content}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
-                    <Text style={[styles.subtitle, { marginTop: 10 }]}>Loading orders...</Text>
+                    <Text style={[styles.subtitle, { marginTop: 10 }]}>Đang tải đơn hàng...</Text>
                 </View>
             );
         }
@@ -158,9 +158,9 @@ export default function OrdersScreen() {
             return (
                 <View style={styles.content}>
                     <Ionicons name="sad-outline" size={32} color={COLORS.muted} />
-                    <Text style={[styles.subtitle, { marginTop: 10 }]}>You have no orders yet.</Text> 
+                    <Text style={[styles.subtitle, { marginTop: 10 }]}>Bạn chưa có đơn hàng nào.</Text>
                     <TouchableOpacity>
-                        <Text style={styles.emptyButton}>START SHOPPING</Text> 
+                        <Text style={styles.emptyButton}>BẮT ĐẦU MUA SẮM</Text>
                     </TouchableOpacity>
                 </View>
             );
@@ -171,9 +171,9 @@ export default function OrdersScreen() {
                 data={orders}
                 keyExtractor={(item) => item._id}
                 renderItem={({ item }) => (
-                    <OrderItem 
-                        order={item} 
-                        onPress={() => handleOrderPress(item._id)} 
+                    <OrderItem
+                        order={item}
+                        onPress={() => handleOrderPress(item._id)}
                     />
                 )}
                 contentContainerStyle={styles.listContainer}
@@ -184,13 +184,13 @@ export default function OrdersScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.backButton}
                     onPress={() => router.back()}
                 >
                     <Ionicons name="arrow-back" size={24} color="#000" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>My Orders</Text> 
+                <Text style={styles.headerTitle}>Đơn hàng của tôi</Text>
                 <View style={styles.backButton} />
             </View>
 
@@ -203,21 +203,21 @@ export default function OrdersScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background, 
+        backgroundColor: COLORS.background,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 15,
-        paddingTop: 50, 
+        paddingTop: 50,
         paddingBottom: 15,
-        backgroundColor: COLORS.card, 
+        backgroundColor: COLORS.card,
         borderBottomWidth: 1,
         borderBottomColor: '#F0F0F0',
     },
     backButton: {
-        width: 30, 
+        width: 30,
         height: 30,
         justifyContent: 'center',
         alignItems: 'center',

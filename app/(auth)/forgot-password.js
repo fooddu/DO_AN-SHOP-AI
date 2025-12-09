@@ -17,60 +17,60 @@ import AuthTextInput from '../../components/AuthTextInput';
 import { useAuth } from '../../context/AuthContext';
 
 // MÀU SẮC CHỦ ĐẠO (Giữ nguyên)
-const PRIMARY_COLOR = '#333'; 
+const PRIMARY_COLOR = '#333';
 const TEXT_COLOR = '#333';
 const MUTED_COLOR = '#888';
-const BACKGROUND_COLOR = '#F9F9F9'; 
-const BORDER_COLOR = '#E0E0E0'; 
-const MAX_WIDTH = 380; 
+const BACKGROUND_COLOR = '#F9F9F9';
+const BORDER_COLOR = '#E0E0E0';
+const MAX_WIDTH = 380;
 
 export default function ForgotPasswordScreen() {
     const [email, setEmail] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     const router = useRouter();
     const { forgotPassword } = useAuth();
 
     const handleSend = async () => {
         if (!email.trim()) {
-            Alert.alert('Error', 'Please enter a valid email.');
+            Alert.alert('Lỗi', 'Vui lòng nhập email hợp lệ.');
             return;
         }
-        
+
         setIsSubmitting(true);
-        const result = await forgotPassword(email); 
+        const result = await forgotPassword(email);
         setIsSubmitting(false);
 
         if (result.success) {
-            router.push({ 
-                pathname: '/(auth)/verify-otp', 
+            router.push({
+                pathname: '/(auth)/verify-otp',
                 params: { email: email.trim() }
             });
-            Alert.alert('Success', result.message || 'OTP code has been sent to your email.');
+            Alert.alert('Thành công', result.message || 'Mã OTP đã được gửi đến email của bạn.');
         } else {
-            Alert.alert('Failed', result.message || 'An error occurred, please try again.');
+            Alert.alert('Thất bại', result.message || 'Đã xảy ra lỗi, vui lòng thử lại.');
         }
     };
 
     return (
-        <ScrollView 
-            style={styles.container} 
-            contentContainerStyle={styles.content} 
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
         >
             {/* Header / Logo */}
             <View style={styles.logoContainer}>
-                <View style={styles.divider} /> 
-                <Image 
-                    source={require('../../assets/logo.png')} 
-                    style={styles.logo} 
-                    resizeMode="contain" 
+                <View style={styles.divider} />
+                <Image
+                    source={require('../../assets/logo.png')}
+                    style={styles.logo}
+                    resizeMode="contain"
                 />
-                <View style={styles.divider} /> 
+                <View style={styles.divider} />
             </View>
 
-            <Text style={styles.welcomeText}>RESET PASSWORD</Text>
-            
+            <Text style={styles.welcomeText}>ĐẶT LẠI MẬT KHẨU</Text>
+
             {/* Card / Input Wrapper */}
             <View style={styles.cardWrapper}>
                 <AuthCard style={styles.authCardStyle}>
@@ -82,26 +82,26 @@ export default function ForgotPasswordScreen() {
                         autoCapitalize="none"
                         style={styles.authInputFullWidth}
                         // Style này là cần thiết để đảm bảo loại bỏ viền focus trên Web
-                        textInputStyle={styles.noOutlineInput} 
+                        textInputStyle={styles.noOutlineInput}
                     />
-                    
+
                     {/* Send Button */}
-                    <TouchableOpacity 
-                        style={[styles.actionButton, isSubmitting && styles.actionButtonDisabled]} 
-                        onPress={handleSend} 
+                    <TouchableOpacity
+                        style={[styles.actionButton, isSubmitting && styles.actionButtonDisabled]}
+                        onPress={handleSend}
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.buttonText}>SEND OTP</Text>
+                            <Text style={styles.buttonText}>GỬi OTP</Text>
                         )}
                     </TouchableOpacity>
 
                     {/* Back to Login Link */}
-                    <View style={styles.linkContainer}> 
+                    <View style={styles.linkContainer}>
                         <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                            <Text style={styles.loginLink}>BACK TO LOGIN</Text>
+                            <Text style={styles.loginLink}>QUAY LẠI ĐĂNG NHẬP</Text>
                         </TouchableOpacity>
                     </View>
                 </AuthCard>
@@ -120,97 +120,97 @@ const styles = StyleSheet.create({
             },
         }),
     },
-    
-    container: { 
-        flex: 1, 
+
+    container: {
+        flex: 1,
         backgroundColor: BACKGROUND_COLOR,
     },
-    content: { 
-        paddingTop: '10%', 
+    content: {
+        paddingTop: '10%',
         paddingBottom: '5%',
-        alignItems: 'center', 
+        alignItems: 'center',
     },
-    logoContainer: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        width: '60%', 
+    logoContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '60%',
         maxWidth: 300,
         marginBottom: '8%',
     },
-    logo: { 
-        width: 60, 
-        height: 60, 
+    logo: {
+        width: 60,
+        height: 60,
         marginHorizontal: 10,
     },
-    divider: { 
-        flex: 1, 
-        height: 1, 
-        backgroundColor: BORDER_COLOR, 
+    divider: {
+        flex: 1,
+        height: 1,
+        backgroundColor: BORDER_COLOR,
     },
-    welcomeText: { 
-        fontSize: 20, 
-        fontWeight: 'bold', 
-        color: TEXT_COLOR, 
-        marginBottom: '5%', 
-        textAlign: 'center', 
+    welcomeText: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: TEXT_COLOR,
+        marginBottom: '5%',
+        textAlign: 'center',
     },
-    
-    cardWrapper: { 
+
+    cardWrapper: {
         width: '90%',
-        maxWidth: MAX_WIDTH, 
+        maxWidth: MAX_WIDTH,
         marginBottom: '5%',
     },
     authCardStyle: {
-        paddingVertical: '5%', 
-        paddingHorizontal: 0, 
+        paddingVertical: '5%',
+        paddingHorizontal: 0,
         borderRadius: 10,
         alignItems: 'center',
     },
     // Style này sẽ được áp dụng cho Input Wrapper
     authInputFullWidth: {
-        width: '90%', 
-        marginBottom: '7%', 
+        width: '90%',
+        marginBottom: '7%',
         alignSelf: 'center',
     },
 
     // BUTTON STYLES
-    actionButton: { 
-        backgroundColor: PRIMARY_COLOR, 
-        borderRadius: 8, 
-        paddingVertical: '3.5%', 
-        marginTop: '7%', 
-        width: '80%', 
+    actionButton: {
+        backgroundColor: PRIMARY_COLOR,
+        borderRadius: 8,
+        paddingVertical: '3.5%',
+        marginTop: '7%',
+        width: '80%',
         alignSelf: 'center',
-        shadowColor: '#000', 
-        shadowOffset: { width: 0, height: 1 }, 
-        shadowOpacity: 0.1, 
-        shadowRadius: 2, 
-        elevation: 2, 
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
     },
     actionButtonDisabled: {
         backgroundColor: MUTED_COLOR,
         elevation: 0,
         shadowOpacity: 0,
     },
-    buttonText: { 
-        color: '#fff', 
-        fontSize: 13, 
-        fontWeight: 'bold', 
-        textAlign: 'center', 
-        textTransform: 'uppercase', 
+    buttonText: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        textTransform: 'uppercase',
     },
-    
+
     linkContainer: {
-        marginTop: '5%', 
+        marginTop: '5%',
         marginBottom: '2%',
-        width: '100%', 
-        alignItems: 'center', 
+        width: '100%',
+        alignItems: 'center',
     },
-    loginLink: { 
-        color: TEXT_COLOR, 
-        fontSize: 13, 
-        fontWeight: '600', 
-        textTransform: 'uppercase', 
+    loginLink: {
+        color: TEXT_COLOR,
+        fontSize: 13,
+        fontWeight: '600',
+        textTransform: 'uppercase',
     },
 });

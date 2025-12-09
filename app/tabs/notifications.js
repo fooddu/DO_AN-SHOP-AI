@@ -20,13 +20,13 @@ import { useAuth } from '../../context/AuthContext';
 
 // --- CONFIG MÀU SẮC ---
 const COLORS = {
-    text: '#222', 
-    muted: '#888', 
-    bg: '#ffffff', 
-    surface: '#f8f9fa', 
-    primary: '#FF3366', 
-    unreadBg: '#fff0f5', 
-    borderColor: '#E8E8E8', 
+    text: '#222',
+    muted: '#888',
+    bg: '#ffffff',
+    surface: '#f8f9fa',
+    primary: '#FF3366',
+    unreadBg: '#fff0f5',
+    borderColor: '#E8E8E8',
     warning: '#f39c12',
 };
 
@@ -39,7 +39,7 @@ const getImageUrl = (url) => {
     if (Platform.OS === 'android' && url.includes('localhost')) {
         return url.replace('localhost', '10.0.2.2');
     }
-    
+
     // Nếu là đường dẫn tương đối, nối Base URL
     const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:4000' : 'http://localhost:4000';
     if (url.startsWith('/')) {
@@ -53,7 +53,7 @@ const NotificationItem = ({ item, markAsRead }) => {
     const isSystemAlert = item.type === 'SYSTEM_ALERT';
 
     return (
-        <TouchableOpacity 
+        <TouchableOpacity
             style={[styles.itemContainer, !item.read && styles.unreadItem]}
             onPress={() => markAsRead(item)}
         >
@@ -62,29 +62,29 @@ const NotificationItem = ({ item, markAsRead }) => {
                     <Ionicons name="alert-circle" size={28} color="#FFF" />
                 </View>
             ) : (
-                <Image 
-                    source={{ uri: getImageUrl(item.image) }} 
-                    style={styles.itemImage} 
+                <Image
+                    source={{ uri: getImageUrl(item.image) }}
+                    style={styles.itemImage}
                     resizeMode="cover"
                 />
             )}
-            
-            <View style={styles.itemTextContainer}> 
+
+            <View style={styles.itemTextContainer}>
                 <View style={styles.itemHeader}>
                     <Text style={[styles.itemTitle, !item.read && styles.itemTitleUnread]} numberOfLines={1}>
                         {item.title}
                     </Text>
                     {!item.read ? (
-                        <View style={styles.newDot} /> 
+                        <View style={styles.newDot} />
                     ) : (
                         <Text style={styles.timeText}>{item.timeDisplay}</Text>
                     )}
                 </View>
-                
+
                 <Text style={styles.itemDescription} numberOfLines={2}>
                     {item.description}
                 </Text>
-                
+
                 {!item.read && (
                     <View style={styles.bottomRow}>
                         <Text style={styles.newTagText}>NEW</Text>
@@ -97,24 +97,24 @@ const NotificationItem = ({ item, markAsRead }) => {
 
 export default function NotificationsScreen() {
     const router = useRouter();
-    const { user, loading: authLoading } = useAuth(); 
-    const [notifications, setNotifications] = useState([]); 
+    const { user, loading: authLoading } = useAuth();
+    const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    
+
     // ⭐️ LOGIC KIỂM TRA THÔNG TIN CÁ NHÂN ⭐️
     const checkUserInfo = () => {
         if (!user) return null;
         if (!user.phone || !user.address || user.address.trim() === "") {
             return {
-                id: 'local-alert-missing-info', 
-                title: 'Missing Information',
-                description: 'Please update your phone number and address to verify your account.',
+                id: 'local-alert-missing-info',
+                title: 'Thiếu thông tin',
+                description: 'Vui lòng cập nhật số điện thoại và địa chỉ để xác minh tài khoản.',
                 type: 'SYSTEM_ALERT',
                 read: false,
                 image: null,
                 createdAt: new Date().toISOString(),
-                timeDisplay: 'Now',
+                timeDisplay: 'Bây giờ',
                 action: '/account-settings'
             };
         }
@@ -128,7 +128,7 @@ export default function NotificationsScreen() {
         }
         try {
             if (!item.read) {
-                await client.put(`/notifications/${item.id}/read`); 
+                await client.put(`/notifications/${item.id}/read`);
                 setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, read: true } : n));
             }
         } catch (error) {
@@ -141,11 +141,11 @@ export default function NotificationsScreen() {
         if (!isRefresh) setLoading(true); else setIsRefreshing(true);
 
         try {
-            const response = await client.get('/notifications'); 
+            const response = await client.get('/notifications');
             if (response.data.success) {
-                let fetchedData = response.data.data.map(item => ({ 
-                    ...item, 
-                    id: item._id, 
+                let fetchedData = response.data.data.map(item => ({
+                    ...item,
+                    id: item._id,
                     timeDisplay: new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 }));
 
@@ -154,7 +154,7 @@ export default function NotificationsScreen() {
                 if (reminder) {
                     fetchedData = [reminder, ...fetchedData];
                 }
-                setNotifications(fetchedData); 
+                setNotifications(fetchedData);
             }
         } catch (error) {
             console.error("Error fetching notifications:", error);
@@ -179,11 +179,11 @@ export default function NotificationsScreen() {
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
-                <Ionicons name="notifications-outline" size={24} color={COLORS.text} style={{width: 24}} /> 
-                <Text style={styles.headerTitle}>Notifications</Text>
-                <View style={{width: 24}} /> 
+                <Ionicons name="notifications-outline" size={24} color={COLORS.text} style={{ width: 24 }} />
+                <Text style={styles.headerTitle}>Thông báo</Text>
+                <View style={{ width: 24 }} />
             </View>
-            
+
             <FlatList
                 data={notifications}
                 keyExtractor={item => item.id}
@@ -194,7 +194,7 @@ export default function NotificationsScreen() {
                 ListEmptyComponent={() => (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="file-tray-outline" size={48} color={COLORS.muted} />
-                        <Text style={styles.emptyText}>You don't have any notifications.</Text>
+                        <Text style={styles.emptyText}>Bạn không có thông báo nào.</Text>
                     </View>
                 )}
             />

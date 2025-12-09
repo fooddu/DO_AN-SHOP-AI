@@ -15,7 +15,7 @@ import {
 // Đảm bảo đường dẫn này đúng
 import { useAuth } from '../../context/AuthContext';
 const COLORS = {
-    primary: '#222', 
+    primary: '#222',
     grey: '#888',
     lightGrey: '#ddd',
     text: '#222',
@@ -44,12 +44,12 @@ export default function RegisterScreen() {
         }
         setIsSubmitting(true);
         // ⭐ ĐÃ SỬ DỤNG HÀM signUp TỪ CONTEXT ⭐
-        const result = await signUp(name, email, password); 
+        const result = await signUp(name, email, password);
         setIsSubmitting(false);
         if (result.success) {
             // Bạn có thể cần xử lý logic chuyển hướng khác nếu API của bạn yêu cầu xác thực email
             Alert.alert('Thành công', 'Đăng ký thành công! Vui lòng đăng nhập.');
-            router.replace('/login'); 
+            router.replace('/login');
         } else {
             Alert.alert('Đăng ký thất bại', result.error);
         }
@@ -57,7 +57,7 @@ export default function RegisterScreen() {
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
-            <ScrollView 
+            <ScrollView
                 // 1. Container CÓ LỀ NGANG 30 (CĂN GIỮA)
                 contentContainerStyle={styles.container}
                 showsVerticalScrollIndicator={false}
@@ -65,21 +65,21 @@ export default function RegisterScreen() {
                 {/* 2. KHU VỰC LOGO (CĂN GIỮA) */}
                 <View style={styles.logoArea}>
                     <View style={styles.line} />
-                    <Image 
-                        source={require('../../assets/logo.png')} 
-                        style={styles.logo} 
-                        resizeMode="contain" 
+                    <Image
+                        source={require('../../assets/logo.png')}
+                        style={styles.logo}
+                        resizeMode="contain"
                     />
                     <View style={styles.line} />
                 </View>
                 {/* 3. Chữ WELCOME (căn trái, bên ngoài thẻ) */}
-                <Text style={styles.titleWelcomeOutside}>WELCOME</Text>
+                <Text style={styles.titleWelcomeOutside}>CHÀO MỪNG</Text>
                 {/* 4. Thẻ (Card) trắng chứa form */}
                 <View style={styles.card}>
                     <View style={styles.form}>
                         {/* (Các input fields, đã thu hẹp) */}
                         <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Name</Text>
+                            <Text style={styles.label}>Tên</Text>
                             <TextInput
                                 style={styles.input}
                                 value={name}
@@ -98,7 +98,7 @@ export default function RegisterScreen() {
                             />
                         </View>
                         <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Password</Text>
+                            <Text style={styles.label}>Mật khẩu</Text>
                             <View style={styles.passwordWrapper}>
                                 <TextInput
                                     style={styles.input}
@@ -111,8 +111,8 @@ export default function RegisterScreen() {
                                 </TouchableOpacity>
                             </View>
                         </View>
-                        <View style={[styles.inputContainer, { marginBottom: 0 }]}> 
-                            <Text style={styles.label}>Confirm Password</Text>
+                        <View style={[styles.inputContainer, { marginBottom: 0 }]}>
+                            <Text style={styles.label}>Xác nhận mật khẩu</Text>
                             <View style={styles.passwordWrapper}>
                                 <TextInput
                                     style={styles.input}
@@ -126,38 +126,38 @@ export default function RegisterScreen() {
                             </View>
                         </View>
                     </View>
-                    
+
                     {/* Nút SIGN UP (bên trong thẻ) */}
-                    <TouchableOpacity 
-                        style={styles.button} 
-                        onPress={handleRegister} 
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={handleRegister}
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.buttonText}>SIGN UP</Text>
+                            <Text style={styles.buttonText}>ĐĂNG KÝ</Text>
                         )}
                     </TouchableOpacity>
 
                     {/* Link SIGN IN (bên trong thẻ) */}
                     <TouchableOpacity onPress={() => router.push('/login')}>
                         <Text style={styles.signInText}>
-                            Already have account? <Text style={styles.signInLink}>SIGN IN</Text>
+                            Đã có tài khoản? <Text style={styles.signInLink}>ĐĂNG NHẬP</Text>
                         </Text>
                     </TouchableOpacity>
-                    
-                </View> 
+
+                </View>
                 {/* (Kết thúc thẻ) */}
-                
+
             </ScrollView>
         </SafeAreaView>
     );
 }
 // Styles
 const styles = StyleSheet.create({
-    safeArea: { 
-        flex: 1, 
+    safeArea: {
+        flex: 1,
         backgroundColor: COLORS.surface, // Nền xám
     },
     // 1. CONTAINER CĂN GIỮA
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     line: {
-        flex: 1, 
+        flex: 1,
         height: 1,
         backgroundColor: COLORS.lightGrey,
     },
@@ -183,46 +183,46 @@ const styles = StyleSheet.create({
         height: 70,
         marginHorizontal: 15,
     },
-    
+
     // 3. CHỮ WELCOME CĂN TRÁI (theo lề 30)
     titleWelcomeOutside: {
         fontSize: 32,
         color: COLORS.text,
         fontWeight: 'bold',
         fontFamily: 'serif',
-        marginBottom: 20, 
+        marginBottom: 20,
         textAlign: 'left',
     },
     // 4. THẺ (CARD) CĂN TRÁI (theo lề 30)
     card: {
         backgroundColor: COLORS.bg, // Nền trắng
         borderRadius: 10,
-        paddingHorizontal: 25, 
-        paddingTop: 25,     
+        paddingHorizontal: 25,
+        paddingTop: 25,
         paddingBottom: 25,
         width: '100%',
-        elevation: 3, 
+        elevation: 3,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 5,
     },
-    
+
     form: {
         width: '100%',
     },
     inputContainer: {
-        marginBottom: 18, 
+        marginBottom: 18,
     },
     label: {
         color: COLORS.grey,
         fontSize: 16,
-        marginBottom: 5, 
+        marginBottom: 5,
     },
     input: {
         borderBottomWidth: 1,
         borderBottomColor: COLORS.lightGrey,
-        paddingVertical: 6, 
+        paddingVertical: 6,
         fontSize: 16,
         color: COLORS.text,
         flex: 1,
@@ -235,10 +235,10 @@ const styles = StyleSheet.create({
     },
     button: {
         backgroundColor: COLORS.primary,
-        paddingVertical: 16, 
+        paddingVertical: 16,
         borderRadius: 8,
         alignItems: 'center',
-        marginTop: 25, 
+        marginTop: 25,
     },
     buttonText: {
         color: '#fff',
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         color: COLORS.grey,
         fontSize: 14,
-        marginTop: 20, 
+        marginTop: 20,
     },
     signInLink: {
         color: COLORS.text,
