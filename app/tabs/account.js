@@ -17,20 +17,10 @@ import {
 } from 'react-native';
 
 import { useAuth } from '../../context/AuthContext';
-// import useProfileData from '../../hooks/useProfileData'; // Giữ lại nếu bạn có hook này
+// ⭐ ĐIỂM FIX: Import useProfileData từ hooks thay vì định nghĩa giả lập
+import useProfileData from '../../hooks/useProfileData';
 
-// --- Dữ liệu giả định cho COUNT (Thay thế bằng useProfileData nếu có) ---
-const useProfileData = () => {
-    // Giả định orderCount, addressCount, cardCount là các state thực tế của bạn
-    const [counts, setCounts] = useState({ 
-        orderCount: 2, 
-        addressCount: 3, 
-        cardCount: 1, 
-        isCounting: false 
-    });
-    // useEffect(() => { /* Fetch data logic here */ }, []);
-    return counts;
-};
+// Hàm useProfileData set cứng đã được XÓA và thay thế bằng dòng import ở trên.
 // --------------------------------------------------------------------------
 
 const COLORS = {
@@ -98,11 +88,12 @@ export default function AccountScreen() {
     const defaultAvatarIcon = 'https://i.pravatar.cc/60?text=PH'; 
     const baseUrl = getBaseUrl(); 
 
-    // Lấy dữ liệu profile (đã giả định hoặc dùng hook thực tế của bạn)
+    // Lấy dữ liệu profile từ hook đã fetch API
     const { orderCount, addressCount, cardCount, isCounting } = useProfileData();
     
     const [displayName, setDisplayName] = useState(user?.name || "User"); 
     const [displayEmail, setDisplayEmail] = useState(user?.email || "Email"); 
+    // Dùng getDisplayAvatarUrl để thiết lập URL avatar ban đầu
     const [displayAvatar, setDisplayAvatar] = useState(getDisplayAvatarUrl(user, defaultAvatarIcon, baseUrl));
 
     useEffect(() => {
@@ -115,7 +106,7 @@ export default function AccountScreen() {
             const newAvatarUrl = getDisplayAvatarUrl(user, defaultAvatarIcon, baseUrl);
             if (displayAvatar !== newAvatarUrl) setDisplayAvatar(newAvatarUrl);
         }
-    }, [user]); 
+    }, [user, baseUrl]); // Thêm baseUrl vào dependency array để cập nhật khi config thay đổi (ít xảy ra)
 
     // --- Các hàm Navigation ---
     const goToOrders = () => {
