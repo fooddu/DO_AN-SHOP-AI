@@ -34,8 +34,8 @@ const PROVINCE_API = 'https://provinces.open-api.vn/api';
 
 const validatePhoneNumber = (phone) => {
     const cleaned = phone.replace(/[^0-9]/g, '');
-    if (cleaned.length === 0) return "Số điện thoại là bắt buộc.";
-    if (cleaned.length < 10 || cleaned.length > 11) return "Số điện thoại phải có 10-11 chữ số.";
+    if (cleaned.length === 0) return "Phone number is required.";
+    if (cleaned.length < 10 || cleaned.length > 11) return "Phone number must be 10-11 digits.";
     return '';
 };
 
@@ -108,7 +108,7 @@ export default function AddAddressFormScreen() {
                 const data = await res.json();
                 setCities(data);
             } catch (e) {
-                Alert.alert("Lỗi", "Không thể tải dữ liệu tỉnh/thành phố.");
+                Alert.alert("Error", "Could not load cities data.");
             }
         };
         fetchCities();
@@ -127,7 +127,7 @@ export default function AddAddressFormScreen() {
             const data = await res.json();
             setDistricts(data.districts);
         } catch (e) {
-            Alert.alert("Lỗi", "Không thể tải dữ liệu quận/huyện.");
+            Alert.alert("Error", "Could not load districts data.");
         } finally {
             setLoadingData(false);
         }
@@ -145,7 +145,7 @@ export default function AddAddressFormScreen() {
             const data = await res.json();
             setWards(data.wards);
         } catch (e) {
-            Alert.alert("Lỗi", "Không thể tải dữ liệu phường/xã.");
+            Alert.alert("Error", "Could not load wards data.");
         } finally {
             setLoadingData(false);
         }
@@ -159,11 +159,11 @@ export default function AddAddressFormScreen() {
     // --- XỬ LÝ LƯU ---
     const handleSave = async () => {
         const errs = {};
-        if (!recipientName.trim()) errs.name = "Tên người nhận là bắt buộc.";
-        if (!selectedCity) errs.city = "Vui lòng chọn Tỉnh/Thành phố.";
-        if (!selectedDistrict) errs.district = "Vui lòng chọn Quận/Huyện.";
-        if (!selectedWard) errs.ward = "Vui lòng chọn Phường/Xã.";
-        if (!streetDetail.trim()) errs.street = "Địa chỉ đường là bắt buộc.";
+        if (!recipientName.trim()) errs.name = "Recipient name is required.";
+        if (!selectedCity) errs.city = "Please select City/Province.";
+        if (!selectedDistrict) errs.district = "Please select District.";
+        if (!selectedWard) errs.ward = "Please select Ward.";
+        if (!streetDetail.trim()) errs.street = "Street address is required.";
         const phoneErr = validatePhoneNumber(phoneNumber);
         if (phoneErr) errs.phone = phoneErr;
 
@@ -186,16 +186,16 @@ export default function AddAddressFormScreen() {
         try {
             const response = await client.post('/addresses', payload);
             if (response.data.success) {
-                setSuccessMessage("Thêm địa chỉ thành công!");
+                setSuccessMessage("Address added successfully!");
                 setTimeout(() => {
                     setSuccessMessage('');
                     router.back();
                 }, 2000);
             } else {
-                Alert.alert("Lỗi", response.data.message || "Lỗi máy chủ.");
+                Alert.alert("Error", response.data.message || "Server Error.");
             }
         } catch (error) {
-            Alert.alert("Thất bại", error.response?.data?.message || "Lỗi kết nối.");
+            Alert.alert("Failed", error.response?.data?.message || "Connection Error.");
         } finally {
             if (!successMessage) setSubmitting(false);
         }
@@ -207,18 +207,18 @@ export default function AddAddressFormScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.headerIcon}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Thêm địa chỉ mới</Text>
+                <Text style={styles.headerTitle}>Add New Address</Text>
                 <View style={styles.headerIcon} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
 
                 {/* 1. Contact Info Section */}
-                <Text style={styles.sectionLabel}>Thông tin liên hệ</Text>
+                <Text style={styles.sectionLabel}>Contact Information</Text>
 
                 <TextInput
                     style={[styles.input, errors.name && styles.inputError]}
-                    placeholder="Tên người nhận"
+                    placeholder="Recipient Name"
                     placeholderTextColor={COLORS.muted}
                     value={recipientName}
                     onChangeText={setRecipientName}
@@ -227,7 +227,7 @@ export default function AddAddressFormScreen() {
 
                 <TextInput
                     style={[styles.input, errors.phone && styles.inputError]}
-                    placeholder="Số điện thoại"
+                    placeholder="Phone Number"
                     placeholderTextColor={COLORS.muted}
                     value={phoneNumber}
                     onChangeText={(t) => setPhoneNumber(t.replace(/[^0-9]/g, ''))}
@@ -237,7 +237,7 @@ export default function AddAddressFormScreen() {
                 {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
 
                 {/* 2. Address Section */}
-                <Text style={styles.sectionLabel}>Chi tiết địa chỉ</Text>
+                <Text style={styles.sectionLabel}>Address Details</Text>
 
                 {/* Select City */}
                 <TouchableOpacity
@@ -245,7 +245,7 @@ export default function AddAddressFormScreen() {
                     onPress={() => setModalType('CITY')}
                 >
                     <Text style={selectedCity ? styles.selectText : styles.placeholderText}>
-                        {selectedCity ? selectedCity.name : "Chọn Tỉnh/Thành phố"}
+                        {selectedCity ? selectedCity.name : "Select City/Province"}
                     </Text>
                     <Ionicons name="chevron-down" size={20} color={COLORS.muted} />
                 </TouchableOpacity>
@@ -262,7 +262,7 @@ export default function AddAddressFormScreen() {
                     disabled={!selectedCity}
                 >
                     <Text style={selectedDistrict ? styles.selectText : styles.placeholderText}>
-                        {selectedDistrict ? selectedDistrict.name : "Chọn Quận/Huyện"}
+                        {selectedDistrict ? selectedDistrict.name : "Select District"}
                     </Text>
                     <Ionicons name="chevron-down" size={20} color={COLORS.muted} />
                 </TouchableOpacity>
@@ -279,7 +279,7 @@ export default function AddAddressFormScreen() {
                     disabled={!selectedDistrict}
                 >
                     <Text style={selectedWard ? styles.selectText : styles.placeholderText}>
-                        {selectedWard ? selectedWard.name : "Chọn Phường/Xã"}
+                        {selectedWard ? selectedWard.name : "Select Ward"}
                     </Text>
                     <Ionicons name="chevron-down" size={20} color={COLORS.muted} />
                 </TouchableOpacity>
@@ -289,7 +289,7 @@ export default function AddAddressFormScreen() {
                 <View style={[styles.inputContainer, errors.street && styles.inputError]}>
                     <TextInput
                         style={styles.textArea}
-                        placeholder="Số nhà, tên đường..."
+                        placeholder="House Number, Street Name..."
                         placeholderTextColor={COLORS.muted}
                         value={streetDetail}
                         onChangeText={setStreetDetail}
@@ -308,7 +308,7 @@ export default function AddAddressFormScreen() {
                         size={24}
                         color={isDefault ? COLORS.primary : COLORS.muted}
                     />
-                    <Text style={styles.checkboxText}>Đặt làm địa chỉ mặc định</Text>
+                    <Text style={styles.checkboxText}>Set as default address</Text>
                 </TouchableOpacity>
 
                 {/* Submit Button */}
@@ -320,7 +320,7 @@ export default function AddAddressFormScreen() {
                     {submitting ? (
                         <ActivityIndicator color="#FFF" />
                     ) : (
-                        <Text style={styles.saveButtonText}>HOÀN TẤT</Text>
+                        <Text style={styles.saveButtonText}>COMPLETE</Text>
                     )}
                 </TouchableOpacity>
             </ScrollView>
@@ -328,7 +328,7 @@ export default function AddAddressFormScreen() {
             {/* --- MODALS --- */}
             <SelectionModal
                 visible={modalType === 'CITY'}
-                title="Chọn Tỉnh/Thành phố"
+                title="Select City/Province"
                 data={cities}
                 onClose={() => setModalType(null)}
                 onSelect={handleSelectCity}
@@ -336,7 +336,7 @@ export default function AddAddressFormScreen() {
             />
             <SelectionModal
                 visible={modalType === 'DISTRICT'}
-                title="Chọn Quận/Huyện"
+                title="Select District"
                 data={districts}
                 onClose={() => setModalType(null)}
                 onSelect={handleSelectDistrict}
@@ -344,7 +344,7 @@ export default function AddAddressFormScreen() {
             />
             <SelectionModal
                 visible={modalType === 'WARD'}
-                title="Chọn Phường/Xã"
+                title="Select Ward"
                 data={wards}
                 onClose={() => setModalType(null)}
                 onSelect={handleSelectWard}
