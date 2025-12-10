@@ -29,7 +29,7 @@ export default function VerifyOtpScreen() {
 
     const handleVerify = async () => {
         if (!otp || otp.length !== 6) {
-            Alert.alert('Lỗi', 'Vui lòng nhập mã OTP 6 chữ số.');
+            Alert.alert('Error', 'Please enter a 6-digit OTP.');
             return;
         }
 
@@ -37,16 +37,16 @@ export default function VerifyOtpScreen() {
         try {
             const result = await verifyOtp(email, otp);
             if (result.success) {
-                Alert.alert('Thành công', result.message || 'Xác minh thành công.');
+                Alert.alert('Success', result.message || 'Verification successful.');
                 router.push({
                     pathname: '/(auth)/set-new-password',
                     params: { email: email }
                 });
             } else {
-                Alert.alert('Thất bại', result.message || 'Mã OTP không hợp lệ hoặc đã hết hạn.');
+                Alert.alert('Failed', result.message || 'Invalid or expired OTP.');
             }
         } catch (error) {
-            Alert.alert('Lỗi', 'Đã xảy ra lỗi không mong muốn.');
+            Alert.alert('Error', 'An unexpected error occurred.');
         } finally {
             setIsSubmitting(false);
         }
@@ -57,12 +57,12 @@ export default function VerifyOtpScreen() {
         try {
             const result = await forgotPassword(email);
             if (result.success) {
-                Alert.alert('Gửi lại thành công', result.message || 'Mã OTP mới đã được gửi đến email của bạn.');
+                Alert.alert('Resend Success', result.message || 'A new OTP has been sent to your email.');
             } else {
-                Alert.alert('Lỗi gửi lại', result.message || 'Không thể gửi lại OTP.');
+                Alert.alert('Resend Failed', result.message || 'Cannot resend OTP.');
             }
         } catch (error) {
-            Alert.alert('Lỗi', 'Lỗi mạng.');
+            Alert.alert('Error', 'Network error.');
         } finally {
             setIsResending(false);
         }
@@ -86,16 +86,16 @@ export default function VerifyOtpScreen() {
                 <View style={styles.divider} />
             </View>
 
-            <Text style={styles.welcomeText} allowFontScaling={false}>NHẬP MÃ OTP</Text>
+            <Text style={styles.welcomeText} allowFontScaling={false}>ENTER OTP</Text>
 
             {/* --- Card Section --- */}
             <View style={styles.cardWrapper}>
                 <AuthCard style={styles.authCardCustom}>
 
-                    {/* Hướng dẫn + Email */}
+                    {/* Instruction + Email */}
                     <Text style={styles.instructionText} allowFontScaling={false}>
-                        Chúng tôi đã gửi mã OTP đến email của bạn:{'\n'}
-                        <Text style={styles.emailText}>{email || 'email của bạn'}</Text>
+                        We have sent an OTP to your email:{'\n'}
+                        <Text style={styles.emailText}>{email || 'your email'}</Text>
                     </Text>
 
                     {/* Input OTP */}
@@ -113,7 +113,7 @@ export default function VerifyOtpScreen() {
                         {isSubmitting ? (
                             <ActivityIndicator color="#fff" style={styles.loader} />
                         ) : (
-                            <Text style={styles.verifyText} allowFontScaling={false}>XÁC MINH OTP</Text>
+                            <Text style={styles.verifyText} allowFontScaling={false}>VERIFY OTP</Text>
                         )}
                     </TouchableOpacity>
 
@@ -126,7 +126,7 @@ export default function VerifyOtpScreen() {
                         {isResending ? (
                             <ActivityIndicator color="#212529" size="small" />
                         ) : (
-                            <Text style={styles.resendText} allowFontScaling={false}>Gửi lại mã OTP</Text>
+                            <Text style={styles.resendText} allowFontScaling={false}>Resend OTP</Text>
                         )}
                     </TouchableOpacity>
                 </AuthCard>
