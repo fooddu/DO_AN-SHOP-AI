@@ -133,10 +133,10 @@ export default function CheckoutScreen() {
         />
         <TextInput
           style={styles.input}
-          placeholder="Địa chỉ"
-          value={shipping formulate}
-        onChangeText={(text) => setShippingInfo({ ...shippingInfo, address: text })}
-        multiline
+          placeholder="Address"
+          value={shippingInfo.address}
+          onChangeText={(text) => setShippingInfo({ ...shippingInfo, address: text })}
+          multiline
         />
         <TextInput
           style={styles.input}
