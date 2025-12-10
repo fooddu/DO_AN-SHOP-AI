@@ -70,7 +70,7 @@ const ListHeader = ({ search, onSearch, categoriesList, activeCategory, onCatego
         <View style={styles.searchBox}>
             <Ionicons name="search" size={20} color={COLORS.muted} />
             <TextInput
-                placeholder="Tìm kiếm sản phẩm..."
+                placeholder="Search products..."
                 placeholderTextColor={COLORS.muted}
                 style={styles.searchInput}
                 value={search}
@@ -198,15 +198,15 @@ export default function HomeScreen() {
             } else {
                 setProducts(sampleProducts);
                 setFiltered(sampleProducts);
-                setStatus('Server trả về dữ liệu trống - hiển thị sản phẩm mẫu.');
+                setStatus('Server returned empty data - showing sample products.');
             }
         } catch (err) {
             console.error('[HomeScreen] API Error (Network/Parsing):', err.message);
 
             if (err.message.includes('Invalid API response')) {
-                setStatus('LỖI DỮ LIỆU: Server trả về text/HTML thay vì JSON.');
+                setStatus('DATA ERROR: Server returned text/HTML instead of JSON.');
             } else {
-                setStatus('Kết nối mạng thất bại - hiển thị sản phẩm mẫu.');
+                setStatus('Network connection failed - showing sample products.');
             }
 
             setProducts(sampleProducts);
@@ -233,10 +233,10 @@ export default function HomeScreen() {
             }
 
             await AsyncStorage.setItem('cart', JSON.stringify(cart));
-            Alert.alert('Đã thêm vào giỏ', `${product.name} đã được thêm vào giỏ hàng.`);
+            Alert.alert('Added to Cart', `${product.name} has been added to your cart.`);
         } catch (e) {
             console.error('Error adding to cart:', e);
-            Alert.alert('Lỗi', 'Không thể thêm sản phẩm vào giỏ hàng.');
+            Alert.alert('Error', 'Cannot add product to cart.');
         }
     };
 
