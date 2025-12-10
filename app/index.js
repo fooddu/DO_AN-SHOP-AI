@@ -5,30 +5,30 @@ import { ActivityIndicator, Text, View } from 'react-native'; // Thêm Text
 import { useAuth } from '../context/AuthContext';
 
 export default function AppEntry() {
-  const { user, loading } = useAuth(); 
+  const { user, loading } = useAuth();
 
   // ===== DEBUGGING LOG =====
-  console.log("--- [app/index.js] ĐANG CHẠY ---");
-  console.log("Trạng thái Loading:", loading);
-  console.log("Đối tượng User:", JSON.stringify(user)); // In ra user
+  console.log("--- [app/index.js] RUNNING ---");
+  console.log("Loading Status:", loading);
+  console.log("User Object:", JSON.stringify(user)); // Print user
   // ==========================
 
-  if (loading) { 
+  if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#E91E63" />
-        <Text>Đang kiểm tra Auth...</Text>
+        <Text>Checking Auth...</Text>
       </View>
     );
   }
 
   if (!user) {
     console.log("--- [app/index.js] ---");
-    console.log("User = NULL -> Chuyển đến /login");
+    console.log("User = NULL -> Redirect to /login");
     return <Redirect href="/login" />;
   }
 
   console.log("--- [app/index.js] ---");
-  console.log("User = TỒN TẠI -> Chuyển đến /tabs");
+  console.log("User = EXIST -> Redirect to /tabs");
   return <Redirect href="/tabs" />;
 }
