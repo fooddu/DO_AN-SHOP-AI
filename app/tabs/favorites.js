@@ -101,11 +101,11 @@ export default function FavoritesScreen() {
         <View style={styles.emptyContainer}>
             <Ionicons name="heart-dislike-outline" size={80} color={COLORS.lightGrey} style={styles.emptyIcon} />
 
-            <Text style={styles.emptyTitle}>Danh sách yêu thích trống</Text>
-            <Text style={styles.emptySubText}>Khám phá sản phẩm tuyệt vời và thêm vào yêu thích!</Text>
+            <Text style={styles.emptyTitle}>Favorites List Empty</Text>
+            <Text style={styles.emptySubText}>Explore great products and add them to favorites!</Text>
 
             <TouchableOpacity onPress={goToHome} style={styles.exploreButton} activeOpacity={0.8}>
-                <Text style={styles.exploreButtonText}>Khám phá ngay</Text>
+                <Text style={styles.exploreButtonText}>Explore Now</Text>
             </TouchableOpacity>
         </View>
     );
@@ -117,7 +117,7 @@ export default function FavoritesScreen() {
                 <Ionicons name="search-outline" size={26} color={COLORS.text} />
             </TouchableOpacity>
 
-            <Text style={styles.newHeaderTitle}>Yêu thích</Text>
+            <Text style={styles.newHeaderTitle}>Favorites</Text>
 
             <TouchableOpacity onPress={goToCart} style={styles.headerIcon}>
                 <Ionicons name="cart-outline" size={26} color={COLORS.text} />
