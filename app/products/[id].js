@@ -36,7 +36,7 @@ const SIZES = ['S', 'M', 'L', 'XL'];
 const ReviewItem = ({ review }) => (
     <View style={styles.reviewItem}>
         <View style={styles.reviewHeader}>
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 {/* Avatar giả lập từ chữ cái đầu tên */}
                 <View style={styles.avatarPlaceholder}>
                     <Text style={styles.avatarText}>
@@ -48,11 +48,11 @@ const ReviewItem = ({ review }) => (
             {/* Hiển thị sao */}
             <View style={styles.ratingContainer}>
                 {[...Array(5)].map((_, i) => (
-                    <Ionicons 
-                        key={i} 
-                        name={i < review.rating ? "star" : "star-outline"} 
-                        size={14} 
-                        color={COLORS.star} 
+                    <Ionicons
+                        key={i}
+                        name={i < review.rating ? "star" : "star-outline"}
+                        size={14}
+                        color={COLORS.star}
                     />
                 ))}
             </View>
@@ -67,20 +67,20 @@ const ReviewItem = ({ review }) => (
 export default function ProductDetailScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
-    
+
     // State Sản phẩm & Giỏ hàng
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [selectedSize, setSelectedSize] = useState(null); 
-    const [quantity, setQuantity] = useState(1); 
-    
+    const [selectedSize, setSelectedSize] = useState(null);
+    const [quantity, setQuantity] = useState(1);
+
     // State Bình luận
     const [reviews, setReviews] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [userRating, setUserRating] = useState(5);
     const [submittingReview, setSubmittingReview] = useState(false);
 
-    const { user, token } = useAuth(); 
+    const { user, token } = useAuth();
     const { isFavorited, toggleFavorite } = useFavorites();
 
     useEffect(() => {
@@ -91,7 +91,7 @@ export default function ProductDetailScreen() {
 
     const fetchProduct = async () => {
         try {
-            const response = await client.get(`/products/${id}`); 
+            const response = await client.get(`/products/${id}`);
             setProduct(response.data.data);
         } catch (err) {
             console.error("Error fetching product:", err);
@@ -132,9 +132,9 @@ export default function ProductDetailScreen() {
                 rating: userRating,
                 comment: newComment
             };
-            
+
             const response = await client.post('/reviews', payload);
-            
+
             if (response.data.success) {
                 // Thêm review mới vào đầu danh sách (để hiển thị ngay mà không cần reload lại API)
                 setReviews([response.data.data, ...reviews]);
@@ -159,36 +159,36 @@ export default function ProductDetailScreen() {
             Alert.alert('Notice', 'This product is out of stock.');
             return;
         }
-        if (!selectedSize) { 
+        if (!selectedSize) {
             Alert.alert('Notice', 'Please select a size.');
             return;
         }
         if (quantity > stockCount) {
-             Alert.alert('Notice', `Only ${stockCount} items left in stock.`);
-             return;
+            Alert.alert('Notice', `Only ${stockCount} items left in stock.`);
+            return;
         }
 
         try {
-             const raw = await AsyncStorage.getItem('cart');
-             const cart = raw ? JSON.parse(raw) : [];
-             const idx = cart.findIndex((it) => it.productId === item._id && it.size === selectedSize);
-             
-             if (idx >= 0) {
-                 cart[idx].quantity += quantity; 
-             } else {
-                 cart.push({
-                     productId: item._id, name: item.name, price: item.price,
-                     image: item.image, size: selectedSize, quantity: quantity
-                 });
-             }
-             await AsyncStorage.setItem('cart', JSON.stringify(cart));
-             Alert.alert('Success', `Added to cart!`);
-             setQuantity(1); 
+            const raw = await AsyncStorage.getItem('cart');
+            const cart = raw ? JSON.parse(raw) : [];
+            const idx = cart.findIndex((it) => it.productId === item._id && it.size === selectedSize);
+
+            if (idx >= 0) {
+                cart[idx].quantity += quantity;
+            } else {
+                cart.push({
+                    productId: item._id, name: item.name, price: item.price,
+                    image: item.image, size: selectedSize, quantity: quantity
+                });
+            }
+            await AsyncStorage.setItem('cart', JSON.stringify(cart));
+            Alert.alert('Success', `Added to cart!`);
+            setQuantity(1);
         } catch (e) {
-             Alert.alert('Error', 'Failed to add to cart');
+            Alert.alert('Error', 'Failed to add to cart');
         }
     };
-    
+
     const updateQuantity = (amount) => {
         setQuantity(prev => {
             const newVal = prev + amount;
@@ -200,11 +200,11 @@ export default function ProductDetailScreen() {
             return newVal;
         });
     };
-    
+
     const handleToggleFavorite = () => {
         if (!user || !token) {
             Alert.alert('Login Required', 'Please login to add to favorites.');
-            router.push('/(auth)/login'); 
+            router.push('/(auth)/login');
             return;
         }
         toggleFavorite(product);
@@ -213,21 +213,21 @@ export default function ProductDetailScreen() {
     if (loading) {
         return (
             <SafeAreaView style={styles.safeArea}>
-                <ActivityIndicator size="large" color={COLORS.primary} style={{marginTop: 50}} />
+                <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 50 }} />
             </SafeAreaView>
         );
     }
-    
+
     if (!product) {
         return (
             <SafeAreaView style={styles.safeArea}>
-                <Text style={{textAlign: 'center', marginTop: 50}}>Product not found.</Text>
+                <Text style={{ textAlign: 'center', marginTop: 50 }}>Product not found.</Text>
             </SafeAreaView>
         );
     }
 
     const isLiked = isFavorited(product._id);
-    const imageUrl = (product.image && product.image.length > 0) 
+    const imageUrl = (product.image && product.image.length > 0)
         ? (product.image[0].startsWith('http') ? product.image[0] : 'https://via.placeholder.com/400')
         : 'https://via.placeholder.com/400';
 
@@ -243,13 +243,13 @@ export default function ProductDetailScreen() {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom: 100}}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                 <Image source={{ uri: imageUrl }} style={styles.productImage} />
 
                 <View style={styles.detailsContainer}>
                     {/* Thông tin cơ bản */}
-                    <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start'}}>
-                        <View style={{flex: 1}}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <View style={{ flex: 1 }}>
                             <Text style={styles.productCategory}>{product.category || 'Fashion'}</Text>
                             <Text style={styles.productName}>{product.name}</Text>
                         </View>
@@ -263,7 +263,7 @@ export default function ProductDetailScreen() {
                     <Text style={styles.productPrice}>
                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(product.price)}
                     </Text>
-                    
+
                     <Text style={styles.sectionTitle}>Description</Text>
                     <Text style={styles.descriptionText}>
                         {product.description || "No description available."}
@@ -272,13 +272,13 @@ export default function ProductDetailScreen() {
                     {/* Chọn Size & Số lượng */}
                     {!isOutOfStock && (
                         <>
-                            <Text style={[styles.sectionTitle, {marginTop: 20}]}>Size</Text>
+                            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Size</Text>
                             <View style={styles.sizeRow}>
                                 {SIZES.map((size) => (
-                                    <TouchableOpacity 
+                                    <TouchableOpacity
                                         key={size}
                                         style={[styles.sizeBox, selectedSize === size && styles.sizeBoxSelected]}
-                                        onPress={() => setSelectedSize(size)} 
+                                        onPress={() => setSelectedSize(size)}
                                     >
                                         <Text style={[styles.sizeText, selectedSize === size && styles.sizeTextSelected]}>{size}</Text>
                                     </TouchableOpacity>
@@ -290,7 +290,7 @@ export default function ProductDetailScreen() {
                                 <TouchableOpacity style={styles.quantityBtn} onPress={() => updateQuantity(-1)}>
                                     <Ionicons name="remove" size={20} color={COLORS.text} />
                                 </TouchableOpacity>
-                                <Text style={styles.quantityValue}>{quantity}</Text> 
+                                <Text style={styles.quantityValue}>{quantity}</Text>
                                 <TouchableOpacity style={styles.quantityBtn} onPress={() => updateQuantity(1)}>
                                     <Ionicons name="add" size={20} color={COLORS.text} />
                                 </TouchableOpacity>
@@ -301,7 +301,7 @@ export default function ProductDetailScreen() {
                     {/* --- PHẦN BÌNH LUẬN (REVIEWS SECTION) --- */}
                     <View style={styles.divider} />
                     <Text style={styles.sectionTitle}>Reviews ({reviews.length})</Text>
-                    
+
                     {/* Form viết bình luận */}
                     <View style={styles.addReviewContainer}>
                         <Text style={styles.subTitle}>Write a review</Text>
@@ -309,10 +309,10 @@ export default function ProductDetailScreen() {
                         <View style={styles.ratingInputRow}>
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <TouchableOpacity key={star} onPress={() => setUserRating(star)}>
-                                    <Ionicons 
-                                        name={star <= userRating ? "star" : "star-outline"} 
-                                        size={28} 
-                                        color={COLORS.star} 
+                                    <Ionicons
+                                        name={star <= userRating ? "star" : "star-outline"}
+                                        size={28}
+                                        color={COLORS.star}
                                     />
                                 </TouchableOpacity>
                             ))}
@@ -326,13 +326,13 @@ export default function ProductDetailScreen() {
                             multiline
                         />
                         {/* Nút gửi */}
-                        <TouchableOpacity 
-                            style={styles.submitReviewBtn} 
+                        <TouchableOpacity
+                            style={styles.submitReviewBtn}
                             onPress={submitReview}
                             disabled={submittingReview}
                         >
                             {submittingReview ? (
-                                <ActivityIndicator color="#fff" size="small"/>
+                                <ActivityIndicator color="#fff" size="small" />
                             ) : (
                                 <Text style={styles.submitReviewText}>Post Review</Text>
                             )}
@@ -343,7 +343,7 @@ export default function ProductDetailScreen() {
                     {reviews.map((item) => (
                         <ReviewItem key={item._id} review={item} />
                     ))}
-                    
+
                     {reviews.length === 0 && (
                         <Text style={styles.noReviewsText}>No reviews yet. Be the first to review!</Text>
                     )}
@@ -352,10 +352,10 @@ export default function ProductDetailScreen() {
             </ScrollView>
 
             <View style={styles.footer}>
-                <TouchableOpacity 
-                    style={[styles.addToCartBtn, isOutOfStock && styles.disabledBtn]} 
+                <TouchableOpacity
+                    style={[styles.addToCartBtn, isOutOfStock && styles.disabledBtn]}
                     onPress={() => addToCart(product)}
-                    disabled={isOutOfStock} 
+                    disabled={isOutOfStock}
                 >
                     <Text style={styles.addToCartText}>
                         {isOutOfStock ? "Out of Stock" : "Add to Cart"}
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     addToCartBtn: { backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 8, alignItems: 'center' },
     disabledBtn: { backgroundColor: COLORS.disabled },
     addToCartText: { color: '#fff', fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase' },
-    
+
     // --- STYLES CHO PHẦN BÌNH LUẬN ---
     divider: { height: 1, backgroundColor: '#eee', marginVertical: 20 },
     addReviewContainer: { marginBottom: 25, backgroundColor: COLORS.surface, padding: 15, borderRadius: 12 },
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     reviewInput: { backgroundColor: '#fff', borderRadius: 8, padding: 12, height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: '#e0e0e0', marginBottom: 15, fontSize: 15 },
     submitReviewBtn: { backgroundColor: '#333', padding: 12, borderRadius: 8, alignItems: 'center' },
     submitReviewText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-    
+
     reviewItem: { marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', paddingBottom: 15 },
     reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     avatarPlaceholder: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#bdbdbd', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
