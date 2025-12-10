@@ -108,13 +108,13 @@ export default function NotificationsScreen() {
         if (!user.phone || !user.address || user.address.trim() === "") {
             return {
                 id: 'local-alert-missing-info',
-                title: 'Thiếu thông tin',
-                description: 'Vui lòng cập nhật số điện thoại và địa chỉ để xác minh tài khoản.',
+                title: 'Missing Information',
+                description: 'Please update your phone number and address to verify your account.',
                 type: 'SYSTEM_ALERT',
                 read: false,
                 image: null,
                 createdAt: new Date().toISOString(),
-                timeDisplay: 'Bây giờ',
+                timeDisplay: 'Now',
                 action: '/account-settings'
             };
         }
@@ -180,7 +180,7 @@ export default function NotificationsScreen() {
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
                 <Ionicons name="notifications-outline" size={24} color={COLORS.text} style={{ width: 24 }} />
-                <Text style={styles.headerTitle}>Thông báo</Text>
+                <Text style={styles.headerTitle}>Notifications</Text>
                 <View style={{ width: 24 }} />
             </View>
 
@@ -194,7 +194,7 @@ export default function NotificationsScreen() {
                 ListEmptyComponent={() => (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="file-tray-outline" size={48} color={COLORS.muted} />
-                        <Text style={styles.emptyText}>Bạn không có thông báo nào.</Text>
+                        <Text style={styles.emptyText}>You have no notifications.</Text>
                     </View>
                 )}
             />
