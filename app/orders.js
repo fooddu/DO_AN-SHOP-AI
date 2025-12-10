@@ -38,7 +38,7 @@ const fetchOrdersAPI = async () => {
         }
         return response.data.data;
     } catch (error) {
-        const errorMessage = error.message || error.response?.data?.message || 'Lỗi mạng hoặc máy chủ không phản hồi.';
+        const errorMessage = error.message || error.response?.data?.message || 'Network error or server not responding.';
         throw new Error(errorMessage);
     }
 };
@@ -50,7 +50,7 @@ const OrderItem = ({ order, onPress }) => {
 
     const itemQuantity = order.products ? order.products.length : 0;
 
-    const productName = firstProductDetail?.name || "Sản phẩm không xác định";
+    const productName = firstProductDetail?.name || "Unknown Product";
     const productImage = firstProductDetail?.image?.[0] || 'https://via.placeholder.com/60';
 
     const statusColor = (status) => {
@@ -85,13 +85,13 @@ const OrderItem = ({ order, onPress }) => {
                         {productName}
                     </Text>
                     <Text style={itemStyles.dateText}>
-                        {itemQuantity} loại sản phẩm | Ngày: {new Date(order.orderDate).toLocaleDateString('vi-VN')}
+                        {itemQuantity} items | Date: {new Date(order.orderDate).toLocaleDateString('en-US')}
                     </Text>
                 </View>
             </View>
 
             <Text style={itemStyles.totalText}>
-                Tổng: {order.total ? order.total.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }) : '0₫'}
+                Total: {order.total ? order.total.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '0₫'}
             </Text>
         </TouchableOpacity>
     );
@@ -119,8 +119,9 @@ export default function OrdersScreen() {
                 try {
                     const fetchedOrders = await fetchOrdersAPI();
                     setOrders(fetchedOrders);
+                    setOrders(fetchedOrders);
                 } catch (err) {
-                    setError(err.message || 'Không thể tải đơn hàng. Vui lòng kiểm tra kết nối.');
+                    setError(err.message || 'Cannot load orders. Please check connection.');
                 } finally {
                     setIsLoading(false);
                 }
@@ -140,7 +141,7 @@ export default function OrdersScreen() {
             return (
                 <View style={styles.content}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
-                    <Text style={[styles.subtitle, { marginTop: 10 }]}>Đang tải đơn hàng...</Text>
+                    <Text style={[styles.subtitle, { marginTop: 10 }]}>Loading orders...</Text>
                 </View>
             );
         }
@@ -158,9 +159,9 @@ export default function OrdersScreen() {
             return (
                 <View style={styles.content}>
                     <Ionicons name="sad-outline" size={32} color={COLORS.muted} />
-                    <Text style={[styles.subtitle, { marginTop: 10 }]}>Bạn chưa có đơn hàng nào.</Text>
+                    <Text style={[styles.subtitle, { marginTop: 10 }]}>You have no orders.</Text>
                     <TouchableOpacity>
-                        <Text style={styles.emptyButton}>BẮT ĐẦU MUA SẮM</Text>
+                        <Text style={styles.emptyButton}>START SHOPPING</Text>
                     </TouchableOpacity>
                 </View>
             );
@@ -190,7 +191,7 @@ export default function OrdersScreen() {
                 >
                     <Ionicons name="arrow-back" size={24} color="#000" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Đơn hàng của tôi</Text>
+                <Text style={styles.headerTitle}>My Orders</Text>
                 <View style={styles.backButton} />
             </View>
 
