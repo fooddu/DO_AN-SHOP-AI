@@ -32,7 +32,7 @@ export default function LoginScreen() {
     const { login } = useAuth();
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ email và mật khẩu.');
+            Alert.alert('Error', 'Please enter both email and password.');
             return;
         }
         setIsSubmitting(true);
@@ -42,7 +42,7 @@ export default function LoginScreen() {
         if (result.success) {
             router.replace('/tabs');
         } else {
-            Alert.alert('Đăng nhập thất bại', result.error);
+            Alert.alert('Login Failed', result.error);
         }
     };
     return (
@@ -60,9 +60,9 @@ export default function LoginScreen() {
                     />
                     <View style={styles.line} />
                 </View>
-                {/* Tiêu đề */}
-                <Text style={styles.titleHello}>Xin chào!</Text>
-                <Text style={styles.titleWelcome}>CHÀO MỪNG QUAY TRỞ LẠI</Text>
+                {/* Title */}
+                <Text style={styles.titleHello}>Hello!</Text>
+                <Text style={styles.titleWelcome}>WELCOME BACK</Text>
                 {/* Form */}
                 <View style={styles.form}>
                     <View style={styles.inputContainer}>
@@ -76,7 +76,7 @@ export default function LoginScreen() {
                         />
                     </View>
                     <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Mật khẩu</Text>
+                        <Text style={styles.label}>Password</Text>
                         <View style={styles.passwordWrapper}>
                             <TextInput
                                 style={styles.input}
@@ -89,9 +89,9 @@ export default function LoginScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                    {/* ⬇️ ĐÃ CẬP NHẬT ONPRESS CHO NÚT NÀY ⬇️ */}
+                    {/* ⬇️ UPDATED ONPRESS FOR THIS BUTTON ⬇️ */}
                     <TouchableOpacity onPress={() => router.push('/forgot-password')}>
-                        <Text style={styles.forgotPasswordText}>Quên mật khẩu</Text>
+                        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -102,13 +102,13 @@ export default function LoginScreen() {
                         {isSubmitting ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.buttonText}>Đăng nhập</Text>
+                            <Text style={styles.buttonText}>Log In</Text>
                         )}
                     </TouchableOpacity>
                 </View>
-                {/* Nút Sign Up */}
+                {/* Sign Up Button */}
                 <TouchableOpacity onPress={() => router.push('/register')}>
-                    <Text style={styles.signUpText}>ĐĂNG KÝ</Text>
+                    <Text style={styles.signUpText}>SIGN UP</Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
