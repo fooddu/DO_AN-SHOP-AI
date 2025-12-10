@@ -26,7 +26,7 @@ export default function CheckoutScreen() {
     address: '',
     phoneNumber: ''
   });
-  const [isLoading, setIsLoading] = useState(false); 
+  const [isLoading, setIsLoading] = useState(false);
 
   const DELIVERY_FEE = 5.00;
 
@@ -34,83 +34,83 @@ export default function CheckoutScreen() {
     loadCart();
   }, []);
 
-  const loadCart = async () => { 
+  const loadCart = async () => {
     try {
       const data = await AsyncStorage.getItem('cart');
       if (data) {
         setCart(JSON.parse(data));
       }
     } catch (error) {
-      console.error('Lỗi khi tải giỏ hàng:', error);
+      console.error('Error loading cart:', error);
     }
   };
 
   const calculateSubtotal = () => {
     if (!cart || cart.length === 0) {
-        return 0;
+      return 0;
     }
     return cart.reduce((total, item) => {
-        const price = item.price || 0;
-        const quantity = item.quantity || 0;
-        return total + (price * quantity);
+      const price = item.price || 0;
+      const quantity = item.quantity || 0;
+      return total + (price * quantity);
     }, 0);
   };
 
-  const calculateTotal = () => { 
+  const calculateTotal = () => {
     return calculateSubtotal() + DELIVERY_FEE;
   };
 
   const submitOrder = async () => {
     // 1. Kiểm tra giỏ hàng
     if (cart.length === 0) {
-      Alert.alert('Thông báo', 'Giỏ hàng của bạn đang trống!');
+      Alert.alert('Notice', 'Your cart is empty!');
       return;
     }
     // 2. Kiểm tra thông tin giao hàng
     if (!shippingInfo.recipientName || !shippingInfo.address || !shippingInfo.phoneNumber) {
-      Alert.alert('Thông báo', 'Vui lòng điền đầy đủ thông tin giao hàng!');
+      Alert.alert('Notice', 'Please fill in all shipping details!');
       return;
     }
     // 3. Kiểm tra trạng thái đăng nhập
-    if (!user || !user._id) { 
-        Alert.alert('Lỗi', 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-        return;
+    if (!user || !user._id) {
+      Alert.alert('Error', 'Session expired. Please login again.');
+      return;
     }
-    
+
     if (isLoading) return;
-    setIsLoading(true); 
+    setIsLoading(true);
 
     try {
       const orderData = {
-        user: user._id, 
+        user: user._id,
         products: cart.map(item => ({
-          product: item.productId, 
+          product: item.productId,
           quantity: item.quantity,
           price: item.price
         })),
         total: calculateTotal(),
         shippingAddress: {
-            recipientName: shippingInfo.recipientName,
-            fullAddress: shippingInfo.address,
-            phoneNumber: shippingInfo.phoneNumber,
+          recipientName: shippingInfo.recipientName,
+          fullAddress: shippingInfo.address,
+          phoneNumber: shippingInfo.phoneNumber,
         },
         status: 'pending'
       };
-      
+
       const response = await client.post('/orders', orderData);
 
-      if (response.data && response.data.success) { 
+      if (response.data && response.data.success) {
         await AsyncStorage.removeItem('cart');
         router.replace('/order-success');
       } else {
-        Alert.alert('Lỗi', response.data?.message || 'Lỗi máy chủ không xác định.');
+        Alert.alert('Error', response.data?.message || 'Unknown server error.');
       }
 
     } catch (error) {
-        const errorMessage = error.response?.data?.message || error.message || 'Lỗi kết nối hoặc máy chủ.';
-        Alert.alert('Lỗi đặt hàng', errorMessage);
+      const errorMessage = error.response?.data?.message || error.message || 'Connection error.';
+      Alert.alert('Order Failed', errorMessage);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -119,7 +119,7 @@ export default function CheckoutScreen() {
       {/* THÔNG TIN GIAO HÀNG */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Thông tin giao hàng</Text>
+          <Text style={styles.sectionTitle}>Shipping Information</Text>
           <TouchableOpacity>
             <Text style={styles.editIcon}>✎</Text>
           </TouchableOpacity>
@@ -127,30 +127,30 @@ export default function CheckoutScreen() {
 
         <TextInput
           style={styles.input}
-          placeholder="Tên người nhận"
+          placeholder="Recipient Name"
           value={shippingInfo.recipientName}
-          onChangeText={(text) => setShippingInfo({...shippingInfo, recipientName: text})}
+          onChangeText={(text) => setShippingInfo({ ...shippingInfo, recipientName: text })}
         />
         <TextInput
           style={styles.input}
           placeholder="Địa chỉ"
           value={shipping formulate}
-          onChangeText={(text) => setShippingInfo({...shippingInfo, address: text})}
-          multiline
+        onChangeText={(text) => setShippingInfo({ ...shippingInfo, address: text })}
+        multiline
         />
         <TextInput
           style={styles.input}
-          placeholder="Số điện thoại"
+          placeholder="Phone Number"
           value={shippingInfo.phoneNumber}
-          onChangeText={(text) => setShippingInfo({...shippingInfo, phoneNumber: text})}
+          onChangeText={(text) => setShippingInfo({ ...shippingInfo, phoneNumber: text })}
           keyboardType="phone-pad"
         />
       </View>
 
       {/* PHƯƠNG THỨC THANH TOÁN */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
-        
+        <Text style={styles.sectionTitle}>Payment Method</Text>
+
         <View style={styles.paymentOption}>
           <View style={styles.radioOuter}>
             <View style={styles.radioInner} />
@@ -167,19 +167,19 @@ export default function CheckoutScreen() {
       {/* TÓM TẮT ĐƠN HÀNG */}
       <View style={styles.section}>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Đơn hàng:</Text>
+          <Text style={styles.summaryLabel}>Order:</Text>
           <Text style={styles.summaryValue}>
             $ {calculateSubtotal().toFixed(2)}
           </Text>
         </View>
 
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Phí giao hàng:</Text>
+          <Text style={styles.summaryLabel}>Delivery Fee:</Text>
           <Text style={styles.summaryValue}>$ {DELIVERY_FEE.toFixed(2)}</Text>
         </View>
 
         <View style={[styles.summaryRow, styles.totalRow]}>
-          <Text style={styles.totalLabel}>Tổng cộng:</Text>
+          <Text style={styles.totalLabel}>Total:</Text>
           <Text style={styles.totalValue}>
             $ {calculateTotal().toFixed(2)}
           </Text>
@@ -187,15 +187,15 @@ export default function CheckoutScreen() {
       </View>
 
       {/* NÚT ĐẶT HÀNG */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.submitButton}
         onPress={submitOrder}
-        disabled={isLoading} 
+        disabled={isLoading}
       >
         {isLoading ? (
           <ActivityIndicator color="#FFF" />
         ) : (
-          <Text style={styles.submitButtonText}>ĐẶT HÀNG</Text>
+          <Text style={styles.submitButtonText}>PLACE ORDER</Text>
         )}
       </TouchableOpacity>
     </ScrollView>
@@ -217,13 +217,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10, 
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: 10, 
+    marginBottom: 10,
   },
   editIcon: {
     fontSize: 18,
@@ -235,13 +235,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     fontSize: 14,
-    marginBottom: 8, 
+    marginBottom: 8,
     backgroundColor: '#FFF',
   },
   paymentOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10, 
+    marginBottom: 10,
   },
   radioOuter: {
     width: 20,
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: APP_PINK, 
+    backgroundColor: APP_PINK,
   },
   paymentText: {
     fontSize: 14,
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8, 
+    marginBottom: 8,
   },
   summaryLabel: {
     fontSize: 14,
@@ -286,13 +286,13 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: APP_PINK, 
+    color: APP_PINK,
   },
   // ⭐️ Đã đổi số tiền "Tổng cộng" thành màu Hồng
   totalValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: APP_PINK, 
+    color: APP_PINK,
   },
   submitButton: {
     backgroundColor: APP_PINK,
