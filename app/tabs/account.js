@@ -17,10 +17,20 @@ import {
 } from 'react-native';
 
 import { useAuth } from '../../context/AuthContext';
-// ⭐ ĐÃ GIẢI QUYẾT CONFLICT: Chỉ giữ lại dòng import hook thực tế
-import useProfileData from '../../hooks/useProfileData';
+// import useProfileData from '../../hooks/useProfileData'; // Giữ lại nếu bạn có hook này
 
-// Hàm useProfileData set cứng đã được XÓA và thay thế bằng dòng import ở trên.
+// --- Dữ liệu giả định cho COUNT (Thay thế bằng useProfileData nếu có) ---
+const useProfileData = () => {
+    // Giả định orderCount, addressCount, cardCount là các state thực tế của bạn
+    const [counts, setCounts] = useState({
+        orderCount: 2,
+        addressCount: 3,
+        cardCount: 1,
+        isCounting: false
+    });
+    // useEffect(() => { /* Fetch data logic here */ }, []);
+    return counts;
+};
 // --------------------------------------------------------------------------
 
 const COLORS = {
@@ -88,12 +98,11 @@ export default function AccountScreen() {
     const defaultAvatarIcon = 'https://i.pravatar.cc/60?text=PH';
     const baseUrl = getBaseUrl();
 
-    // Lấy dữ liệu profile từ hook đã fetch API
+    // Lấy dữ liệu profile (đã giả định hoặc dùng hook thực tế của bạn)
     const { orderCount, addressCount, cardCount, isCounting } = useProfileData();
 
     const [displayName, setDisplayName] = useState(user?.name || "User");
     const [displayEmail, setDisplayEmail] = useState(user?.email || "Email");
-    // Dùng getDisplayAvatarUrl để thiết lập URL avatar ban đầu
     const [displayAvatar, setDisplayAvatar] = useState(getDisplayAvatarUrl(user, defaultAvatarIcon, baseUrl));
 
     useEffect(() => {
@@ -106,7 +115,7 @@ export default function AccountScreen() {
             const newAvatarUrl = getDisplayAvatarUrl(user, defaultAvatarIcon, baseUrl);
             if (displayAvatar !== newAvatarUrl) setDisplayAvatar(newAvatarUrl);
         }
-    }, [user, baseUrl]); // Đã giải quyết conflict, giữ lại [user, baseUrl]
+    }, [user]);
 
     // --- Các hàm Navigation ---
     const goToOrders = () => {
@@ -117,7 +126,7 @@ export default function AccountScreen() {
     }
     const goToPaymentMethod = () => {
         // router.push('/payment-method');
-        alert("Phương thức thanh toán chưa được triển khai.");
+        alert("Payment method not implemented yet.");
     }
     const goToEditInformation = () => {
         router.push('/account-settings'); // Dùng đường dẫn đã fix
@@ -149,7 +158,7 @@ export default function AccountScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerIconLeft} />
-                <Text style={styles.headerTitle}>Hồ sơ</Text>
+                <Text style={styles.headerTitle}>Profile</Text>
 
                 {/* NÚT LOG OUT CHÍNH */}
                 <TouchableOpacity style={styles.headerIconRight} onPress={handleLogout}>
@@ -178,42 +187,42 @@ export default function AccountScreen() {
                             onPress={goToEditInformation}
                             style={styles.editProfileButton}
                         >
-                            <Text style={styles.editProfileText}>Chỉnh sửa hồ sơ</Text>
+                            <Text style={styles.editProfileText}>Edit Profile</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
 
-                {/* KHỐI 1: ORDERS & ADDRESSES */}
+                {/* BLOCK 1: ORDERS & ADDRESSES */}
                 <View style={styles.menuGroup}>
                     <ProfileMenuItemCard
-                        title="Đơn hàng của tôi"
+                        title="My Orders"
                         subtitle={
-                            orderCount === 0 ? "Bạn không có đơn hàng nào." : `Bạn có ${orderCount} đơn hàng.`
+                            orderCount === 0 ? "You have no orders." : `You have ${orderCount} orders.`
                         }
                         onPress={goToOrders}
                     />
                     <ProfileMenuItemCard
-                        title="Địa chỉ giao hàng"
+                        title="Shipping Addresses"
                         subtitle={
-                            addressCount === 0 ? "Bạn chưa có địa chỉ nào." : `${addressCount} địa chỉ đã lưu.`
+                            addressCount === 0 ? "No address saved." : `${addressCount} saved addresses.`
                         }
                         onPress={goToShippingAddresses}
                         isLast={true}
                     />
                 </View>
 
-                {/* KHỐI 2: PAYMENT & SETTINGS */}
+                {/* BLOCK 2: PAYMENT & SETTINGS */}
                 <View style={styles.menuGroup}>
                     <ProfileMenuItemCard
-                        title="Phương thức thanh toán"
+                        title="Payment Methods"
                         subtitle={
-                            cardCount === 0 ? "Bạn chưa có thẻ nào." : `Bạn có ${cardCount} thẻ.`
+                            cardCount === 0 ? "You have no cards." : `You have ${cardCount} cards.`
                         }
                         onPress={goToPaymentMethod}
                     />
                     <ProfileMenuItemCard
-                        title="Cài đặt"
-                        subtitle="Cập nhật thông tin cá nhân và bảo mật."
+                        title="Settings"
+                        subtitle="Update personal info and security."
                         onPress={goToEditInformation}
                         isLast={true}
                     />
