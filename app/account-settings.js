@@ -161,22 +161,22 @@ export default function EditProfileScreen() {
         switch (fieldName) {
             case 'name':
                 if (!value || value.trim() === '') {
-                    error = 'Họ tên là bắt buộc.';
+                    error = 'Full name is required.';
                 }
                 break;
             case 'email':
                 if (!value || value.trim() === '') {
-                    error = 'Email là bắt buộc.';
+                    error = 'Email is required.';
                 } else if (!isValidEmail(value)) {
-                    error = 'Địa chỉ email không hợp lệ.';
+                    error = 'Invalid email address.';
                 }
                 break;
             case 'phone':
                 if (value && value.length > 0) {
                     if (isNaN(Number(value))) {
-                        error = 'Số điện thoại chỉ được chứa chữ số.';
+                        error = 'Phone number must contain only digits.';
                     } else if (value.length < 9) {
-                        error = 'Số điện thoại phải có ít nhất 9 chữ số.';
+                        error = 'Phone number must have at least 9 digits.';
                     }
                 }
                 break;
@@ -197,7 +197,7 @@ export default function EditProfileScreen() {
 
         const currentToken = userToken;
         if (!currentToken || !user || !user._id) {
-            Alert.alert('Phiên đăng nhập hết hạn', 'Vui lòng đăng nhập lại để cập nhật hồ sơ.');
+            Alert.alert('Session Expired', 'Please login again to update profile.');
             router.replace('/(auth)/login');
             return false;
         }
@@ -224,23 +224,23 @@ export default function EditProfileScreen() {
 
             if (response.status !== 200) {
                 if (data.message) mapServerErrors(data.message);
-                else Alert.alert('Lỗi cập nhật', `Cập nhật thất bại. Mã lỗi: ${response.status}`);
+                else Alert.alert('Update Error', `Update failed. Error code: ${response.status}`);
                 return false;
             }
 
             if (data.success) {
                 updateUser(data.data);
                 setAvatar(getDisplayAvatarUrl(data.data));
-                setSuccessMessage('Cập nhật hồ sơ thành công!');
+                setSuccessMessage('Profile updated successfully!');
                 setTimeout(() => { setSuccessMessage(''); }, 3000);
                 return true;
             } else {
-                Alert.alert('Lỗi cập nhật', data.message || 'Lỗi không xác định.');
+                Alert.alert('Update Error', data.message || 'Unknown error.');
                 return false;
             }
 
         } catch (error) {
-            Alert.alert('Lỗi mạng', `Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối.`);
+            Alert.alert('Network Error', `Cannot connect to server. Please check your connection.`);
             return false;
         }
     };
@@ -248,7 +248,7 @@ export default function EditProfileScreen() {
     const handleChoosePhoto = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Quyền bị từ chối', 'Cần cấp quyền truy cập thư viện ảnh để thay đổi ảnh đại diện.');
+            Alert.alert('Permission Denied', 'Gallery access is required to change profile picture.');
             return;
         }
 
@@ -269,7 +269,7 @@ export default function EditProfileScreen() {
             const currentToken = userToken;
 
             if (!currentToken || !user || !user._id) {
-                Alert.alert('Lỗi', 'Phiên đăng nhập không hợp lệ.');
+                Alert.alert('Error', 'Invalid login session.');
                 setLoading(false);
                 return;
             }
@@ -280,7 +280,7 @@ export default function EditProfileScreen() {
 
                 await handleUpdateProfile(newAvatarUrl);
             } catch (error) {
-                Alert.alert('Lỗi', error.message || 'Tải ảnh lên thất bại.');
+                Alert.alert('Error', error.message || 'Upload failed.');
             } finally {
                 setLoading(false);
             }
@@ -311,7 +311,7 @@ export default function EditProfileScreen() {
                 <TouchableOpacity onPress={handleGoBack} style={styles.headerBtn} disabled={loading}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Chỉnh sửa hồ sơ</Text>
+                <Text style={styles.headerTitle}>Edit Profile</Text>
                 <View style={styles.headerBtn} />
             </View>
 
@@ -333,14 +333,14 @@ export default function EditProfileScreen() {
                     />
                     <View style={styles.avatarButtonRow}>
                         <TouchableOpacity onPress={handleChoosePhoto} disabled={loading}>
-                            <Text style={styles.changeAvatarText}>Thay đổi ảnh</Text>
+                            <Text style={styles.changeAvatarText}>Change Photo</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 {/* Name Input */}
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Họ và tên</Text>
+                    <Text style={styles.label}>Full Name</Text>
                     <TextInput
                         style={[styles.input, errors.name && styles.inputError]}
                         value={name}
@@ -348,7 +348,7 @@ export default function EditProfileScreen() {
                             setName(text);
                             validateField('name', text);
                         }}
-                        placeholder="Nhập họ và tên"
+                        placeholder="Enter full name"
                         autoCapitalize="words"
                         editable={!loading}
                     />
@@ -365,7 +365,7 @@ export default function EditProfileScreen() {
                             setEmail(text);
                             validateField('email', text);
                         }}
-                        placeholder="Nhập địa chỉ email"
+                        placeholder="Enter email address"
                         keyboardType="email-address"
                         editable={!loading}
                     />
@@ -374,7 +374,7 @@ export default function EditProfileScreen() {
 
                 {/* Phone Input */}
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Số điện thoại</Text>
+                    <Text style={styles.label}>Phone Number</Text>
                     <TextInput
                         style={[styles.input, errors.phone && styles.inputError]}
                         value={phone}
@@ -382,7 +382,7 @@ export default function EditProfileScreen() {
                             setPhone(text);
                             validateField('phone', text);
                         }}
-                        placeholder="Nhập số điện thoại"
+                        placeholder="Enter phone number"
                         keyboardType="phone-pad"
                         editable={!loading}
                     />
@@ -390,15 +390,15 @@ export default function EditProfileScreen() {
                 </View>
 
                 {/* ⭐️ Nút điều hướng đến Địa chỉ (Tối ưu UX) ⭐️ */}
-                <Text style={styles.sectionTitle}>Địa chỉ</Text>
+                <Text style={styles.sectionTitle}>Address</Text>
                 <TouchableOpacity
                     style={styles.optionRow}
                     onPress={navigateToShippingAddresses}
                     disabled={loading}>
                     <View style={{ flexShrink: 1 }}>
-                        <Text style={[styles.label, { marginBottom: 2 }]}>Địa chỉ mặc định</Text>
+                        <Text style={[styles.label, { marginBottom: 2 }]}>Default Address</Text>
                         <Text style={styles.optionText} numberOfLines={2}>
-                            {user?.address ? user.address : 'Nhấn vào đây để thêm/quản lý địa chỉ giao hàng.'}
+                            {user?.address ? user.address : 'Tap here to add/manage shipping addresses.'}
                         </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color={COLORS.muted} />
@@ -414,17 +414,17 @@ export default function EditProfileScreen() {
                     {loading ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
-                        <Text style={styles.saveButtonText}>LƯU THAY ĐỔI</Text>
+                        <Text style={styles.saveButtonText}>SAVE CHANGES</Text>
                     )}
                 </TouchableOpacity>
 
                 {/* Security Section */}
-                <Text style={styles.sectionTitle}>Bảo mật</Text>
+                <Text style={styles.sectionTitle}>Security</Text>
                 <TouchableOpacity
                     style={styles.optionRow}
                     onPress={() => router.push('/change-password')}
                     disabled={loading}>
-                    <Text style={styles.optionText}>Đổi mật khẩu</Text>
+                    <Text style={styles.optionText}>Change Password</Text>
                     <Ionicons name="chevron-forward" size={20} color={COLORS.muted} />
                 </TouchableOpacity>
 
