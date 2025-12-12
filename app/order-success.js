@@ -12,12 +12,12 @@ export default function OrderSuccessScreen() {
       </View>
 
       {/* Title */}
-      <Text style={styles.title}>THÀNH CÔNG!</Text>
+      <Text style={styles.title}>SUCCESS!</Text>
 
       {/* Message */}
       <Text style={styles.message}>
-        Đơn hàng của bạn sẽ được giao sớm.{'\n'}
-        Cảm ơn bạn đã sử dụng ứng dụng của chúng tôi!
+        Your order will be delivered soon.{'\n'}
+        Thank you for choosing our app!
       </Text>
 
       {/* Buttons */}
@@ -25,14 +25,14 @@ export default function OrderSuccessScreen() {
         style={styles.trackButton}
         onPress={() => router.push('/orders')}
       >
-        <Text style={styles.trackButtonText}>Theo dõi đơn hàng</Text>
+        <Text style={styles.trackButtonText}>Track Order</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.homeButton}
         onPress={() => router.replace('/')}
       >
-        <Text style={styles.homeButtonText}>VỀ TRANG CHỦ</Text>
+        <Text style={styles.homeButtonText}>BACK TO HOME</Text>
       </TouchableOpacity>
     </View>
   );
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#4CAF50', // Màu xanh lá biểu thị thành công
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 30,
@@ -102,4 +102,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-

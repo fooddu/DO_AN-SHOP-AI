@@ -1,5 +1,3 @@
-// [File] app/notifications.js
-
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -18,7 +16,7 @@ import {
 import client from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
 
-// --- CONFIG MÀU SẮC ---
+// --- COLOR CONFIG ---
 const COLORS = {
     text: '#222',
     muted: '#888',
@@ -30,7 +28,7 @@ const COLORS = {
     warning: '#f39c12',
 };
 
-// ⭐️ HÀM FIX LỖI ẢNH LOCALHOST ⭐️
+// ⭐️ FIX LOCALHOST IMAGE URL ⭐️
 const getImageUrl = (url) => {
     if (!url) return 'https://via.placeholder.com/60';
     if (url.startsWith('http') && !url.includes('localhost')) return url;
@@ -40,7 +38,7 @@ const getImageUrl = (url) => {
         return url.replace('localhost', '10.0.2.2');
     }
 
-    // Nếu là đường dẫn tương đối, nối Base URL
+    // Relative path, append Base URL
     const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:4000' : 'http://localhost:4000';
     if (url.startsWith('/')) {
         return `${BASE_URL}${url}`;
@@ -48,7 +46,7 @@ const getImageUrl = (url) => {
     return url;
 };
 
-// Component Item
+// Item Component
 const NotificationItem = ({ item, markAsRead }) => {
     const isSystemAlert = item.type === 'SYSTEM_ALERT';
 
@@ -102,19 +100,19 @@ export default function NotificationsScreen() {
     const [loading, setLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // ⭐️ LOGIC KIỂM TRA THÔNG TIN CÁ NHÂN ⭐️
+    // ⭐️ USER INFO CHECK LOGIC ⭐️
     const checkUserInfo = () => {
         if (!user) return null;
         if (!user.phone || !user.address || user.address.trim() === "") {
             return {
                 id: 'local-alert-missing-info',
-                title: 'Thiếu thông tin',
-                description: 'Vui lòng cập nhật số điện thoại và địa chỉ để xác minh tài khoản.',
+                title: 'Missing Information', // English Title
+                description: 'Please update your phone number and address to verify your account.', // English Description
                 type: 'SYSTEM_ALERT',
                 read: false,
                 image: null,
                 createdAt: new Date().toISOString(),
-                timeDisplay: 'Bây giờ',
+                timeDisplay: 'Now', // English
                 action: '/account-settings'
             };
         }
@@ -149,7 +147,7 @@ export default function NotificationsScreen() {
                     timeDisplay: new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 }));
 
-                // Chèn thông báo nhắc nhở vào đầu
+                // Prepend system alert
                 const reminder = checkUserInfo();
                 if (reminder) {
                     fetchedData = [reminder, ...fetchedData];
@@ -180,7 +178,7 @@ export default function NotificationsScreen() {
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
                 <Ionicons name="notifications-outline" size={24} color={COLORS.text} style={{ width: 24 }} />
-                <Text style={styles.headerTitle}>Thông báo</Text>
+                <Text style={styles.headerTitle}>NOTIFICATIONS</Text>
                 <View style={{ width: 24 }} />
             </View>
 
@@ -194,7 +192,7 @@ export default function NotificationsScreen() {
                 ListEmptyComponent={() => (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="file-tray-outline" size={48} color={COLORS.muted} />
-                        <Text style={styles.emptyText}>Bạn không có thông báo nào.</Text>
+                        <Text style={styles.emptyText}>No notifications yet.</Text> {/* English */}
                     </View>
                 )}
             />

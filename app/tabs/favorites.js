@@ -1,5 +1,3 @@
-// [File] app/tabs/favorites.js
-
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import {
@@ -15,22 +13,19 @@ import {
 import client from '../../api/axiosConfig';
 import { useFavorites } from '../../contexts/FavoritesContext';
 
-// 🎨 COLORS: Định nghĩa bảng màu rõ ràng
 const COLORS = {
-    primary: '#E91E63', // Hồng nổi bật
-    text: '#222', // Màu chữ đậm
-    muted: '#888', // Màu chữ phụ
-    bg: '#ffffff', // Nền chính (Trắng)
-    surface: '#F6F6F6', // Nền phụ (Light Gray)
-    lightGrey: '#E0E0E0', // Màu viền/placeholder
+    primary: '#E91E63',
+    text: '#222',
+    muted: '#888',
+    bg: '#ffffff',
+    surface: '#F6F6F6',
+    lightGrey: '#E0E0E0',
 };
 
-// ⭐️ IMAGE FIX: Lấy BASE URL từ client đã cấu hình ⭐️
 const API_BASE_URL_FOR_IMAGES = client.defaults.baseURL.replace('/api', '');
 const LOCALHOST_URL = 'http://localhost:4000';
 const FALLBACK_IMAGE_URL = 'https://picsum.photos/200';
 
-// Component Card cho sản phẩm yêu thích (Render Item)
 const FavoriteCard = ({ item }) => {
     const router = useRouter();
     const { toggleFavorite } = useFavorites();
@@ -39,9 +34,7 @@ const FavoriteCard = ({ item }) => {
         router.push(`/products/${item._id}`);
     };
 
-    // Xử lý URL ảnh (Đảm bảo lấy ảnh đầu tiên và thay thế localhost)
     let displayImageUrl = '';
-
     if (Array.isArray(item.image) && item.image.length > 0) {
         displayImageUrl = item.image[0];
     } else if (typeof item.image === 'string') {
@@ -52,22 +45,14 @@ const FavoriteCard = ({ item }) => {
         displayImageUrl = displayImageUrl.replace(LOCALHOST_URL, API_BASE_URL_FOR_IMAGES);
     }
 
-    const imageSource = {
-        uri: displayImageUrl || FALLBACK_IMAGE_URL
-    };
-
+    const imageSource = { uri: displayImageUrl || FALLBACK_IMAGE_URL };
 
     return (
         <View style={styles.card}>
-            {/* Ảnh sản phẩm */}
             <TouchableOpacity onPress={goToDetail} activeOpacity={0.8}>
-                <Image
-                    source={imageSource}
-                    style={styles.image}
-                />
+                <Image source={imageSource} style={styles.image} />
             </TouchableOpacity>
 
-            {/* Thông tin sản phẩm */}
             <View style={styles.infoContainer}>
                 <TouchableOpacity onPress={goToDetail}>
                     <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
@@ -75,7 +60,6 @@ const FavoriteCard = ({ item }) => {
                 <Text style={styles.price}>$ {Number(item.price).toFixed(2)}</Text>
             </View>
 
-            {/* NÚT BỎ THÍCH - Đặt trong luồng flex để căn giữa dọc */}
             <TouchableOpacity
                 style={styles.heartBtn}
                 onPress={() => toggleFavorite(item)}
@@ -87,8 +71,6 @@ const FavoriteCard = ({ item }) => {
     );
 };
 
-
-// Component Chính
 export default function FavoritesScreen() {
     const router = useRouter();
     const { favoriteProducts, loading, loadFavorites } = useFavorites();
@@ -101,23 +83,22 @@ export default function FavoritesScreen() {
         <View style={styles.emptyContainer}>
             <Ionicons name="heart-dislike-outline" size={80} color={COLORS.lightGrey} style={styles.emptyIcon} />
 
-            <Text style={styles.emptyTitle}>Danh sách yêu thích trống</Text>
-            <Text style={styles.emptySubText}>Khám phá sản phẩm tuyệt vời và thêm vào yêu thích!</Text>
+            <Text style={styles.emptyTitle}>No favorites yet</Text> {/* Đã đổi sang tiếng Anh */}
+            <Text style={styles.emptySubText}>Explore great products and add to favorites!</Text> {/* Đã đổi sang tiếng Anh */}
 
             <TouchableOpacity onPress={goToHome} style={styles.exploreButton} activeOpacity={0.8}>
-                <Text style={styles.exploreButtonText}>Khám phá ngay</Text>
+                <Text style={styles.exploreButtonText}>Explore Now</Text> {/* Đã đổi sang tiếng Anh */}
             </TouchableOpacity>
         </View>
     );
 
-    // Component Header với Icons (Search - Favorites - Cart)
     const HeaderWithIcons = () => (
         <View style={styles.newHeaderContainer}>
             <TouchableOpacity onPress={goToSearch} style={styles.headerIcon}>
                 <Ionicons name="search-outline" size={26} color={COLORS.text} />
             </TouchableOpacity>
 
-            <Text style={styles.newHeaderTitle}>Yêu thích</Text>
+            <Text style={styles.newHeaderTitle}>Favorites</Text> {/* Đã đổi sang tiếng Anh */}
 
             <TouchableOpacity onPress={goToCart} style={styles.headerIcon}>
                 <Ionicons name="cart-outline" size={26} color={COLORS.text} />
@@ -152,11 +133,8 @@ export default function FavoritesScreen() {
     );
 }
 
-// 💅 STYLES ĐÃ ĐƯỢC CẬP NHẬT VÀ TỐI ƯU HÓA 💅
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: COLORS.bg },
-
-    // Header
     newHeaderContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -174,24 +152,18 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         flex: 1,
     },
-    headerIcon: {
-        padding: 8,
-    },
-
-    // List Container
+    headerIcon: { padding: 8 },
     listContainer: {
         flexGrow: 1,
         paddingHorizontal: 16,
         paddingTop: 10,
         paddingBottom: 20,
     },
-
-    // Card (Sản phẩm) - Đã làm nhỏ chiều cao và căn giữa nút tim
     card: {
         flexDirection: 'row',
         backgroundColor: COLORS.bg,
         borderRadius: 15,
-        padding: 12, // Giảm padding
+        padding: 12,
         marginBottom: 15,
         elevation: 3,
         shadowColor: '#000',
@@ -200,11 +172,11 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         borderWidth: 1,
         borderColor: COLORS.lightGrey,
-        alignItems: 'center', // Căn giữa các thành phần con theo chiều dọc
+        alignItems: 'center',
     },
     image: {
-        width: 90, // Giảm kích thước ảnh
-        height: 90, // Giảm kích thước ảnh
+        width: 90,
+        height: 90,
         borderRadius: 8,
         backgroundColor: COLORS.surface,
         marginRight: 15,
@@ -212,7 +184,7 @@ const styles = StyleSheet.create({
     },
     infoContainer: {
         flex: 1,
-        justifyContent: 'center', // Căn giữa nội dung info container theo chiều dọc
+        justifyContent: 'center',
         paddingVertical: 0,
     },
     name: {
@@ -229,12 +201,9 @@ const styles = StyleSheet.create({
         marginTop: 0,
     },
     heartBtn: {
-        // Không dùng position: 'absolute' nữa để nó nằm trong luồng flex và được căn giữa bởi card.
         padding: 8,
         backgroundColor: 'transparent',
     },
-
-    // Empty State
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -242,9 +211,7 @@ const styles = StyleSheet.create({
         marginTop: 100,
         paddingHorizontal: 30,
     },
-    emptyIcon: {
-        marginBottom: 20,
-    },
+    emptyIcon: { marginBottom: 20 },
     emptyTitle: {
         fontSize: 20,
         fontWeight: '600',

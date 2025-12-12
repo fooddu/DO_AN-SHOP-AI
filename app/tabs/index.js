@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     FlatList,
     Image,
+    KeyboardAvoidingView,
+    Platform,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -16,6 +17,9 @@ import {
     View
 } from 'react-native';
 import client from '../../api/axiosConfig';
+
+// 1. IMPORT HOOK TOAST
+import { useToast } from '../../context/ToastContext';
 
 const COLORS = {
     primary: '#FF3366',
@@ -27,37 +31,14 @@ const COLORS = {
     shadow: '#000',
 };
 
-// Lấy URL cần thiết để thay thế localhost
 const API_BASE_URL_FOR_IMAGES = client.defaults.baseURL.replace('/api', '');
 const LOCALHOST_URL = 'http://localhost:4000';
 const FALLBACK_IMAGE_URL = 'https://picsum.photos/400';
 
-// Sample data for fallback
-const sampleProducts = [
-    {
-        _id: 's1', name: 'POLK DRESS', price: 75.00, category: 'T-Shirt',
-        image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500', stock: 50
-    },
-    {
-        _id: 's2', name: 'Basic Black T-Shirt', price: 35.00, category: 'T-Shirt',
-        image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500', stock: 100
-    },
-    {
-        _id: 's3', name: 'White Plain T-Shirt', price: 33.00, category: 'Polo',
-        image: 'https://images.unsplash.com/photo-1622445275576-721325763afe?w=500', stock: 80
-    },
-    {
-        _id: 's4', name: 'POLK DRESS Beige', price: 28.00, category: 'Short',
-        image: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=500', stock: 60
-    },
-];
-
-const FIXED_CATEGORIES = ['T-Shirt', 'Polo', 'Short', 'Pant', 'Jean', 'Jacket', 'Hoodie', 'Dress'];
-
-// Component Header cho FlatList (Gồm TopBar, Search và Categories)
-const ListHeader = ({ search, onSearch, categoriesList, activeCategory, onCategory, router, styles, COLORS, loading, status }) => (
-    <View>
-        {/* TopBar: logo + cart */}
+// --- 1. FIXED HEADER ---
+const FixedHeader = ({ search, onSearch, categoriesList, activeCategory, onCategory, router }) => (
+    <View style={styles.fixedHeaderContainer}>
+        {/* TopBar */}
         <View style={styles.topBar}>
             <View style={{ width: 30 }} />
             <Text style={styles.logoText}>AI Shop</Text>
@@ -70,7 +51,7 @@ const ListHeader = ({ search, onSearch, categoriesList, activeCategory, onCatego
         <View style={styles.searchBox}>
             <Ionicons name="search" size={20} color={COLORS.muted} />
             <TextInput
-                placeholder="Tìm kiếm sản phẩm..."
+                placeholder="Find products..."
                 placeholderTextColor={COLORS.muted}
                 style={styles.searchInput}
                 value={search}
@@ -78,48 +59,53 @@ const ListHeader = ({ search, onSearch, categoriesList, activeCategory, onCatego
             />
         </View>
 
-        {/* Featured categories */}
-        <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.featureScroll}
-            keyboardShouldPersistTaps="handled"
-        >
-            {categoriesList.map((cat) => {
-                const isActive = activeCategory === cat;
-                return (
-                    <TouchableOpacity
-                        key={cat}
-                        style={[styles.featureBtn, isActive && styles.featureActive]}
-                        onPress={() => onCategory(cat)}
-                    >
-                        <Text style={[styles.featureText, isActive && styles.featureTextActive]}>
-                            {cat}
-                        </Text>
-                    </TouchableOpacity>
-                );
-            })}
-        </ScrollView>
-
-        {/* Status message and Loading state */}
-        {loading ? (
-            <View style={styles.statusContainer}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
-            </View>
-        ) : status ? (
-            <View style={styles.statusBox}>
-                <Text style={styles.statusText}>{status}</Text>
-            </View>
-        ) : <View style={{ height: 10 }} />}
+        {/* Categories */}
+        <View>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.featureScroll}
+                keyboardShouldPersistTaps="handled"
+            >
+                {categoriesList.map((cat, index) => {
+                    const isActive = activeCategory === cat;
+                    return (
+                        <TouchableOpacity
+                            key={index}
+                            style={[styles.featureBtn, isActive && styles.featureActive]}
+                            onPress={() => onCategory(cat)}
+                        >
+                            <Text style={[styles.featureText, isActive && styles.featureTextActive]}>
+                                {cat}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </ScrollView>
+        </View>
     </View>
 );
 
+const StatusIndicator = ({ loading, status }) => {
+    if (loading) {
+        return (
+            <View style={styles.statusContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+            </View>
+        );
+    }
+    if (status) {
+        return (
+            <View style={styles.statusBox}>
+                <Text style={styles.statusText}>{status}</Text>
+            </View>
+        );
+    }
+    return <View style={{ height: 10 }} />;
+};
 
 function ProductCard({ item, onAdd, onPress }) {
-    // Sử dụng fallback cho Image Source
-    const imageSource = {
-        uri: item.image || FALLBACK_IMAGE_URL
-    };
+    const imageSource = { uri: item.image || FALLBACK_IMAGE_URL };
 
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
@@ -127,193 +113,182 @@ function ProductCard({ item, onAdd, onPress }) {
                 <Image source={imageSource} style={styles.image} />
             </View>
             <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-
-            {/* Khối cardFooter (ĐÃ SỬA LỖI CÚ PHÁP) */}
             <View style={styles.cardFooter}>
                 <Text style={styles.price}>$ {Number(item.price).toFixed(2)}</Text>
+                
+                {/* Nút Thêm vào giỏ */}
                 <TouchableOpacity style={styles.addBtn} onPress={() => onAdd(item)}>
                     <Ionicons name="cart-outline" size={16} color="#fff" />
                 </TouchableOpacity>
             </View>
-
         </TouchableOpacity>
     );
 }
 
 export default function HomeScreen() {
     const router = useRouter();
+    // 2. KHỞI TẠO TOAST
+    const { showToast } = useToast();
+
     const [products, setProducts] = useState([]);
     const [filtered, setFiltered] = useState([]);
+    const [categoriesList, setCategoriesList] = useState(['All']);
+    
     const [search, setSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState(null);
 
-    const categoriesList = useMemo(() => ['All', ...FIXED_CATEGORIES], []);
-
-    useEffect(() => {
-        loadProducts();
+    useEffect(() => { 
+        loadCategories(); 
+        loadProducts();   
     }, []);
 
+    const loadCategories = async () => {
+        try {
+            const response = await client.get('/categories');
+            if (response.data && response.data.success) {
+                const serverCategories = response.data.data
+                    .filter(cat => cat.isActive)
+                    .map(cat => cat.name);
+                setCategoriesList(['All', ...serverCategories]);
+            }
+        } catch (error) {
+            console.error("Error loading categories:", error);
+        }
+    };
 
     const loadProducts = async () => {
         setLoading(true);
         setStatus(null);
         try {
-
             const response = await client.get('/products');
-
             let apiData = response.data;
-            if (typeof apiData === 'string' || !apiData.success) {
-                throw new Error("Invalid API response format: Did not receive JSON.");
-            }
-
             let list = Array.isArray(apiData.data) ? apiData.data : [];
 
-            // FIX LỖI ẢNH: Chuẩn hóa URL ảnh 
             list = list.map(product => {
                 let imageUrl = product.image;
-
-                // 1. Nếu là Mảng ảnh
-                if (Array.isArray(product.image) && product.image.length > 0) {
-                    imageUrl = product.image[0];
-                }
-
-                // 2. Thay thế URL localhost bằng BASE_URL của client
-                if (imageUrl && imageUrl.includes(LOCALHOST_URL)) {
-                    imageUrl = imageUrl.replace(LOCALHOST_URL, API_BASE_URL_FOR_IMAGES);
-                }
-
-                // 3. Trả về product mới với ảnh đã được chuẩn hóa
-                return {
-                    ...product,
-                    image: imageUrl
-                };
+                if (Array.isArray(product.image) && product.image.length > 0) imageUrl = product.image[0];
+                if (imageUrl && imageUrl.includes(LOCALHOST_URL)) imageUrl = imageUrl.replace(LOCALHOST_URL, API_BASE_URL_FOR_IMAGES);
+                const catName = typeof product.category === 'object' ? product.category?.name : product.category;
+                return { ...product, image: imageUrl, categoryName: catName }; 
             });
 
             if (list.length > 0) {
                 setProducts(list);
                 setFiltered(list);
-                setStatus(null);
             } else {
-                setProducts(sampleProducts);
-                setFiltered(sampleProducts);
-                setStatus('Server trả về dữ liệu trống - hiển thị sản phẩm mẫu.');
+                setStatus('No products found.');
             }
         } catch (err) {
-            console.error('[HomeScreen] API Error (Network/Parsing):', err.message);
-
-            if (err.message.includes('Invalid API response')) {
-                setStatus('LỖI DỮ LIỆU: Server trả về text/HTML thay vì JSON.');
-            } else {
-                setStatus('Kết nối mạng thất bại - hiển thị sản phẩm mẫu.');
-            }
-
-            setProducts(sampleProducts);
-            setFiltered(sampleProducts);
-
+            setStatus('Server connection error.');
         } finally {
             setLoading(false);
         }
     };
 
+    // 3. HÀM ADD TO CART ĐÃ SỬA
     const addToCart = async (product) => {
         try {
             const raw = await AsyncStorage.getItem('cart');
             const cart = raw ? JSON.parse(raw) : [];
+            
+            // Tìm xem sản phẩm đã có trong giỏ chưa (Check theo ID)
+            // Lưu ý: Ở trang Home, ta mặc định thêm size đầu tiên hoặc không size nếu chưa vào chi tiết
+            // Để đơn giản, ta cứ thêm vào, người dùng có thể chỉnh trong giỏ
             const idx = cart.findIndex((it) => it.productId === product._id);
 
             if (idx >= 0) {
                 cart[idx].quantity = (cart[idx].quantity || 1) + 1;
             } else {
                 cart.push({
-                    productId: product._id, name: product.name, price: product.price,
-                    image: product.image, quantity: 1
+                    productId: product._id, 
+                    name: product.name, 
+                    price: product.price,
+                    image: product.image, 
+                    quantity: 1,
+                    size: 'M' // Mặc định size M nếu thêm nhanh từ trang chủ
                 });
             }
-
             await AsyncStorage.setItem('cart', JSON.stringify(cart));
-            Alert.alert('Đã thêm vào giỏ', `${product.name} đã được thêm vào giỏ hàng.`);
+            
+            // ✨ HIỆN THÔNG BÁO TOAST ✨
+            showToast(`Added ${product.name} to cart!`, 'success');
+
         } catch (e) {
-            console.error('Error adding to cart:', e);
-            Alert.alert('Lỗi', 'Không thể thêm sản phẩm vào giỏ hàng.');
+            showToast('Failed to add to cart.', 'error');
         }
     };
 
     const onSearch = (text) => {
         setSearch(text);
-        const q = text.trim().toLowerCase();
-
-        const baseList = activeCategory === 'All'
-            ? products
-            : products.filter(p => (p.category || '').toLowerCase() === activeCategory.toLowerCase());
-
-        if (!q) {
-            setFiltered(baseList);
-            return;
-        }
-        setFiltered(baseList.filter((p) => (p.name || '').toLowerCase().includes(q)));
+        filterData(text, activeCategory);
     };
 
     const onCategory = (cat) => {
         setActiveCategory(cat);
+        filterData(search, cat);
+    };
 
-        const low = cat.toLowerCase();
+    const filterData = (searchText, category) => {
+        const q = searchText.trim().toLowerCase();
+        let result = products;
 
-        const filteredByCategory = cat === 'All'
-            ? products
-            : products.filter((p) => (p.category || '').toLowerCase() === low);
-
-        const q = search.trim().toLowerCase();
-        if (q) {
-            setFiltered(filteredByCategory.filter((p) => (p.name || '').toLowerCase().includes(q)));
-        } else {
-            setFiltered(filteredByCategory);
+        if (category !== 'All') {
+            result = result.filter(p => {
+                const pCat = p.categoryName || p.category || '';
+                return pCat.toLowerCase() === category.toLowerCase();
+            });
         }
+
+        if (q) {
+            result = result.filter(p => (p.name || '').toLowerCase().includes(q));
+        }
+        setFiltered(result);
     };
 
     const handleProductPress = (item) => {
-
         router.push(`/products/${item._id}`);
     };
 
-
     return (
         <SafeAreaView style={styles.safe}>
-            <View style={styles.container}>
-
-                <FlatList
-                    data={filtered}
-                    renderItem={({ item }) => (
-                        <ProductCard
-                            item={item}
-                            onAdd={addToCart}
-                            onPress={() => handleProductPress(item)}
-                        />
-                    )}
-                    keyExtractor={(it) => it._id || it.id}
-                    numColumns={2}
-                    columnWrapperStyle={styles.columnWrap}
-                    contentContainerStyle={styles.list}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-
-                    ListHeaderComponent={
-                        <ListHeader
-                            search={search}
-                            onSearch={onSearch}
-                            categoriesList={categoriesList}
-                            activeCategory={activeCategory}
-                            onCategory={onCategory}
-                            router={router}
-                            styles={styles}
-                            COLORS={COLORS}
-                            loading={loading}
-                            status={status}
-                        />
-                    }
+            <KeyboardAvoidingView 
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+                style={{ flex: 1 }}
+            >
+                <FixedHeader 
+                    search={search}
+                    onSearch={onSearch}
+                    categoriesList={categoriesList}
+                    activeCategory={activeCategory}
+                    onCategory={onCategory}
+                    router={router}
                 />
-            </View>
+
+                <View style={styles.listContainer}>
+                    <FlatList
+                        data={filtered}
+                        renderItem={({ item }) => (
+                            <ProductCard
+                                item={item}
+                                onAdd={addToCart}
+                                onPress={() => handleProductPress(item)}
+                            />
+                        )}
+                        keyExtractor={(it) => it._id || it.id}
+                        numColumns={2}
+                        columnWrapperStyle={styles.columnWrap}
+                        contentContainerStyle={styles.listContent}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        
+                        ListHeaderComponent={
+                            <StatusIndicator loading={loading} status={status} />
+                        }
+                    />
+                </View>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
@@ -321,90 +296,56 @@ export default function HomeScreen() {
 /* Styles */
 const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: COLORS.bg },
-    container: { flex: 1, paddingHorizontal: 16 },
-    topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingTop: 12 },
+    
+    fixedHeaderContainer: {
+        backgroundColor: COLORS.bg,
+        paddingHorizontal: 16,
+        paddingBottom: 10,
+        zIndex: 10, 
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 },
+            android: { elevation: 4 }
+        })
+    },
+    topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingTop: 10 },
     logoText: { fontSize: 24, fontWeight: 'bold', color: COLORS.primary },
-    logo: { width: 40, height: 40 },
     cartBtn: { padding: 4 },
+    
     searchBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: COLORS.surface,
-        borderRadius: 10,
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        marginBottom: 15,
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: COLORS.surface, borderRadius: 10,
+        paddingHorizontal: 15, paddingVertical: 10, marginBottom: 10,
     },
     searchInput: { marginLeft: 10, flex: 1, fontSize: 16, color: COLORS.text },
 
-    // Categories
-    featureScroll: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingBottom: 8,
-        paddingRight: 20
-    },
+    featureScroll: { flexDirection: 'row', alignItems: 'center', paddingRight: 20 },
     featureBtn: {
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: COLORS.borderColor,
-        marginRight: 8,
+        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
+        borderWidth: 1, borderColor: COLORS.borderColor, marginRight: 8,
         backgroundColor: '#fff',
-        elevation: 0,
-        shadowOpacity: 0,
-        shadowRadius: 0,
     },
-    featureActive: {
-        backgroundColor: COLORS.primary,
-        borderColor: COLORS.primary,
-        elevation: 0,
-        shadowOpacity: 0,
-        shadowRadius: 0,
-    },
-    featureText: {
-        color: COLORS.text,
-        fontSize: 14
-    },
-    featureTextActive: {
-        color: '#fff',
-        fontWeight: 'bold'
-    },
+    featureActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    featureText: { color: COLORS.text, fontSize: 14 },
+    featureTextActive: { color: '#fff', fontWeight: 'bold' },
 
-    // Status Box & Loading
-    statusContainer: { paddingVertical: 30 },
-    statusBox: {
-        backgroundColor: COLORS.surface,
-        padding: 10,
-        borderRadius: 8,
-        marginBottom: 10,
-        borderLeftWidth: 3,
-        borderLeftColor: COLORS.primary,
-    },
-    statusText: { color: COLORS.text, marginBottom: 0, textAlign: 'center', fontSize: 13, fontWeight: '500' },
-
-    list: { paddingBottom: 20, paddingTop: 0 },
+    listContainer: { flex: 1, backgroundColor: '#f9f9f9' },
+    listContent: { paddingHorizontal: 16, paddingBottom: 20, paddingTop: 10 },
     columnWrap: { justifyContent: 'space-between' },
 
-    // Product Card
+    statusContainer: { paddingVertical: 20 },
+    statusBox: { backgroundColor: '#fff', padding: 10, borderRadius: 8, marginBottom: 10, alignItems: 'center' },
+    statusText: { color: COLORS.text, fontSize: 13 },
+
     card: {
-        width: '48%',
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        padding: 8,
-        marginBottom: 18,
-        alignItems: 'flex-start',
-        elevation: 1,
-        shadowColor: COLORS.shadow,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 2,
+        width: '48%', backgroundColor: '#fff', borderRadius: 8, padding: 8, marginBottom: 15,
+        shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2
     },
     imageContainer: { width: '100%', alignItems: 'center', marginBottom: 5 },
-    image: { width: '100%', aspectRatio: 1, borderRadius: 6 },
-    name: { fontSize: 14, color: COLORS.text, textAlign: 'left', fontWeight: '600', width: '100%', marginTop: 4 },
-    cardFooter: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+    image: { width: '100%', aspectRatio: 1, borderRadius: 6, backgroundColor: '#eee' },
+    name: { fontSize: 14, color: COLORS.text, fontWeight: '600', marginTop: 4 },
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
     price: { color: COLORS.text, fontWeight: '700', fontSize: 15 },
     addBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
 });

@@ -3,15 +3,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  Alert,
-  FlatList,
-  Image,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    FlatList,
+    Image,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 const DELIVERY_FEE = 5.00;
@@ -27,7 +27,7 @@ export default function CartScreen() {
         loadCart();
     }, []);
 
-    // --- LOGIC LƯU TRỮ DỮ LIỆU (AsyncStorage) ---
+    // --- DATA STORAGE LOGIC (AsyncStorage) ---
 
     const loadCart = async () => {
         try {
@@ -35,26 +35,26 @@ export default function CartScreen() {
             if (data) {
                 const parsedData = JSON.parse(data);
                 setCart(parsedData);
-                console.log("--- TẢI GIỎ HÀNG: Đã tải", parsedData.length, "sản phẩm từ AsyncStorage.");
+                console.log("--- LOAD CART: Loaded", parsedData.length, "items from AsyncStorage.");
             }
         } catch (error) {
-            console.error('Lỗi khi tải giỏ hàng:', error);
+            console.error('Error loading cart:', error);
         }
     };
 
     const saveCart = async (newCart) => {
         try {
             const cleanCart = newCart.filter(item => item.quantity > 0);
-            console.log("--- LOG 4: LƯU GIỎ HÀNG: Đang lưu giỏ hàng mới:", cleanCart.length, "sản phẩm.");
+            console.log("--- LOG 4: SAVE CART: Saving new cart:", cleanCart.length, "items.");
             
             await AsyncStorage.setItem('cart', JSON.stringify(cleanCart));
             setCart(cleanCart);
         } catch (error) {
-            console.error('Lỗi khi lưu giỏ hàng:', error);
+            console.error('Error saving cart:', error);
         }
     };
 
-    // --- LOGIC GIỎ HÀNG ---
+    // --- CART LOGIC ---
 
     const increaseQuantity = (productId) => {
         const newCart = cart.map(item => {
@@ -76,39 +76,36 @@ export default function CartScreen() {
         saveCart(newCart);
     };
 
-    // TẠM THỜI BỎ ALERT ĐỂ KIỂM TRA LỖI XÓA
     const removeProduct = (productId) => {
-        console.log("--- LOG 2: GỌI XÓA CHO ID:", productId); 
+        console.log("--- LOG 2: CALL DELETE FOR ID:", productId); 
         
-        // SỬA: Lọc sản phẩm ngay lập tức
         const targetId = productId ? productId.toString() : null; 
         
         const newCart = cart.filter(item => {
-            // Dùng .toString() để đảm bảo so sánh chuỗi ID
             const itemId = item.productId ? item.productId.toString() : null;
             return itemId !== targetId;
         });
         
-        console.log("--- LOG XÓA DỨT ĐIỂM: Giỏ hàng mới có:", newCart.length, "sản phẩm."); 
+        console.log("--- LOG FINAL DELETE: New cart has:", newCart.length, "items."); 
 
         if (newCart.length < cart.length) {
             saveCart(newCart); 
         } else {
-            console.warn("Lỗi: Không tìm thấy sản phẩm khớp ID để xóa. ID có thể sai.");
+            console.warn("Error: Product ID mismatch. Deletion failed.");
         }
     };
 
     const applyPromoCode = () => {
         if (promoCode.toUpperCase() === 'FREE5') {
             setDiscount(5.00); 
-            Alert.alert('Thành công', 'Mã khuyến mãi đã được áp dụng! Giảm $5.');
+            Alert.alert('Success', 'Promo code applied! $5 discount.');
         } else {
             setDiscount(0.00);
-            Alert.alert('Lỗi', 'Mã khuyến mãi không hợp lệ.');
+            Alert.alert('Error', 'Invalid promo code.');
         }
     };
 
-    // --- TÍNH TOÁN ---
+    // --- CALCULATIONS ---
 
     const calculateSubtotal = () => {
         return cart.reduce((total, item) => {
@@ -122,17 +119,17 @@ export default function CartScreen() {
         return finalOrder + DELIVERY_FEE;
     };
     
-    // --- ĐIỀU HƯỚNG ---
+    // --- NAVIGATION ---
 
     const goToCheckout = () => {
         if (cart.length === 0) {
-            Alert.alert('Thông báo', 'Giỏ hàng của bạn đang trống!');
+            Alert.alert('Notification', 'Your cart is empty!');
             return;
         }
         router.push('/checkout');
     };
 
-    // --- RENDER MỖI MỤC TRONG GIỎ HÀNG ---
+    // --- RENDER CART ITEM ---
 
     const renderCartItem = ({ item }) => (
         <View style={styles.cartItem}>
@@ -170,12 +167,11 @@ export default function CartScreen() {
                 </View>
             </View>
 
-            {/* NÚT XÓA: GỌI HÀM XÓA NGAY */}
+            {/* DELETE BUTTON */}
             <TouchableOpacity 
                 style={styles.deleteButton}
                 onPress={() => {
-                    // LOG 1: Kiểm tra sự kiện chạm
-                    console.log("--- LOG 1: SỰ KIỆN BẤM: Đã nhấn nút xóa cho ID:", item.productId);
+                    console.log("--- LOG 1: PRESS EVENT: Delete button pressed for ID:", item.productId);
                     removeProduct(item.productId);
                 }}
             >
@@ -189,12 +185,12 @@ export default function CartScreen() {
     const total = calculateTotal();
 
 
-    // --- RENDER GIAO DIỆN ---
+    // --- RENDER UI ---
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                {/* Tiêu đề */}
+                {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity 
                         style={styles.backButton}
@@ -202,14 +198,14 @@ export default function CartScreen() {
                     >
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Giỏ hàng</Text>
+                    <Text style={styles.headerTitle}>Cart</Text> {/* Changed from Giỏ hàng */}
                     <View style={styles.backButton} /> 
                 </View>
 
-                {/* Danh sách sản phẩm */}
+                {/* Cart List */}
                 {cart.length === 0 ? (
                     <View style={styles.emptyCart}>
-                        <Text style={styles.emptyText}>Giỏ hàng trống</Text>
+                        <Text style={styles.emptyText}>Your cart is empty</Text> {/* Changed from Giỏ hàng trống */}
                     </View>
                 ) : (
                     <>
@@ -221,11 +217,11 @@ export default function CartScreen() {
                             showsVerticalScrollIndicator={false}
                         />
 
-                        {/* Nhập mã khuyến mãi */}
+                        {/* Promo Code Input */}
                         <View style={styles.promoContainer}>
                             <TextInput
                                 style={styles.promoInput}
-                                placeholder="Nhập mã khuyến mãi"
+                                placeholder="Enter promo code" // Changed placeholder
                                 placeholderTextColor="#888"
                                 autoCapitalize="none"
                                 value={promoCode}
@@ -239,22 +235,22 @@ export default function CartScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Tóm tắt tổng tiền */}
+                        {/* Order Summary */}
                         <View style={styles.summaryContainer}>
                             <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Tạm tính:</Text>
+                                <Text style={styles.summaryLabel}>Subtotal:</Text> {/* Changed from Tạm tính */}
                                 <Text style={styles.summaryValue}>
                                     $ {finalOrder.toFixed(2)}
                                 </Text>
                             </View>
 
                             <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Phí giao hàng:</Text>
+                                <Text style={styles.summaryLabel}>Delivery Fee:</Text> {/* Changed from Phí giao hàng */}
                                 <Text style={styles.summaryValue}>$ {DELIVERY_FEE.toFixed(2)}</Text>
                             </View>
 
                             <View style={[styles.summaryRow, styles.totalRow]}>
-                                <Text style={styles.totalLabel}>Tổng cộng:</Text>
+                                <Text style={styles.totalLabel}>Total:</Text> {/* Changed from Tổng cộng */}
                                 <Text style={styles.totalValue}>
                                     $ {total.toFixed(2)}
                                 </Text>
@@ -264,14 +260,14 @@ export default function CartScreen() {
                 )}
             </View>
             
-            {/* Nút Thanh toán */}
+            {/* Checkout Button */}
             {cart.length > 0 && (
                 <View style={styles.checkoutFooter}>
                     <TouchableOpacity 
                         style={styles.checkoutButton}
                         onPress={goToCheckout}
                     >
-                        <Text style={styles.checkoutButtonText}>Thanh toán</Text>
+                        <Text style={styles.checkoutButtonText}>Checkout</Text> {/* Changed from Thanh toán */}
                     </TouchableOpacity>
                 </View>
             )}
@@ -279,209 +275,206 @@ export default function CartScreen() {
     );
 }
 
-// ------------------------------------------------------------------
-// STYLES
-// ------------------------------------------------------------------
-
+// ... (Styles vẫn giữ nguyên, không cần thay đổi vì chỉ ảnh hưởng giao diện)
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#FFF' },
-    container: {
-        flex: 1,
-        backgroundColor: '#FFF',
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 10,
-        paddingBottom: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#000',
-        flex: 1,
-        textAlign: 'center',
-    },
-    cartList: {
-        paddingHorizontal: 15,
-        paddingTop: 10,
-        paddingBottom: 20,
-    },
-    cartItem: {
-        flexDirection: 'row',
-        backgroundColor: '#FFF',
-        borderRadius: 10,
-        padding: 10,
-        marginVertical: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 5,
-    },
-    itemImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 10,
-        backgroundColor: '#F5F5F5',
-    },
-    itemMainContent: {
-        flex: 1,
-        marginLeft: 15,
-        justifyContent: 'space-between',
-        paddingRight: 35,
-    },
-    itemName: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#000',
-        marginBottom: 5,
-    },
-    itemPrice: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#000',
-    },
-    quantityContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 5,
-    },
-    quantityButton: {
-        width: 25,
-        height: 25,
-        borderRadius: 5,
-        backgroundColor: '#F5F5F5',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    quantityButtonText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#000',
-    },
-    quantityText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginHorizontal: 10,
-        color: '#000',
-    },
-    deleteButton: { 
-        position: 'absolute',
-        top: 10, 
-        right: 10, 
-        width: 35, 
-        height: 25,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 5,
-        zIndex: 10,
-        paddingBottom: 2,
-    },
-    deleteButtonText: {
-        fontSize: 18, 
-        fontWeight: 'bold',
-        color: '#000',
-    },
-    emptyCart: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    emptyText: {
-        fontSize: 16,
-        color: '#999',
-    },
-    promoContainer: {
-        flexDirection: 'row',
-        paddingHorizontal: 15,
-        marginTop: 10,
-        marginBottom: 15,
-    },
-    promoInput: {
-        flex: 1,
-        height: 50,
-        borderWidth: 1,
-        borderColor: '#E0E0E0',
-        borderRadius: 10,
-        paddingHorizontal: 15,
-        fontSize: 14,
-    },
-    promoButton: {
-        width: 50,
-        height: 50,
-        backgroundColor: '#000',
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginLeft: 10,
-    },
-    promoButtonText: {
-        color: '#FFF',
-        fontSize: 20,
-    },
-    summaryContainer: {
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        marginBottom: 10,
-    },
-    summaryRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 8,
-    },
-    summaryLabel: {
-        fontSize: 14,
-        color: '#808080',
-    },
-    summaryValue: {
-        fontSize: 14,
-        color: '#000',
-    },
-    totalRow: {
-        borderTopWidth: 1,
-        borderTopColor: '#E0E0E0',
-        paddingTop: 10,
-        marginTop: 5,
-    },
-    totalLabel: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#000',
-    },
-    totalValue: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#000',
-    },
-    checkoutFooter: {
-        paddingHorizontal: 15,
-        paddingTop: 10,
-        paddingBottom: 20,
-        backgroundColor: '#FFF',
-        borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
-    },
-    checkoutButton: {
-        backgroundColor: '#000',
-        paddingVertical: 15,
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    checkoutButtonText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
+    safeArea: { flex: 1, backgroundColor: '#FFF' },
+    container: {
+        flex: 1,
+        backgroundColor: '#FFF',
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        paddingBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#000',
+        flex: 1,
+        textAlign: 'center',
+    },
+    cartList: {
+        paddingHorizontal: 15,
+        paddingTop: 10,
+        paddingBottom: 20,
+    },
+    cartItem: {
+        flexDirection: 'row',
+        backgroundColor: '#FFF',
+        borderRadius: 10,
+        padding: 10,
+        marginVertical: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 5,
+    },
+    itemImage: {
+        width: 80,
+        height: 80,
+        borderRadius: 10,
+        backgroundColor: '#F5F5F5',
+    },
+    itemMainContent: {
+        flex: 1,
+        marginLeft: 15,
+        justifyContent: 'space-between',
+        paddingRight: 35,
+    },
+    itemName: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#000',
+        marginBottom: 5,
+    },
+    itemPrice: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    quantityContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 5,
+    },
+    quantityButton: {
+        width: 25,
+        height: 25,
+        borderRadius: 5,
+        backgroundColor: '#F5F5F5',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    quantityButtonText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    quantityText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginHorizontal: 10,
+        color: '#000',
+    },
+    deleteButton: { 
+        position: 'absolute',
+        top: 10, 
+        right: 10, 
+        width: 35, 
+        height: 25,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 5,
+        zIndex: 10,
+        paddingBottom: 2,
+    },
+    deleteButtonText: {
+        fontSize: 18, 
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    emptyCart: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyText: {
+        fontSize: 16,
+        color: '#999',
+    },
+    promoContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: 15,
+        marginTop: 10,
+        marginBottom: 15,
+    },
+    promoInput: {
+        flex: 1,
+        height: 50,
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        borderRadius: 10,
+        paddingHorizontal: 15,
+        fontSize: 14,
+    },
+    promoButton: {
+        width: 50,
+        height: 50,
+        backgroundColor: '#000',
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 10,
+    },
+    promoButtonText: {
+        color: '#FFF',
+        fontSize: 20,
+    },
+    summaryContainer: {
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        marginBottom: 10,
+    },
+    summaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    summaryLabel: {
+        fontSize: 14,
+        color: '#808080',
+    },
+    summaryValue: {
+        fontSize: 14,
+        color: '#000',
+    },
+    totalRow: {
+        borderTopWidth: 1,
+        borderTopColor: '#E0E0E0',
+        paddingTop: 10,
+        marginTop: 5,
+    },
+    totalLabel: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    totalValue: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    checkoutFooter: {
+        paddingHorizontal: 15,
+        paddingTop: 10,
+        paddingBottom: 20,
+        backgroundColor: '#FFF',
+        borderTopWidth: 1,
+        borderTopColor: '#F0F0F0',
+    },
+    checkoutButton: {
+        backgroundColor: '#000',
+        paddingVertical: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    checkoutButtonText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
 
-  });
+});

@@ -5,98 +5,151 @@ import {
     ActivityIndicator,
     FlatList,
     Image,
+    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
-// ⚠️ Thay thế đường dẫn này bằng đường dẫn thực tế đến AuthContext của bạn
-import { useAuth } from '../../DO_AN-SHOP-AI/context/AuthContext';
-// ⚠️ THAY THẾ BẰNG ĐƯỜNG DẪN THỰC TẾ ĐẾN FILE AXIOS CLIENT CỦA BẠN
-import client from '../../DO_AN-SHOP-AI/api/axiosConfig';
+import client from '../api/axiosConfig';
+import { useAuth } from '../context/AuthContext';
 
-
-// Colors (Kept for consistency)
+// --- CONFIG MÀU SẮC ---
 const COLORS = {
     primary: '#E91E63',
     text: '#222',
-    muted: '#808080',
+    muted: '#888',
     background: '#F9F9F9',
     card: '#FFFFFF',
-    danger: 'red',
-    success: 'green',
+    danger: '#D32F2F',
+    success: '#388E3C',
+    warning: '#FBC02D',
+    border: '#F0F0F0',
+    bgSuccess: '#E8F5E9',
+    bgProcessing: '#FFF3E0', 
+    bgDanger: '#FFEBEE',
 };
 
-// ⭐️ API SERVICE: Sử dụng Axios đã cấu hình ⭐️
-const fetchOrdersAPI = async () => {
-    const url = `/orders/get/userorders`;
+// --- HÀM HỖ TRỢ HIỂN THỊ ẢNH ---
+const API_BASE_URL_FOR_IMAGES = client.defaults.baseURL.replace('/api', '');
+const FALLBACK_IMAGE = 'https://via.placeholder.com/150';
 
+const getImageUrl = (url) => {
+    if (!url) return FALLBACK_IMAGE;
+    if (url.startsWith('http')) {
+        if (Platform.OS === 'android' && url.includes('localhost')) {
+            return url.replace('localhost', '10.0.2.2');
+        }
+        return url;
+    }
+    return `${API_BASE_URL_FOR_IMAGES}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
+// --- API SERVICE ---
+const fetchOrdersAPI = async () => {
     try {
-        const response = await client.get(url);
+        const response = await client.get('/orders/get/userorders');
         if (!response.data || !response.data.success) {
-            throw new Error(response.data.message || "Không thể tải đơn hàng.");
+            throw new Error(response.data.message || "Cannot load orders.");
         }
         return response.data.data;
     } catch (error) {
-        const errorMessage = error.message || error.response?.data?.message || 'Lỗi mạng hoặc máy chủ không phản hồi.';
-        throw new Error(errorMessage);
+        throw new Error(error.message || 'Connection error.');
     }
 };
 
-// Order Item Component (Translated Text)
+// --- ITEM COMPONENT (ĐÃ FIX HIỂN THỊ) ---
 const OrderItem = ({ order, onPress }) => {
-    const firstProductItem = order.products && order.products[0];
-    const firstProductDetail = firstProductItem ? firstProductItem.product : null;
+    // ⭐️ FIX: Linh hoạt lấy products hoặc orderItems
+    const itemsList = order.products || order.orderItems || [];
+    const firstItem = itemsList.length > 0 ? itemsList[0] : null;
+    const itemQuantity = itemsList.length;
+    
+    // ⭐️ FIX: Lấy tên và ảnh thông minh (Populate hoặc lưu cứng)
+    let productName = "Unknown Product";
+    let productUrl = "";
 
-    const itemQuantity = order.products ? order.products.length : 0;
+    if (firstItem) {
+        // Tên sản phẩm
+        if (firstItem.product && firstItem.product.name) {
+            productName = firstItem.product.name;
+        } else if (firstItem.name) {
+            productName = firstItem.name;
+        }
 
-    const productName = firstProductDetail?.name || "Sản phẩm không xác định";
-    const productImage = firstProductDetail?.image?.[0] || 'https://via.placeholder.com/60';
+        // Ảnh sản phẩm
+        if (firstItem.product && firstItem.product.image) {
+            const imgRaw = firstItem.product.image;
+            productUrl = Array.isArray(imgRaw) ? imgRaw[0] : imgRaw;
+        } else if (firstItem.image) {
+            productUrl = firstItem.image;
+        }
+    }
 
-    const statusColor = (status) => {
-        switch (status) {
-            case 'delivered': return COLORS.success;
-            case 'processing': return COLORS.primary;
-            case 'cancelled': return COLORS.danger;
-            default: return COLORS.muted;
+    const productImage = getImageUrl(productUrl);
+
+    // ⭐️ FIX: Tổng tiền (totalPrice hoặc total)
+    const displayTotal = order.totalPrice !== undefined ? order.totalPrice : (order.total || 0);
+
+    const getStatusStyle = (status) => {
+        switch (status?.toLowerCase()) {
+            case 'delivered': return { color: COLORS.success, bg: COLORS.bgSuccess, label: 'Delivered' };
+            case 'processing': 
+            case 'pending': return { color: '#FF9800', bg: '#FFF3E0', label: 'Processing' };
+            case 'shipped': return { color: COLORS.primary, bg: '#FCE4EC', label: 'Shipped' };
+            case 'cancelled': return { color: COLORS.danger, bg: COLORS.bgDanger, label: 'Cancelled' };
+            default: return { color: COLORS.muted, bg: '#F5F5F5', label: status || 'Unknown' };
         }
     };
 
+    const statusInfo = getStatusStyle(order.status);
+
     return (
-        <TouchableOpacity style={itemStyles.card} onPress={onPress}>
+        <TouchableOpacity style={itemStyles.card} onPress={onPress} activeOpacity={0.9}>
             <View style={itemStyles.header}>
-                <Text style={itemStyles.idText}>Mã đơn: #{order._id.slice(-6)}</Text>
-                <Text style={{ ...itemStyles.statusText, color: statusColor(order.status) }}>
-                    {order.status.toUpperCase()}
-                </Text>
+                <View style={itemStyles.orderIdContainer}>
+                    <Ionicons name="receipt-outline" size={16} color={COLORS.muted} style={{marginRight:4}} />
+                    <Text style={itemStyles.idText}>Order #{order._id.slice(-6).toUpperCase()}</Text>
+                </View>
+                
+                <View style={[itemStyles.statusBadge, { backgroundColor: statusInfo.bg }]}>
+                    <Text style={[itemStyles.statusText, { color: statusInfo.color }]}>
+                        {statusInfo.label}
+                    </Text>
+                </View>
             </View>
 
             <View style={itemStyles.contentRow}>
-                {/* Thumbnail product */}
                 <Image
                     source={{ uri: productImage }}
                     style={itemStyles.image}
                     resizeMode="cover"
                 />
-
-                {/* Main Info */}
+                
                 <View style={itemStyles.infoContainer}>
-                    <Text style={itemStyles.productName} numberOfLines={1}>
-                        {productName}
-                    </Text>
+                    <Text style={itemStyles.productName} numberOfLines={1}>{productName}</Text>
+                    
+                    {itemQuantity > 1 && (
+                        <Text style={itemStyles.moreItemsText}>+ {itemQuantity - 1} more items</Text>
+                    )}
+                    
                     <Text style={itemStyles.dateText}>
-                        {itemQuantity} loại sản phẩm | Ngày: {new Date(order.orderDate).toLocaleDateString('vi-VN')}
+                        {new Date(order.dateOrdered || order.createdAt).toLocaleDateString('en-US')}
                     </Text>
                 </View>
             </View>
 
-            <Text style={itemStyles.totalText}>
-                Tổng: {order.total ? order.total.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }) : '0₫'}
-            </Text>
+            <View style={itemStyles.footer}>
+                <Text style={itemStyles.totalLabel}>Total Amount:</Text>
+                <Text style={itemStyles.totalValue}>
+                    $ {Number(displayTotal).toFixed(2)}
+                </Text>
+            </View>
         </TouchableOpacity>
     );
 };
 
+// --- MAIN SCREEN ---
 export default function OrdersScreen() {
     const router = useRouter();
     const { token } = useAuth();
@@ -105,7 +158,6 @@ export default function OrdersScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // ⭐️ LOGIC TẢI LẠI TỰ ĐỘNG BẰNG useFocusEffect ⭐️
     useFocusEffect(
         useCallback(() => {
             const loadOrders = async () => {
@@ -113,54 +165,54 @@ export default function OrdersScreen() {
                     setIsLoading(false);
                     return;
                 }
-
                 setIsLoading(true);
                 setError(null);
                 try {
                     const fetchedOrders = await fetchOrdersAPI();
                     setOrders(fetchedOrders);
                 } catch (err) {
-                    setError(err.message || 'Không thể tải đơn hàng. Vui lòng kiểm tra kết nối.');
+                    setError(err.message);
                 } finally {
                     setIsLoading(false);
                 }
             };
-
             loadOrders();
         }, [token])
     );
 
     const handleOrderPress = (orderId) => {
-        // Điều hướng đến trang chi tiết
-        router.push(`/orders/${orderId}`);
+        router.push(`/orders/${orderId}`); 
     };
 
     const renderContent = () => {
         if (isLoading) {
             return (
-                <View style={styles.content}>
+                <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
-                    <Text style={[styles.subtitle, { marginTop: 10 }]}>Đang tải đơn hàng...</Text>
                 </View>
             );
         }
 
         if (error) {
             return (
-                <View style={styles.content}>
-                    <Ionicons name="alert-circle-outline" size={32} color={COLORS.danger} />
-                    <Text style={[styles.subtitle, { marginTop: 10, color: COLORS.danger, textAlign: 'center' }]}>{error}</Text>
+                <View style={styles.centerContainer}>
+                    <Ionicons name="warning-outline" size={48} color={COLORS.danger} />
+                    <Text style={styles.errorText}>Something went wrong.</Text>
+                    <TouchableOpacity onPress={() => fetchOrdersAPI()} style={styles.retryButton}>
+                        <Text style={styles.retryText}>Try Again</Text>
+                    </TouchableOpacity>
                 </View>
             );
         }
 
         if (orders.length === 0) {
             return (
-                <View style={styles.content}>
-                    <Ionicons name="sad-outline" size={32} color={COLORS.muted} />
-                    <Text style={[styles.subtitle, { marginTop: 10 }]}>Bạn chưa có đơn hàng nào.</Text>
-                    <TouchableOpacity>
-                        <Text style={styles.emptyButton}>BẮT ĐẦU MUA SẮM</Text>
+                <View style={styles.centerContainer}>
+                    <Ionicons name="cart-outline" size={64} color={COLORS.muted} />
+                    <Text style={styles.emptyTitle}>No orders yet</Text>
+                    <Text style={styles.emptySub}>Looks like you haven't placed any orders yet.</Text>
+                    <TouchableOpacity style={styles.shopNowButton} onPress={() => router.push('/')}>
+                        <Text style={styles.shopNowText}>Start Shopping</Text>
                     </TouchableOpacity>
                 </View>
             );
@@ -177,6 +229,7 @@ export default function OrdersScreen() {
                     />
                 )}
                 contentContainerStyle={styles.listContainer}
+                showsVerticalScrollIndicator={false}
             />
         );
     };
@@ -184,14 +237,11 @@ export default function OrdersScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.back()}
-                >
-                    <Ionicons name="arrow-back" size={24} color="#000" />
+                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                    <Ionicons name="arrow-back" size={24} color={COLORS.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Đơn hàng của tôi</Text>
-                <View style={styles.backButton} />
+                <Text style={styles.headerTitle}>My Orders</Text>
+                <View style={styles.backButton} /> 
             </View>
 
             {renderContent()}
@@ -199,120 +249,66 @@ export default function OrdersScreen() {
     );
 }
 
-// ... (STYLES) ...
+// --- STYLES ---
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: COLORS.background,
-    },
+    container: { flex: 1, backgroundColor: COLORS.background },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 15,
-        paddingTop: 50,
-        paddingBottom: 15,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingHorizontal: 16, paddingTop: 50, paddingBottom: 15,
         backgroundColor: COLORS.card,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+        borderBottomWidth: 1, borderBottomColor: COLORS.border,
+        zIndex: 10
     },
-    backButton: {
-        width: 30,
-        height: 30,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: COLORS.text,
-        flex: 1,
-        textAlign: 'center',
-    },
-    listContainer: {
-        padding: 10,
-    },
-    content: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-    },
-    subtitle: {
-        fontSize: 14,
-        color: COLORS.muted,
-    },
-    emptyButton: {
-        marginTop: 20,
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        backgroundColor: COLORS.primary,
-        color: '#fff',
-        borderRadius: 8,
-        fontWeight: 'bold',
-    }
+    backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text, flex: 1, textAlign: 'center' },
+    
+    listContainer: { padding: 16, paddingBottom: 30 },
+    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+    
+    errorText: { marginTop: 10, color: COLORS.muted, fontSize: 16 },
+    retryButton: { marginTop: 15, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: COLORS.text, borderRadius: 8 },
+    retryText: { color: '#fff', fontWeight: 'bold' },
+
+    emptyTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.text, marginTop: 20 },
+    emptySub: { fontSize: 14, color: COLORS.muted, marginTop: 5, textAlign: 'center', marginBottom: 25 },
+    shopNowButton: { backgroundColor: COLORS.primary, paddingVertical: 12, paddingHorizontal: 30, borderRadius: 25 },
+    shopNowText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });
 
 const itemStyles = StyleSheet.create({
     card: {
         backgroundColor: COLORS.card,
-        padding: 15,
-        borderRadius: 8,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: '#E8E8E8',
+        borderRadius: 12,
+        marginBottom: 16,
+        padding: 16,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4 },
+            android: { elevation: 3 }
+        }),
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-        paddingBottom: 8,
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        marginBottom: 12, paddingBottom: 12,
+        borderBottomWidth: 1, borderBottomColor: '#F5F5F5',
     },
-    idText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: COLORS.text,
+    orderIdContainer: { flexDirection: 'row', alignItems: 'center' },
+    idText: { fontSize: 14, fontWeight: '600', color: COLORS.text },
+    
+    statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+    statusText: { fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
+
+    contentRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    image: { width: 70, height: 70, borderRadius: 8, backgroundColor: '#F0F0F0', marginRight: 15 },
+    infoContainer: { flex: 1, justifyContent: 'center' },
+    productName: { fontSize: 16, fontWeight: '600', color: COLORS.text, marginBottom: 4 },
+    moreItemsText: { fontSize: 13, color: COLORS.muted, marginBottom: 4, fontStyle: 'italic' },
+    dateText: { fontSize: 12, color: '#999' },
+
+    footer: {
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        marginTop: 4, paddingTop: 12,
+        borderTopWidth: 1, borderTopColor: '#F5F5F5'
     },
-    statusText: {
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    contentRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    image: {
-        width: 60,
-        height: 60,
-        borderRadius: 8,
-        marginRight: 10,
-        backgroundColor: COLORS.background
-    },
-    infoContainer: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    productName: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: COLORS.text,
-        marginBottom: 4,
-    },
-    dateText: {
-        fontSize: 12,
-        color: COLORS.muted,
-    },
-    totalText: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: COLORS.text,
-        marginTop: 5,
-        borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
-        paddingTop: 8,
-        textAlign: 'right'
-    }
+    totalLabel: { fontSize: 14, color: COLORS.muted },
+    totalValue: { fontSize: 18, fontWeight: 'bold', color: COLORS.primary },
 });
