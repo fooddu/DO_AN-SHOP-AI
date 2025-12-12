@@ -16,9 +16,8 @@ import {
 
 import client from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
-import { useFavorites } from '../../contexts/FavoritesContext';
-// 1. IMPORT HOOK TOAST
 import { useToast } from '../../context/ToastContext';
+import { useFavorites } from '../../contexts/FavoritesContext';
 
 const COLORS = {
     primary: '#E91E63',
@@ -34,6 +33,7 @@ const COLORS = {
 
 const SIZES = ['S', 'M', 'L', 'XL'];
 
+// Component hiển thị 1 bình luận
 const ReviewItem = ({ review }) => {
     const userName = typeof review.user === 'object' ? review.user?.name : review.user;
     const displayName = userName || 'Anonymous';
@@ -42,11 +42,21 @@ const ReviewItem = ({ review }) => {
     return (
         <View style={styles.reviewItem}>
             <View style={styles.reviewHeader}>
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <View style={styles.avatarPlaceholder}>
                         <Text style={styles.avatarText}>{firstChar}</Text>
                     </View>
                     <Text style={styles.reviewUser}>{displayName}</Text>
+                </View>
+                <View style={styles.ratingContainer}>
+                    {[...Array(5)].map((_, i) => (
+                        <Ionicons
+                            key={i}
+                            name={i < review.rating ? "star" : "star-outline"}
+                            size={14}
+                            color={COLORS.star}
+                        />
+                    ))}
                 </View>
             </View>
             <Text style={styles.reviewContent}>{review.comment}</Text>
@@ -60,20 +70,20 @@ const ReviewItem = ({ review }) => {
 export default function ProductDetailScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
-    
-    // 2. KHAI BÁO TOAST
-    const { showToast } = useToast(); 
+    const { showToast } = useToast();
 
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [selectedSize, setSelectedSize] = useState(null); 
-    const [quantity, setQuantity] = useState(1); 
-    
+    const [selectedSize, setSelectedSize] = useState(null);
+    const [quantity, setQuantity] = useState(1);
+
+    // Review States
     const [reviews, setReviews] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [submittingReview, setSubmittingReview] = useState(false);
+    const [userRating, setUserRating] = useState(5);
 
-    const { user, token } = useAuth(); 
+    const { user } = useAuth();
     const { isFavorited, toggleFavorite } = useFavorites();
 
     useEffect(() => {
@@ -84,10 +94,10 @@ export default function ProductDetailScreen() {
 
     const fetchProduct = async () => {
         try {
-            const response = await client.get(`/products/${id}`); 
+            const response = await client.get(`/products/${id}`);
             setProduct(response.data.data);
         } catch (err) {
-            showToast("Không thể tải thông tin sản phẩm", "error");
+            showToast("Cannot load product details", "error");
             router.back();
         } finally {
             setLoading(false);
@@ -107,11 +117,11 @@ export default function ProductDetailScreen() {
 
     const submitReview = async () => {
         if (!user) {
-            showToast("Vui lòng đăng nhập để đánh giá!", "info");
+            showToast("Please login to review!", "info");
             return;
         }
         if (!newComment.trim()) {
-            showToast("Nội dung đánh giá không được để trống", "error");
+            showToast("Review content cannot be empty", "error");
             return;
         }
 
@@ -119,17 +129,18 @@ export default function ProductDetailScreen() {
         try {
             const payload = {
                 productId: id,
-                rating: 5, 
+                rating: userRating,
                 comment: newComment
             };
             const response = await client.post('/reviews', payload);
+
             if (response.data.success) {
                 setReviews([response.data.data, ...reviews]);
                 setNewComment('');
-                showToast("Cảm ơn đánh giá của bạn!", "success");
+                showToast("Review submitted successfully!", "success");
             }
         } catch (error) {
-            showToast("Gửi đánh giá thất bại", "error");
+            showToast("Failed to submit review", "error");
         } finally {
             setSubmittingReview(false);
         }
@@ -138,87 +149,82 @@ export default function ProductDetailScreen() {
     const stockCount = product ? (product.stock ?? product.countInStock ?? 0) : 0;
     const isOutOfStock = stockCount <= 0;
 
-    // --- HÀM THÊM GIỎ HÀNG DÙNG TOAST ---
     const addToCart = async (item) => {
-        // 1. Check hết hàng
         if (isOutOfStock) {
-            showToast('Sản phẩm này hiện đang hết hàng', 'error');
+            showToast('This product is out of stock', 'error');
             return;
         }
         
-        // 2. Check Size
-        if (!selectedSize) { 
-            showToast('Vui lòng chọn Size trước!', 'info'); // Màu xanh dương nhắc nhở
+        if (!selectedSize) {
+            showToast('Please select a size first!', 'info');
             return;
         }
 
-        // 3. Check số lượng
         if (quantity > stockCount) {
-             showToast(`Chỉ còn lại ${stockCount} sản phẩm trong kho`, 'error');
-             return;
+            showToast(`Only ${stockCount} items left in stock`, 'error');
+            return;
         }
 
         try {
-             const raw = await AsyncStorage.getItem('cart');
-             const cart = raw ? JSON.parse(raw) : [];
-             const idx = cart.findIndex((it) => it.productId === item._id && it.size === selectedSize);
-             
-             if (idx >= 0) {
-                 cart[idx].quantity += quantity; 
-             } else {
-                 cart.push({
-                     productId: item._id, name: item.name, price: item.price,
-                     image: item.image, size: selectedSize, quantity: quantity
-                 });
-             }
-             await AsyncStorage.setItem('cart', JSON.stringify(cart));
-             
-             // THÔNG BÁO THÀNH CÔNG ĐẸP
-             showToast('Đã thêm vào giỏ hàng!', 'success');
-             setQuantity(1); 
+            const raw = await AsyncStorage.getItem('cart');
+            const cart = raw ? JSON.parse(raw) : [];
+            const idx = cart.findIndex((it) => it.productId === item._id && it.size === selectedSize);
+
+            if (idx >= 0) {
+                cart[idx].quantity += quantity;
+            } else {
+                cart.push({
+                    productId: item._id, name: item.name, price: item.price,
+                    image: item.image, size: selectedSize, quantity: quantity
+                });
+            }
+            await AsyncStorage.setItem('cart', JSON.stringify(cart));
+            
+            showToast('Added to cart!', 'success');
+            setQuantity(1);
         } catch (e) {
-             showToast('Lỗi khi thêm vào giỏ hàng', 'error');
+            showToast('Failed to add to cart', 'error');
         }
     };
-    
+
     const updateQuantity = (amount) => {
         setQuantity(prev => {
             const newVal = prev + amount;
             if (newVal < 1) return 1;
             if (newVal > stockCount) {
-                showToast(`Chỉ còn ${stockCount} sản phẩm`, 'info');
+                showToast(`Only ${stockCount} items left`, 'info');
                 return prev;
             }
             return newVal;
         });
     };
-    
+
     const handleToggleFavorite = () => {
-        if (!user || !token) {
-            showToast('Vui lòng đăng nhập để yêu thích', 'info');
-            router.push('/(auth)/login'); 
+        if (!user) {
+            showToast('Please login to add favorites', 'info');
+            // router.push('/(auth)/login'); 
             return;
         }
         toggleFavorite(product);
         if (!isFavorited(product._id)) {
-            showToast("Đã thêm vào yêu thích", "success");
+            showToast("Added to favorites", "success");
         } else {
-            showToast("Đã bỏ yêu thích", "info");
+            showToast("Removed from favorites", "info");
         }
     };
 
     if (loading) {
         return (
             <SafeAreaView style={styles.safeArea}>
-                <ActivityIndicator size="large" color={COLORS.primary} style={{marginTop: 50}} />
+                <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 50 }} />
             </SafeAreaView>
         );
     }
-    
+
     if (!product) {
         return (
             <SafeAreaView style={styles.safeArea}>
-                <Text style={{textAlign: 'center', marginTop: 50}}>Không tìm thấy sản phẩm.</Text>
+                <Text style={{ textAlign: 'center', marginTop: 50 }}>Product not found.</Text>
             </SafeAreaView>
         );
     }
@@ -236,29 +242,28 @@ export default function ProductDetailScreen() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Chi tiết sản phẩm</Text>
+                <Text style={styles.headerTitle}>Product Details</Text>
                 <TouchableOpacity onPress={handleToggleFavorite} style={styles.headerBtn}>
                     <Ionicons name={isLiked ? "heart" : "heart-outline"} size={24} color={isLiked ? COLORS.primary : COLORS.text} />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom: 100}}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                 <Image source={{ uri: imageUrl }} style={styles.productImage} />
 
                 <View style={styles.detailsContainer}>
-                    <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start'}}>
-                        <View style={{flex: 1}}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <View style={{ flex: 1 }}>
                             <Text style={styles.productCategory}>{categoryName}</Text>
                             <Text style={styles.productName}>{product.name}</Text>
                         </View>
                         <View style={[styles.stockBadge, { backgroundColor: isOutOfStock ? '#ffebee' : '#e8f5e9' }]}>
                             <Text style={[styles.stockText, { color: isOutOfStock ? '#ef5350' : '#4caf50' }]}>
-                                {isOutOfStock ? 'Hết hàng' : `Kho: ${stockCount}`}
+                                {isOutOfStock ? 'Out of Stock' : `Stock: ${stockCount}`}
                             </Text>
                         </View>
                     </View>
@@ -266,35 +271,35 @@ export default function ProductDetailScreen() {
                     <Text style={styles.productPrice}>
                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(product.price)}
                     </Text>
-                    
-                    <Text style={styles.sectionTitle}>Mô tả</Text>
+
+                    <Text style={styles.sectionTitle}>Description</Text>
                     <Text style={styles.descriptionText}>
-                        {product.description || "Không có mô tả."}
+                        {product.description || "No description available."}
                     </Text>
 
                     {!isOutOfStock && (
                         <>
-                            <Text style={[styles.sectionTitle, {marginTop: 20}]}>
-                                Chọn Size <Text style={{color: 'red', fontSize: 12}}>*</Text>
+                            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
+                                Select Size <Text style={{ color: 'red', fontSize: 12 }}>*</Text>
                             </Text>
                             <View style={styles.sizeRow}>
                                 {SIZES.map((size) => (
-                                    <TouchableOpacity 
+                                    <TouchableOpacity
                                         key={size}
                                         style={[styles.sizeBox, selectedSize === size && styles.sizeBoxSelected]}
-                                        onPress={() => setSelectedSize(size)} 
+                                        onPress={() => setSelectedSize(size)}
                                     >
                                         <Text style={[styles.sizeText, selectedSize === size && styles.sizeTextSelected]}>{size}</Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
 
-                            <Text style={styles.sectionTitle}>Số lượng</Text>
+                            <Text style={styles.sectionTitle}>Quantity</Text>
                             <View style={styles.quantityRow}>
                                 <TouchableOpacity style={styles.quantityBtn} onPress={() => updateQuantity(-1)}>
                                     <Ionicons name="remove" size={20} color={COLORS.text} />
                                 </TouchableOpacity>
-                                <Text style={styles.quantityValue}>{quantity}</Text> 
+                                <Text style={styles.quantityValue}>{quantity}</Text>
                                 <TouchableOpacity style={styles.quantityBtn} onPress={() => updateQuantity(1)}>
                                     <Ionicons name="add" size={20} color={COLORS.text} />
                                 </TouchableOpacity>
@@ -303,26 +308,37 @@ export default function ProductDetailScreen() {
                     )}
 
                     <View style={styles.divider} />
-                    <Text style={styles.sectionTitle}>Đánh giá ({reviews.length})</Text>
-                    
+                    <Text style={styles.sectionTitle}>Reviews ({reviews.length})</Text>
+
                     <View style={styles.addReviewContainer}>
-                        <Text style={styles.subTitle}>Viết đánh giá của bạn</Text>
+                        <Text style={styles.subTitle}>Write a review</Text>
+                        <View style={styles.ratingInputRow}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <TouchableOpacity key={star} onPress={() => setUserRating(star)}>
+                                    <Ionicons
+                                        name={star <= userRating ? "star" : "star-outline"}
+                                        size={28}
+                                        color={COLORS.star}
+                                    />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
                         <TextInput
                             style={styles.reviewInput}
-                            placeholder="Chia sẻ cảm nghĩ của bạn..."
+                            placeholder="Share your thoughts..."
                             value={newComment}
                             onChangeText={setNewComment}
                             multiline
                         />
-                        <TouchableOpacity 
-                            style={styles.submitReviewBtn} 
+                        <TouchableOpacity
+                            style={styles.submitReviewBtn}
                             onPress={submitReview}
                             disabled={submittingReview}
                         >
                             {submittingReview ? (
-                                <ActivityIndicator color="#fff" size="small"/>
+                                <ActivityIndicator color="#fff" size="small" />
                             ) : (
-                                <Text style={styles.submitReviewText}>Gửi đánh giá</Text>
+                                <Text style={styles.submitReviewText}>Submit Review</Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -330,21 +346,21 @@ export default function ProductDetailScreen() {
                     {reviews.map((item) => (
                         <ReviewItem key={item._id} review={item} />
                     ))}
-                    
+
                     {reviews.length === 0 && (
-                        <Text style={styles.noReviewsText}>Chưa có đánh giá nào.</Text>
+                        <Text style={styles.noReviewsText}>No reviews yet.</Text>
                     )}
                 </View>
             </ScrollView>
 
             <View style={styles.footer}>
-                <TouchableOpacity 
-                    style={[styles.addToCartBtn, isOutOfStock && styles.disabledBtn]} 
+                <TouchableOpacity
+                    style={[styles.addToCartBtn, isOutOfStock && styles.disabledBtn]}
                     onPress={() => addToCart(product)}
-                    disabled={isOutOfStock} 
+                    disabled={isOutOfStock}
                 >
                     <Text style={styles.addToCartText}>
-                        {isOutOfStock ? "Hết hàng" : "Thêm vào giỏ hàng"}
+                        {isOutOfStock ? "Out of Stock" : "Add to Cart"}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -378,18 +394,22 @@ const styles = StyleSheet.create({
     addToCartBtn: { backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 8, alignItems: 'center' },
     disabledBtn: { backgroundColor: COLORS.disabled },
     addToCartText: { color: '#fff', fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase' },
+
     divider: { height: 1, backgroundColor: '#eee', marginVertical: 20 },
     addReviewContainer: { marginBottom: 25, backgroundColor: COLORS.surface, padding: 15, borderRadius: 12 },
     subTitle: { fontSize: 14, fontWeight: '600', marginBottom: 10, color: COLORS.text },
-    reviewInput: { backgroundColor: '#fff', borderRadius: 8, padding: 12, height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: '#e0e0e0', marginBottom: 15, fontSize: 15 },
+    ratingInputRow: { flexDirection: 'row', marginBottom: 10 },
+    reviewInput: { backgroundColor: '#fff', borderRadius: 8, padding: 12, height: 80, textAlignVertical: 'top', borderWidth: 1, borderColor: '#e0e0e0', marginBottom: 15, fontSize: 15 },
     submitReviewBtn: { backgroundColor: '#333', padding: 12, borderRadius: 8, alignItems: 'center' },
     submitReviewText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+
     reviewItem: { marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', paddingBottom: 15 },
     reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     avatarPlaceholder: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#bdbdbd', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
     avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
     reviewUser: { fontWeight: '700', fontSize: 15, color: COLORS.text },
+    ratingContainer: { flexDirection: 'row' },
     reviewContent: { fontSize: 15, color: '#444', marginBottom: 6, lineHeight: 22 },
     reviewDate: { fontSize: 12, color: COLORS.muted },
-    noReviewsText: { fontStyle: 'italic', color: COLORS.muted, marginTop: 10, textAlign: 'center' },
+    noReviewsText: { fontStyle: 'italic', color: COLORS.muted, marginTop: 10, textAlign: 'center' }
 });

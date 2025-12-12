@@ -106,13 +106,13 @@ export default function NotificationsScreen() {
         if (!user.phone || !user.address || user.address.trim() === "") {
             return {
                 id: 'local-alert-missing-info',
-                title: 'Missing Information', // English Title
-                description: 'Please update your phone number and address to verify your account.', // English Description
+                title: 'Missing Information',
+                description: 'Please update your phone number and address to verify your account.',
                 type: 'SYSTEM_ALERT',
                 read: false,
                 image: null,
                 createdAt: new Date().toISOString(),
-                timeDisplay: 'Now', // English
+                timeDisplay: 'Now',
                 action: '/account-settings'
             };
         }
@@ -178,7 +178,7 @@ export default function NotificationsScreen() {
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
                 <Ionicons name="notifications-outline" size={24} color={COLORS.text} style={{ width: 24 }} />
-                <Text style={styles.headerTitle}>NOTIFICATIONS</Text>
+                <Text style={styles.headerTitle}>Notifications</Text>
                 <View style={{ width: 24 }} />
             </View>
 
@@ -192,7 +192,7 @@ export default function NotificationsScreen() {
                 ListEmptyComponent={() => (
                     <View style={styles.emptyContainer}>
                         <Ionicons name="file-tray-outline" size={48} color={COLORS.muted} />
-                        <Text style={styles.emptyText}>No notifications yet.</Text> {/* English */}
+                        <Text style={styles.emptyText}>No notifications yet.</Text>
                     </View>
                 )}
             />

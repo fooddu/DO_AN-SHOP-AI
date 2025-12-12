@@ -34,7 +34,7 @@ const AddressCard = ({ address, isSelected, onPress, onEdit }) => (
                     style={styles.checkboxIcon}
                 />
                 <Text style={styles.checkboxText}>
-                    Sử dụng làm địa chỉ giao hàng
+                    Use as shipping address
                 </Text>
             </TouchableOpacity>
 
@@ -74,7 +74,7 @@ export default function ShippingAddressesScreen() {
         if (user && user.address && user.phone) {
             return [{
                 _id: 'user-profile-default',
-                recipientName: user.name || 'Người nhận',
+                recipientName: user.name || 'Recipient',
                 fullAddress: user.address,
                 phoneNumber: user.phone,
                 isDefault: true,
@@ -106,7 +106,7 @@ export default function ShippingAddressesScreen() {
             }
         } catch (error) {
             setAddresses(createFallbackAddress(user));
-            Alert.alert("Lỗi", "Không thể tải danh sách địa chỉ giao hàng từ server.");
+            Alert.alert("Error", "Could not load shipping addresses from server.");
         } finally {
             setLoading(false);
         }
@@ -130,10 +130,10 @@ export default function ShippingAddressesScreen() {
     const handleEdit = (address) => {
         if (address.isFallback) {
             Alert.alert(
-                "Lưu chính thức",
-                "Địa chỉ này chưa được lưu. Bạn muốn lưu địa chỉ này không?",
+                "Save Address",
+                "This address is not saved yet. Do you want to save it?",
                 [{
-                    text: "LƯU", onPress: () => router.push({
+                    text: "SAVE", onPress: () => router.push({
                         pathname: '/add-address-form', params: {
                             recipientName: address.recipientName,
                             fullAddress: address.fullAddress,
@@ -141,7 +141,7 @@ export default function ShippingAddressesScreen() {
                         }
                     })
                 },
-                { text: "HỦY" }]
+                { text: "CANCEL" }]
             );
         } else {
             router.push(`/add-address-form?addressId=${address._id}`);
@@ -164,7 +164,7 @@ export default function ShippingAddressesScreen() {
                     <Ionicons name="chevron-back" size={24} color={COLORS.text} />
                 </TouchableOpacity>
 
-                <Text style={styles.headerTitle}>Địa chỉ giao hàng</Text>
+                <Text style={styles.headerTitle}>Shipping Addresses</Text>
 
                 <View style={styles.headerIconContainer} />
             </View>
@@ -173,8 +173,8 @@ export default function ShippingAddressesScreen() {
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 {addresses.length === 0 ? (
                     <Text style={styles.emptyMessage}>
-                        Bạn chưa có địa chỉ giao hàng nào.
-                        <Text style={{ color: COLORS.primary }} onPress={navigateToAddAddress}> Thêm ngay!</Text>
+                        You have no shipping addresses.
+                        <Text style={{ color: COLORS.primary }} onPress={navigateToAddAddress}> Add New!</Text>
                     </Text>
                 ) : (
                     addresses.map(address => (

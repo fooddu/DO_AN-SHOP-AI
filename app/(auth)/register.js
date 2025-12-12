@@ -35,23 +35,23 @@ export default function RegisterScreen() {
 
     const handleRegister = async () => {
         if (!name || !email || !password || !confirmPassword) {
-            Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin.');
+            Alert.alert('Error', 'Please fill in all fields.');
             return;
         }
         if (password !== confirmPassword) {
-            Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp.');
+            Alert.alert('Error', 'Passwords do not match.');
             return;
         }
         setIsSubmitting(true);
-        // ⭐ ĐÃ SỬ DỤNG HÀM signUp TỪ CONTEXT ⭐
+        // ⭐ USED signUp FUNCTION FROM CONTEXT ⭐
         const result = await signUp(name, email, password);
         setIsSubmitting(false);
         if (result.success) {
-            // Bạn có thể cần xử lý logic chuyển hướng khác nếu API của bạn yêu cầu xác thực email
-            Alert.alert('Thành công', 'Đăng ký thành công! Vui lòng đăng nhập.');
+            // You might need distinct redirect logic if your API requires email verification
+            Alert.alert('Success', 'Registration successful! Please login.');
             router.replace('/login');
         } else {
-            Alert.alert('Đăng ký thất bại', result.error);
+            Alert.alert('Registration Failed', result.error);
         }
     };
     return (
@@ -72,14 +72,15 @@ export default function RegisterScreen() {
                     />
                     <View style={styles.line} />
                 </View>
-                {/* 3. Chữ WELCOME (căn trái, bên ngoài thẻ) */}
-                <Text style={styles.titleWelcomeOutside}>CHÀO MỪNG</Text>
-                {/* 4. Thẻ (Card) trắng chứa form */}
+                {/* 3. WELCOME Text (left aligned, outside card) */}
+                <Text style={styles.titleWelcomeOutside}>WELCOME</Text>
+                {/* 4. White Card containing form */}
+                {/* 4. White Card containing form */}
                 <View style={styles.card}>
                     <View style={styles.form}>
-                        {/* (Các input fields, đã thu hẹp) */}
+                        {/* (Input fields, narrowed) */}
                         <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Tên</Text>
+                            <Text style={styles.label}>Name</Text>
                             <TextInput
                                 style={styles.input}
                                 value={name}
@@ -98,7 +99,7 @@ export default function RegisterScreen() {
                             />
                         </View>
                         <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Mật khẩu</Text>
+                            <Text style={styles.label}>Password</Text>
                             <View style={styles.passwordWrapper}>
                                 <TextInput
                                     style={styles.input}
@@ -112,7 +113,7 @@ export default function RegisterScreen() {
                             </View>
                         </View>
                         <View style={[styles.inputContainer, { marginBottom: 0 }]}>
-                            <Text style={styles.label}>Xác nhận mật khẩu</Text>
+                            <Text style={styles.label}>Confirm Password</Text>
                             <View style={styles.passwordWrapper}>
                                 <TextInput
                                     style={styles.input}
@@ -127,7 +128,7 @@ export default function RegisterScreen() {
                         </View>
                     </View>
 
-                    {/* Nút SIGN UP (bên trong thẻ) */}
+                    {/* SIGN UP Button (inside card) */}
                     <TouchableOpacity
                         style={styles.button}
                         onPress={handleRegister}
@@ -136,14 +137,14 @@ export default function RegisterScreen() {
                         {isSubmitting ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.buttonText}>ĐĂNG KÝ</Text>
+                            <Text style={styles.buttonText}>SIGN UP</Text>
                         )}
                     </TouchableOpacity>
 
-                    {/* Link SIGN IN (bên trong thẻ) */}
+                    {/* SIGN IN Link (inside card) */}
                     <TouchableOpacity onPress={() => router.push('/login')}>
                         <Text style={styles.signInText}>
-                            Đã có tài khoản? <Text style={styles.signInLink}>ĐĂNG NHẬP</Text>
+                            Already have an account? <Text style={styles.signInLink}>LOG IN</Text>
                         </Text>
                     </TouchableOpacity>
 

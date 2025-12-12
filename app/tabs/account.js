@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import { useAuth } from '../../context/AuthContext';
+// Sử dụng hook thực tế để lấy dữ liệu thống kê
 import useProfileData from '../../hooks/useProfileData';
 
 const COLORS = {
@@ -28,7 +29,7 @@ const COLORS = {
 };
 
 const getBaseUrl = (useLocal = true) => {
-    const LOCAL_IP = '192.168.1.2';
+    const LOCAL_IP = '192.168.1.5'; // Đổi IP này nếu cần
     const LOCAL_PORT = 4000;
     if (Platform.OS === 'web' && useLocal) {
         return `http://localhost:${LOCAL_PORT}`;
@@ -44,10 +45,13 @@ const getDisplayAvatarUrl = (userObj, defaultAvatarIcon, baseUrl) => {
     let url = avatarUrl.startsWith('http')
         ? avatarUrl
         : `${baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl}${avatarUrl.startsWith('/') ? avatarUrl : '/' + avatarUrl}`;
+    
     if (Platform.OS === 'web' && url.includes('localhost') && url.includes(':8081')) {
         url = url.replace(':8081', ':4000');
     }
-    return url;
+    
+    // Thêm timestamp để ép reload ảnh mới nhất
+    return `${url}?t=${Date.now()}`;
 };
 
 const ProfileMenuItemCard = ({ title, subtitle, onPress, isLast = false }) => (
@@ -70,6 +74,7 @@ export default function AccountScreen() {
     const defaultAvatarIcon = 'https://i.pravatar.cc/60?text=PH';
     const baseUrl = getBaseUrl();
 
+    // Lấy dữ liệu thống kê từ Hook
     const { orderCount, addressCount, cardCount, isCounting } = useProfileData();
 
     const [displayName, setDisplayName] = useState(user?.name || "User");
@@ -81,10 +86,11 @@ export default function AccountScreen() {
             setDisplayName(user.name || "User");
             setDisplayEmail(user.email || "Email");
             const newAvatarUrl = getDisplayAvatarUrl(user, defaultAvatarIcon, baseUrl);
-            if (displayAvatar !== newAvatarUrl) setDisplayAvatar(newAvatarUrl);
+            setDisplayAvatar(newAvatarUrl);
         }
     }, [user, baseUrl]);
 
+    // --- Navigation Functions ---
     const goToOrders = () => router.push('/orders');
     const goToShippingAddresses = () => router.push('/shipping-addresses');
     const goToPaymentMethod = () => alert("Payment method feature coming soon.");
@@ -108,7 +114,7 @@ export default function AccountScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerIconLeft} />
-                <Text style={styles.headerTitle}>Profile</Text> {/* English */}
+                <Text style={styles.headerTitle}>Profile</Text>
                 <TouchableOpacity style={styles.headerIconRight} onPress={handleLogout}>
                     <Ionicons name="log-out-outline" size={24} color={COLORS.text} />
                 </TouchableOpacity>
@@ -130,7 +136,7 @@ export default function AccountScreen() {
                             onPress={goToEditInformation}
                             style={styles.editProfileButton}
                         >
-                            <Text style={styles.editProfileText}>Edit Profile</Text> {/* English */}
+                            <Text style={styles.editProfileText}>Edit Profile</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -138,17 +144,13 @@ export default function AccountScreen() {
                 {/* GROUP 1: ORDERS & ADDRESSES */}
                 <View style={styles.menuGroup}>
                     <ProfileMenuItemCard
-                        title="My Orders" // English
-                        subtitle={
-                            orderCount === 0 ? "No orders yet." : `You have ${orderCount} orders.`
-                        }
+                        title="My Orders"
+                        subtitle={orderCount === 0 ? "No orders yet." : `You have ${orderCount} orders.`}
                         onPress={goToOrders}
                     />
                     <ProfileMenuItemCard
-                        title="Shipping Addresses" // English
-                        subtitle={
-                            addressCount === 0 ? "No addresses saved." : `${addressCount} saved addresses.`
-                        }
+                        title="Shipping Addresses"
+                        subtitle={addressCount === 0 ? "No addresses saved." : `${addressCount} saved addresses.`}
                         onPress={goToShippingAddresses}
                         isLast={true}
                     />
@@ -157,15 +159,13 @@ export default function AccountScreen() {
                 {/* GROUP 2: PAYMENT & SETTINGS */}
                 <View style={styles.menuGroup}>
                     <ProfileMenuItemCard
-                        title="Payment Method" // English
-                        subtitle={
-                            cardCount === 0 ? "No cards added." : `You have ${cardCount} cards.`
-                        }
+                        title="Payment Method"
+                        subtitle={cardCount === 0 ? "No cards added." : `You have ${cardCount} cards.`}
                         onPress={goToPaymentMethod}
                     />
                     <ProfileMenuItemCard
-                        title="Settings" // English
-                        subtitle="Update personal info and security." // English
+                        title="Settings"
+                        subtitle="Update personal info and security."
                         onPress={goToEditInformation}
                         isLast={true}
                     />
@@ -179,7 +179,7 @@ export default function AccountScreen() {
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: COLORS.bg },
-    center: { justifyContent: 'center', alignItems: 'center' },
+    center: { justifyContent: 'center', alignItems: 'center', flex: 1 },
     scrollContainer: { paddingVertical: 15, backgroundColor: COLORS.backgroundSecondary },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 12, backgroundColor: COLORS.cardBackground, borderBottomWidth: 1, borderBottomColor: COLORS.borderColor },
     headerIconLeft: { width: 30, alignItems: 'center' },

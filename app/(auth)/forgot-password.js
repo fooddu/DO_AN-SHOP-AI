@@ -33,7 +33,7 @@ export default function ForgotPasswordScreen() {
 
     const handleSend = async () => {
         if (!email.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập email hợp lệ.');
+            Alert.alert('Error', 'Please enter a valid email.');
             return;
         }
 
@@ -46,9 +46,9 @@ export default function ForgotPasswordScreen() {
                 pathname: '/(auth)/verify-otp',
                 params: { email: email.trim() }
             });
-            Alert.alert('Thành công', result.message || 'Mã OTP đã được gửi đến email của bạn.');
+            Alert.alert('Success', result.message || 'OTP has been sent to your email.');
         } else {
-            Alert.alert('Thất bại', result.message || 'Đã xảy ra lỗi, vui lòng thử lại.');
+            Alert.alert('Failed', result.message || 'An error occurred, please try again.');
         }
     };
 
@@ -69,7 +69,7 @@ export default function ForgotPasswordScreen() {
                 <View style={styles.divider} />
             </View>
 
-            <Text style={styles.welcomeText}>ĐẶT LẠI MẬT KHẨU</Text>
+            <Text style={styles.welcomeText}>RESET PASSWORD</Text>
 
             {/* Card / Input Wrapper */}
             <View style={styles.cardWrapper}>
@@ -94,14 +94,14 @@ export default function ForgotPasswordScreen() {
                         {isSubmitting ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.buttonText}>GỬi OTP</Text>
+                            <Text style={styles.buttonText}>SEND OTP</Text>
                         )}
                     </TouchableOpacity>
 
                     {/* Back to Login Link */}
                     <View style={styles.linkContainer}>
                         <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                            <Text style={styles.loginLink}>QUAY LẠI ĐĂNG NHẬP</Text>
+                            <Text style={styles.loginLink}>BACK TO LOGIN</Text>
                         </TouchableOpacity>
                     </View>
                 </AuthCard>

@@ -32,13 +32,13 @@ const APP_PINK = '#FF3366';
 const SuccessModal = ({ isVisible, title, message, onOKPress }) => {
     if (!isVisible) return null;
 
-    // Kiểm tra xem đây là thông báo Thành công hay Lỗi
-    const isSuccess = title?.toLowerCase().includes('thành công');
+    // Check if this is a Success or Error notification
+    const isSuccess = title?.toLowerCase().includes('success');
 
-    // Config màu sắc và icon dựa trên trạng thái
+    // Config colors and icons based on status
     const iconName = isSuccess ? 'checkmark-sharp' : 'close-sharp';
-    const iconColor = isSuccess ? '#2ECC71' : '#dc3545'; // Xanh lá hoặc Đỏ
-    const buttonText = isSuccess ? 'OK' : 'THỬ LẠI';
+    const iconColor = isSuccess ? '#2ECC71' : '#dc3545'; // Green or Red
+    const buttonText = isSuccess ? 'OK' : 'TRY AGAIN';
 
     return (
         <Modal
@@ -107,19 +107,19 @@ export default function SetNewPasswordScreen() {
     const handleSetPassword = async () => {
         // 1. Kiểm tra xác thực (Validation - English)
         if (!email) {
-            showNotification('Lỗi', 'Thiếu địa chỉ email.', false);
+            showNotification('Error', 'Missing email address.', false);
             return;
         }
         if (!password || !confirmPassword) {
-            showNotification('Lỗi', 'Vui lòng điền đầy đủ các trường mật khẩu.', false);
+            showNotification('Error', 'Please fill in all password fields.', false);
             return;
         }
         if (password.length < MIN_PASSWORD_LENGTH) {
-            showNotification('Lỗi', `Mật khẩu phải có ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`, false);
+            showNotification('Error', `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`, false);
             return;
         }
         if (password !== confirmPassword) {
-            showNotification('Lỗi', 'Mật khẩu xác nhận không khớp.', false);
+            showNotification('Error', 'Confirm password does not match.', false);
             return;
         }
 
@@ -128,22 +128,22 @@ export default function SetNewPasswordScreen() {
         try {
             const result = await setNewPassword(email, password);
 
-            // 3. Xử lý kết quả API
+            // 3. Handle API result
             if (result?.success) {
                 showNotification(
-                    'Thành công',
-                    'Đổi mật khẩu thành công.\nVui lòng đăng nhập lại.',
+                    'Success',
+                    'Password changed successfully.\nPlease login again.',
                     true
                 );
             } else {
                 showNotification(
-                    'Thất bại',
-                    result?.message || 'Không thể đổi mật khẩu. Vui lòng thử lại.',
+                    'Failed',
+                    result?.message || 'Cannot change password. Please try again.',
                     false
                 );
             }
         } catch (error) {
-            showNotification('Lỗi', 'Đã xảy ra lỗi không mong muốn.', false);
+            showNotification('Error', 'An unexpected error occurred.', false);
         } finally {
             setIsSubmitting(false);
         }
@@ -174,19 +174,19 @@ export default function SetNewPasswordScreen() {
             </View>
 
             {/* Title */}
-            <Text style={styles.welcomeText}>MẬT KHẨU MỚI</Text>
+            <Text style={styles.welcomeText}>NEW PASSWORD</Text>
 
             {/* Card chứa Form */}
             <View style={styles.cardWrapper}>
                 <AuthCard style={styles.authCardCustom}>
                     <AuthTextInput
-                        label="Mật khẩu mới"
+                        label="New Password"
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
                     />
                     <AuthTextInput
-                        label="Xác nhận mật khẩu mới"
+                        label="Confirm New Password"
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
                         secureTextEntry
@@ -199,7 +199,7 @@ export default function SetNewPasswordScreen() {
                         {isSubmitting ? (
                             <ActivityIndicator color="#fff" style={styles.loader} />
                         ) : (
-                            <Text style={styles.signUpText}>ĐỔI MẬT KHẨU</Text>
+                            <Text style={styles.signUpText}>CHANGE PASSWORD</Text>
                         )}
                     </TouchableOpacity>
                 </AuthCard>

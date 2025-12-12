@@ -42,7 +42,9 @@ const getImageUrl = (url) => {
         }
         return url;
     }
-    return `${API_BASE_URL_FOR_IMAGES}${url.startsWith('/') ? '' : '/'}${url}`;
+    // Lấy Base URL của client ( AxiosConfig ) và nối vào đường dẫn tương đối
+    const BASE_URL = API_BASE_URL_FOR_IMAGES || (Platform.OS === 'android' ? 'http://10.0.2.2:4000' : 'http://localhost:4000');
+    return `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
 // --- API SERVICE ---
@@ -50,11 +52,14 @@ const fetchOrdersAPI = async () => {
     try {
         const response = await client.get('/orders/get/userorders');
         if (!response.data || !response.data.success) {
+            // Lỗi từ server hoặc response body
             throw new Error(response.data.message || "Cannot load orders.");
         }
         return response.data.data;
     } catch (error) {
-        throw new Error(error.message || 'Connection error.');
+        // Lỗi mạng hoặc server không phản hồi
+        const errorMessage = error.message || error.response?.data?.message || 'Network error or server not responding.';
+        throw new Error(errorMessage);
     }
 };
 

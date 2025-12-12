@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons'; // ⭐️ ĐÃ THÊM DÒNG NÀY
+import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -46,9 +46,10 @@ const getImageUrl = (url) => {
 const fetchOrderDetailsAPI = async (orderId) => {
     try {
         const response = await client.get(`/orders/${orderId}`);
+        // console.log("DEBUG DETAIL: Shipping Address Object (Populated):", JSON.stringify(response.data.data.shippingAddress, null, 2));
         return response.data.data;
     } catch (e) {
-        throw new Error(e.response?.data?.message || "Could not load order details.");
+        throw new Error(e.response?.data?.message || e.message || "Could not load order details.");
     }
 };
 
@@ -57,7 +58,7 @@ const updateOrderStatusAPI = async (orderId, newStatus) => {
         const response = await client.put(`/orders/${orderId}`, { status: newStatus });
         return response.data.data;
     } catch (e) {
-        throw new Error(e.response?.data?.message || "Failed to update order status.");
+        throw new Error(e.response?.data?.message || e.message || "Failed to update order status.");
     }
 };
 
@@ -71,6 +72,7 @@ export default function OrderDetailScreen() {
 
     const loadOrderDetails = useCallback(async () => {
         if (!id || !token) return;
+
         setIsLoading(true);
         try {
             const details = await fetchOrderDetailsAPI(id);

@@ -23,7 +23,6 @@ const isValidEmail = (email) => {
 };
 
 const getBaseUrl = (useLocal = true) => {
-    // ⚠️ QUAN TRỌNG: Thay IP này bằng IP máy tính của bạn
     const LOCAL_IP = '192.168.1.5'; 
     const LOCAL_PORT = 4000;
 
@@ -128,8 +127,35 @@ export default function EditProfileScreen() {
         }
     }, [user]);
 
+    const validateField = (fieldName, value) => {
+        let error = '';
+        switch (fieldName) {
+            case 'name':
+                if (!value || value.trim() === '') error = 'Full name is required.';
+                break;
+            case 'email':
+                if (!value || value.trim() === '') error = 'Email is required.';
+                else if (!isValidEmail(value)) error = 'Invalid email address.';
+                break;
+            case 'phone':
+                if (value && isNaN(Number(value))) error = 'Phone number must be digits.';
+                break;
+        }
+        setErrors(prev => ({ ...prev, [fieldName]: error }));
+        return error === '';
+    };
+
     const handleUpdateProfile = async (newAvatarUrl = null) => {
-        if (!name || !email) return Alert.alert('Error', 'Name and Email are required.');
+        const isNameValid = validateField('name', name);
+        const isEmailValid = validateField('email', email);
+        const isPhoneValid = validateField('phone', phone);
+
+        if (!isNameValid || !isEmailValid || !isPhoneValid) return false;
+
+        if (!userToken) {
+            Alert.alert('Session Expired', 'Please login again.');
+            return false;
+        }
         
         setLoading(true);
         try {
@@ -154,7 +180,10 @@ export default function EditProfileScreen() {
             });
 
             const data = await response.json();
-            if (!data.success) throw new Error(data.message);
+            
+            if (response.status !== 200 || !data.success) {
+                throw new Error(data.message || 'Update failed');
+            }
 
             // Cập nhật Context
             updateUser(data.data);
@@ -170,7 +199,7 @@ export default function EditProfileScreen() {
             setTimeout(() => setSuccessMessage(''), 3000);
 
         } catch (error) {
-            Alert.alert('Error', error.message);
+            Alert.alert('Update Error', error.message);
         } finally {
             setLoading(false);
         }
@@ -178,7 +207,10 @@ export default function EditProfileScreen() {
 
     const handleChoosePhoto = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') return Alert.alert('Permission Denied', 'Need camera permission.');
+        if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'Need camera permission.');
+            return;
+        }
 
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -204,6 +236,10 @@ export default function EditProfileScreen() {
         }
     };
 
+    const navigateToShippingAddresses = () => {
+        router.push('/shipping-addresses');
+    };
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
@@ -221,7 +257,7 @@ export default function EditProfileScreen() {
                         style={styles.avatar}
                         resizeMode="cover"
                         onError={(e) => {
-                            console.log('⚠️ Image Load Error:', e.nativeEvent.error, avatar);
+                            console.log('Image Load Error:', e.nativeEvent.error);
                             setAvatar(defaultAvatarIcon);
                         }}
                     />
@@ -232,29 +268,54 @@ export default function EditProfileScreen() {
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Full Name</Text>
-                    <TextInput style={styles.input} value={name} onChangeText={setName} editable={!loading} />
+                    <TextInput 
+                        style={[styles.input, errors.name && styles.inputError]} 
+                        value={name} 
+                        onChangeText={(text) => { setName(text); validateField('name', text); }} 
+                        editable={!loading} 
+                    />
+                    {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
                 </View>
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Email</Text>
-                    <TextInput style={styles.input} value={email} onChangeText={setEmail} editable={!loading} />
+                    <TextInput 
+                        style={[styles.input, errors.email && styles.inputError]}
+                        value={email} 
+                        onChangeText={(text) => { setEmail(text); validateField('email', text); }}
+                        editable={!loading} 
+                    />
+                    {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
                 </View>
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Phone</Text>
-                    <TextInput style={styles.input} value={phone} onChangeText={setPhone} keyboardType="phone-pad" editable={!loading} />
+                    <TextInput 
+                        style={[styles.input, errors.phone && styles.inputError]}
+                        value={phone} 
+                        onChangeText={(text) => { setPhone(text); validateField('phone', text); }}
+                        keyboardType="phone-pad" 
+                        editable={!loading} 
+                    />
+                    {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
                 </View>
 
                 <Text style={styles.sectionTitle}>Address</Text>
-                <TouchableOpacity style={styles.optionRow} onPress={() => router.push('/shipping-addresses')} disabled={loading}>
+                <TouchableOpacity style={styles.optionRow} onPress={navigateToShippingAddresses} disabled={loading}>
                     <View style={{ flexShrink: 1 }}>
                         <Text style={[styles.label, { marginBottom: 2 }]}>Default Address</Text>
-                        <Text style={styles.optionText} numberOfLines={2}>{user?.address || 'Manage addresses'}</Text>
+                        <Text style={styles.optionText} numberOfLines={2}>
+                            {user?.address ? user.address : 'Tap here to add/manage addresses.'}
+                        </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color={COLORS.muted} />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.saveButton, loading && { backgroundColor: '#f59aab' }]} onPress={() => handleUpdateProfile()} disabled={loading}>
+                <TouchableOpacity 
+                    style={[styles.saveButton, loading && { backgroundColor: '#f59aab' }]} 
+                    onPress={() => handleUpdateProfile()} 
+                    disabled={loading}
+                >
                     {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>SAVE CHANGES</Text>}
                 </TouchableOpacity>
 
@@ -289,6 +350,8 @@ const styles = StyleSheet.create({
     inputGroup: { marginBottom: 20 },
     label: { fontSize: 14, color: COLORS.text, marginBottom: 5, fontWeight: '500' },
     input: { backgroundColor: COLORS.inputBg, height: 50, borderRadius: 10, paddingHorizontal: 15, fontSize: 16, color: COLORS.text },
+    inputError: { borderColor: COLORS.error, borderWidth: 1 },
+    errorText: { color: COLORS.error, fontSize: 12, marginTop: 5 },
     saveButton: { backgroundColor: COLORS.primary, height: 50, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 10, marginBottom: 20 },
     saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
     sectionTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text, marginTop: 10, marginBottom: 10 },

@@ -17,7 +17,7 @@ export default function OrderSuccessScreen() {
       {/* Message */}
       <Text style={styles.message}>
         Your order will be delivered soon.{'\n'}
-        Thank you for choosing our app!
+        Thank you for shopping with us!
       </Text>
 
       {/* Buttons */}

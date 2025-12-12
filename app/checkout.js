@@ -28,6 +28,10 @@ export default function CheckoutScreen() {
     phoneNumber: '',
     address: ''
   });
+<<<<<<< HEAD
+=======
+  const [isLoading, setIsLoading] = useState(false);
+>>>>>>> 222a6cbd36dce12fad6709f000cf508bf2eb00ea
 
   const [addresses, setAddresses] = useState([]); 
   const [showAddressModal, setShowAddressModal] = useState(false); 
@@ -39,7 +43,11 @@ export default function CheckoutScreen() {
     }, [])
   );
 
+<<<<<<< HEAD
   const fetchAddresses = async () => {
+=======
+  const loadCart = async () => {
+>>>>>>> 222a6cbd36dce12fad6709f000cf508bf2eb00ea
     try {
       const res = await client.get('/addresses');
       if (res.data.success) {
@@ -50,6 +58,7 @@ export default function CheckoutScreen() {
             fillAddressToForm(defaultAddr);
         }
       }
+<<<<<<< HEAD
     } catch (error) { console.log(error); }
   };
 
@@ -117,6 +126,79 @@ export default function CheckoutScreen() {
         Alert.alert('Error', msg); 
     } finally { 
         setIsLoading(false); 
+=======
+    } catch (error) {
+      console.error('Error loading cart:', error);
+    }
+  };
+
+  const calculateSubtotal = () => {
+    if (!cart || cart.length === 0) {
+      return 0;
+    }
+    return cart.reduce((total, item) => {
+      const price = item.price || 0;
+      const quantity = item.quantity || 0;
+      return total + (price * quantity);
+    }, 0);
+  };
+
+  const calculateTotal = () => {
+    return calculateSubtotal() + DELIVERY_FEE;
+  };
+
+  const submitOrder = async () => {
+    // 1. Kiểm tra giỏ hàng
+    if (cart.length === 0) {
+      Alert.alert('Notice', 'Your cart is empty!');
+      return;
+    }
+    // 2. Kiểm tra thông tin giao hàng
+    if (!shippingInfo.recipientName || !shippingInfo.address || !shippingInfo.phoneNumber) {
+      Alert.alert('Notice', 'Please fill in all shipping details!');
+      return;
+    }
+    // 3. Kiểm tra trạng thái đăng nhập
+    if (!user || !user._id) {
+      Alert.alert('Error', 'Session expired. Please login again.');
+      return;
+    }
+
+    if (isLoading) return;
+    setIsLoading(true);
+
+    try {
+      const orderData = {
+        user: user._id,
+        products: cart.map(item => ({
+          product: item.productId,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        total: calculateTotal(),
+        shippingAddress: {
+          recipientName: shippingInfo.recipientName,
+          fullAddress: shippingInfo.address,
+          phoneNumber: shippingInfo.phoneNumber,
+        },
+        status: 'pending'
+      };
+
+      const response = await client.post('/orders', orderData);
+
+      if (response.data && response.data.success) {
+        await AsyncStorage.removeItem('cart');
+        router.replace('/order-success');
+      } else {
+        Alert.alert('Error', response.data?.message || 'Unknown server error.');
+      }
+
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Connection error.';
+      Alert.alert('Order Failed', errorMessage);
+    } finally {
+      setIsLoading(false);
+>>>>>>> 222a6cbd36dce12fad6709f000cf508bf2eb00ea
     }
   };
 
@@ -143,6 +225,7 @@ export default function CheckoutScreen() {
       {/* --- INPUT FORM SECTION (EDITABLE) --- */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
+<<<<<<< HEAD
             <Text style={styles.sectionTitle}>Delivery Information</Text>
             {/* Button to open quick select list */}
             <TouchableOpacity onPress={() => setShowAddressModal(true)} style={styles.selectBtn}>
@@ -185,6 +268,34 @@ export default function CheckoutScreen() {
                 />
             </View>
         </View>
+=======
+          <Text style={styles.sectionTitle}>Shipping Information</Text>
+          <TouchableOpacity>
+            <Text style={styles.editIcon}>✎</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Recipient Name"
+          value={shippingInfo.recipientName}
+          onChangeText={(text) => setShippingInfo({ ...shippingInfo, recipientName: text })}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Address"
+          value={shippingInfo.address}
+          onChangeText={(text) => setShippingInfo({ ...shippingInfo, address: text })}
+          multiline
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Phone Number"
+          value={shippingInfo.phoneNumber}
+          onChangeText={(text) => setShippingInfo({ ...shippingInfo, phoneNumber: text })}
+          keyboardType="phone-pad"
+        />
+>>>>>>> 222a6cbd36dce12fad6709f000cf508bf2eb00ea
       </View>
 
       {/* --- MODAL SELECT EXISTING ADDRESS --- */}
@@ -219,10 +330,20 @@ export default function CheckoutScreen() {
 
       {/* Order Summary */}
       <View style={styles.section}>
+<<<<<<< HEAD
         <Text style={styles.sectionTitle}>Summary</Text>
         <View style={styles.row}>
             <Text style={styles.label}>Subtotal</Text>
             <Text style={styles.value}>${(calculateTotal() - DELIVERY_FEE).toFixed(2)}</Text>
+=======
+        <Text style={styles.sectionTitle}>Payment Method</Text>
+
+        <View style={styles.paymentOption}>
+          <View style={styles.radioOuter}>
+            <View style={styles.radioInner} />
+          </View>
+          <Text style={styles.paymentText}>Visa</Text>
+>>>>>>> 222a6cbd36dce12fad6709f000cf508bf2eb00ea
         </View>
         <View style={styles.row}>
             <Text style={styles.label}>Delivery Fee</Text>
@@ -234,8 +355,44 @@ export default function CheckoutScreen() {
         </View>
       </View>
 
+<<<<<<< HEAD
       <TouchableOpacity style={styles.submitButton} onPress={submitOrder} disabled={isLoading}>
         {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitButtonText}>PLACE ORDER</Text>}
+=======
+      {/* TÓM TẮT ĐƠN HÀNG */}
+      <View style={styles.section}>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Order:</Text>
+          <Text style={styles.summaryValue}>
+            $ {calculateSubtotal().toFixed(2)}
+          </Text>
+        </View>
+
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Delivery Fee:</Text>
+          <Text style={styles.summaryValue}>$ {DELIVERY_FEE.toFixed(2)}</Text>
+        </View>
+
+        <View style={[styles.summaryRow, styles.totalRow]}>
+          <Text style={styles.totalLabel}>Total:</Text>
+          <Text style={styles.totalValue}>
+            $ {calculateTotal().toFixed(2)}
+          </Text>
+        </View>
+      </View>
+
+      {/* NÚT ĐẶT HÀNG */}
+      <TouchableOpacity
+        style={styles.submitButton}
+        onPress={submitOrder}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#FFF" />
+        ) : (
+          <Text style={styles.submitButtonText}>PLACE ORDER</Text>
+        )}
+>>>>>>> 222a6cbd36dce12fad6709f000cf508bf2eb00ea
       </TouchableOpacity>
 
     </ScrollView>
@@ -257,6 +414,7 @@ const styles = StyleSheet.create({
       borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 8, 
       paddingHorizontal: 10, backgroundColor: '#FAFAFA' 
   },
+<<<<<<< HEAD
   inputIcon: { marginRight: 10 },
   input: { flex: 1, paddingVertical: 12, fontSize: 15, color: '#333' },
 
@@ -278,3 +436,111 @@ const styles = StyleSheet.create({
   submitButton: { backgroundColor: APP_PINK, padding: 16, borderRadius: 8, margin: 20, alignItems: 'center' },
   submitButtonText: { color: '#FFF', fontWeight: 'bold' },
 });
+=======
+  section: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    paddingVertical: 15,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 10,
+  },
+  editIcon: {
+    fontSize: 18,
+    color: '#808080',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    marginBottom: 8,
+    backgroundColor: '#FFF',
+  },
+  paymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#000',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: APP_PINK,
+  },
+  paymentText: {
+    fontSize: 14,
+    color: '#000',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: '#808080',
+  },
+  summaryValue: {
+    fontSize: 14,
+    color: '#000',
+  },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    paddingTop: 10,
+    marginTop: 5,
+  },
+  // ⭐️ Đã đổi chữ "Tổng cộng" thành màu Hồng
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: APP_PINK,
+  },
+  // ⭐️ Đã đổi số tiền "Tổng cộng" thành màu Hồng
+  totalValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: APP_PINK,
+  },
+  submitButton: {
+    backgroundColor: APP_PINK,
+    paddingVertical: 15,
+    borderRadius: 10,
+    marginHorizontal: 20,
+    marginVertical: 20,
+    alignItems: 'center',
+    shadowColor: APP_PINK,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  submitButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});
+>>>>>>> 222a6cbd36dce12fad6709f000cf508bf2eb00ea

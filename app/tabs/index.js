@@ -17,8 +17,6 @@ import {
     View
 } from 'react-native';
 import client from '../../api/axiosConfig';
-
-// 1. IMPORT HOOK TOAST
 import { useToast } from '../../context/ToastContext';
 
 const COLORS = {
@@ -35,7 +33,7 @@ const API_BASE_URL_FOR_IMAGES = client.defaults.baseURL.replace('/api', '');
 const LOCALHOST_URL = 'http://localhost:4000';
 const FALLBACK_IMAGE_URL = 'https://picsum.photos/400';
 
-// --- 1. FIXED HEADER ---
+// --- FIXED HEADER ---
 const FixedHeader = ({ search, onSearch, categoriesList, activeCategory, onCategory, router }) => (
     <View style={styles.fixedHeaderContainer}>
         {/* TopBar */}
@@ -116,7 +114,6 @@ function ProductCard({ item, onAdd, onPress }) {
             <View style={styles.cardFooter}>
                 <Text style={styles.price}>$ {Number(item.price).toFixed(2)}</Text>
                 
-                {/* Nút Thêm vào giỏ */}
                 <TouchableOpacity style={styles.addBtn} onPress={() => onAdd(item)}>
                     <Ionicons name="cart-outline" size={16} color="#fff" />
                 </TouchableOpacity>
@@ -127,7 +124,6 @@ function ProductCard({ item, onAdd, onPress }) {
 
 export default function HomeScreen() {
     const router = useRouter();
-    // 2. KHỞI TẠO TOAST
     const { showToast } = useToast();
 
     const [products, setProducts] = useState([]);
@@ -187,15 +183,11 @@ export default function HomeScreen() {
         }
     };
 
-    // 3. HÀM ADD TO CART ĐÃ SỬA
     const addToCart = async (product) => {
         try {
             const raw = await AsyncStorage.getItem('cart');
             const cart = raw ? JSON.parse(raw) : [];
             
-            // Tìm xem sản phẩm đã có trong giỏ chưa (Check theo ID)
-            // Lưu ý: Ở trang Home, ta mặc định thêm size đầu tiên hoặc không size nếu chưa vào chi tiết
-            // Để đơn giản, ta cứ thêm vào, người dùng có thể chỉnh trong giỏ
             const idx = cart.findIndex((it) => it.productId === product._id);
 
             if (idx >= 0) {
@@ -207,12 +199,11 @@ export default function HomeScreen() {
                     price: product.price,
                     image: product.image, 
                     quantity: 1,
-                    size: 'M' // Mặc định size M nếu thêm nhanh từ trang chủ
+                    size: 'M' 
                 });
             }
             await AsyncStorage.setItem('cart', JSON.stringify(cart));
             
-            // ✨ HIỆN THÔNG BÁO TOAST ✨
             showToast(`Added ${product.name} to cart!`, 'success');
 
         } catch (e) {
