@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Image,
     SafeAreaView,
     ScrollView,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 // Đảm bảo đường dẫn này đúng
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 const COLORS = {
     primary: '#222',
     grey: '#888',
@@ -32,14 +32,15 @@ export default function RegisterScreen() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
     const { signUp } = useAuth(); // Bây giờ signUp đã là một function hợp lệ
+    const { showToast } = useToast();
 
     const handleRegister = async () => {
         if (!name || !email || !password || !confirmPassword) {
-            Alert.alert('Error', 'Please fill in all fields.');
+            showToast('Vui lòng điền đầy đủ thông tin.', 'error');
             return;
         }
         if (password !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match.');
+            showToast('Mật khẩu không khớp.', 'error');
             return;
         }
         setIsSubmitting(true);
@@ -47,11 +48,10 @@ export default function RegisterScreen() {
         const result = await signUp(name, email, password);
         setIsSubmitting(false);
         if (result.success) {
-            // You might need distinct redirect logic if your API requires email verification
-            Alert.alert('Success', 'Registration successful! Please login.');
+            showToast('Đăng ký thành công! Vui lòng đăng nhập.', 'success');
             router.replace('/login');
         } else {
-            Alert.alert('Registration Failed', result.error);
+            showToast(result.error || 'Đăng ký thất bại.', 'error');
         }
     };
     return (
