@@ -22,13 +22,7 @@ export default function AppEntry() {
     );
   }
 
-  if (!user) {
-    console.log("--- [app/index.js] ---");
-    console.log("User = NULL -> Redirect to /login");
-    return <Redirect href="/login" />;
-  }
-
   console.log("--- [app/index.js] ---");
-  console.log("User = EXIST -> Redirect to /tabs");
+  console.log(`User Status: ${user ? 'Logged In' : 'Guest'} -> Redirect to /tabs`);
   return <Redirect href="/tabs" />;
 }

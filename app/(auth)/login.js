@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Image,
     SafeAreaView, StatusBar,
     StyleSheet,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 // Đảm bảo đường dẫn này đúng
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 const COLORS = {
     primary: '#222',
@@ -30,9 +30,11 @@ export default function LoginScreen() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
     const { login } = useAuth();
+    const { showToast } = useToast(); // Import toast
+
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Please enter both email and password.');
+            showToast('Please enter both email and password.', 'error');
             return;
         }
         setIsSubmitting(true);
@@ -40,9 +42,12 @@ export default function LoginScreen() {
         setIsSubmitting(false);
 
         if (result.success) {
+            showToast('Login successful! Welcome back.', 'success');
+            // Delay redirect slightly to let user see toast if needed, but router.replace is usually instant
+            // For better UX, toast is global so it persists on next screen if ToastProvider wraps RootLayout
             router.replace('/tabs');
         } else {
-            Alert.alert('Login Failed', result.error);
+            showToast(result.message || 'Login Failed', 'error');
         }
     };
     return (

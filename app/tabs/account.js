@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -29,8 +29,8 @@ const COLORS = {
 };
 
 const getBaseUrl = (useLocal = true) => {
-    const LOCAL_IP = '192.168.1.5'; // Đổi IP này nếu cần
-    const LOCAL_PORT = 4000;
+    const LOCAL_IP = '192.168.1.18'; // Match with API config
+    const LOCAL_PORT = 5000; // Server running on port 5000
     if (Platform.OS === 'web' && useLocal) {
         return `http://localhost:${LOCAL_PORT}`;
     }
@@ -39,19 +39,23 @@ const getBaseUrl = (useLocal = true) => {
 
 const getDisplayAvatarUrl = (userObj, defaultAvatarIcon, baseUrl) => {
     const avatarUrl = userObj?.avatar;
+
+    // If no avatar or is default/guest, use initials avatar
     if (!avatarUrl || avatarUrl === defaultAvatarIcon || avatarUrl.includes('/uploads/avatars/guest')) {
         return defaultAvatarIcon;
     }
+
+    // Build full URL if relative path
     let url = avatarUrl.startsWith('http')
         ? avatarUrl
         : `${baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl}${avatarUrl.startsWith('/') ? avatarUrl : '/' + avatarUrl}`;
-    
+
+    // Fix port for web
     if (Platform.OS === 'web' && url.includes('localhost') && url.includes(':8081')) {
-        url = url.replace(':8081', ':4000');
+        url = url.replace(':8081', ':5000');
     }
-    
-    // Thêm timestamp để ép reload ảnh mới nhất
-    return `${url}?t=${Date.now()}`;
+
+    return url;
 };
 
 const ProfileMenuItemCard = ({ title, subtitle, onPress, isLast = false }) => (
@@ -71,7 +75,9 @@ export default function AccountScreen() {
     const router = useRouter();
     const { user, logout, loading } = useAuth();
 
-    const defaultAvatarIcon = 'https://i.pravatar.cc/60?text=PH';
+    // Use UI Avatars with user's name initials (consistent, not random)
+    const userName = user?.name || 'User';
+    const defaultAvatarIcon = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&size=128&background=ec4899&color=fff&bold=true`;
     const baseUrl = getBaseUrl();
 
     // Lấy dữ liệu thống kê từ Hook
@@ -93,7 +99,6 @@ export default function AccountScreen() {
     // --- Navigation Functions ---
     const goToOrders = () => router.push('/orders');
     const goToShippingAddresses = () => router.push('/shipping-addresses');
-    const goToPaymentMethod = () => alert("Payment method feature coming soon.");
     const goToEditInformation = () => router.push('/account-settings');
     const handleLogout = () => logout();
 
@@ -106,7 +111,29 @@ export default function AccountScreen() {
     }
 
     if (!user) {
-        return <Redirect href="/(auth)/login" />;
+        // Guest View
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <View style={styles.header}>
+                    <View style={styles.headerIconLeft} />
+                    <Text style={styles.headerTitle}>Account</Text>
+                    <View style={styles.headerIconRight} />
+                </View>
+                <View style={[styles.center, { padding: 30 }]}>
+                    <Ionicons name="person-circle-outline" size={100} color={COLORS.muted} style={{ marginBottom: 20 }} />
+                    <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: COLORS.text }}>Guest Account</Text>
+                    <Text style={{ textAlign: 'center', color: COLORS.muted, marginBottom: 30 }}>
+                        Login to view your profile, orders, and saved addresses.
+                    </Text>
+                    <TouchableOpacity
+                        onPress={() => router.push('/(auth)/login')}
+                        style={{ backgroundColor: COLORS.primary, paddingHorizontal: 40, paddingVertical: 15, borderRadius: 30 }}
+                    >
+                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Log In / Sign Up</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
     }
 
     return (
@@ -156,13 +183,8 @@ export default function AccountScreen() {
                     />
                 </View>
 
-                {/* GROUP 2: PAYMENT & SETTINGS */}
+                {/* GROUP 2: SETTINGS */}
                 <View style={styles.menuGroup}>
-                    <ProfileMenuItemCard
-                        title="Payment Method"
-                        subtitle={cardCount === 0 ? "No cards added." : `You have ${cardCount} cards.`}
-                        onPress={goToPaymentMethod}
-                    />
                     <ProfileMenuItemCard
                         title="Settings"
                         subtitle="Update personal info and security."

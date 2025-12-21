@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -15,6 +16,7 @@ import {
 
 import client from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 const COLORS = {
     primary: '#E91E63',
@@ -66,9 +68,13 @@ export default function OrderDetailScreen() {
     const { id } = useLocalSearchParams();
     const { token } = useAuth();
     const router = useRouter();
+    const { showToast } = useToast();
 
     const [order, setOrder] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    const [hasConfirmed, setHasConfirmed] = useState(false); // Local state to hide button after click
+    const [isUpdating, setIsUpdating] = useState(false);
 
     const loadOrderDetails = useCallback(async () => {
         if (!id || !token) return;
@@ -77,6 +83,12 @@ export default function OrderDetailScreen() {
         try {
             const details = await fetchOrderDetailsAPI(id);
             setOrder(details);
+
+            // Check Local Storage for confirmation
+            const confirmedContext = await AsyncStorage.getItem(`ORDER_CONFIRMED_${id}`);
+            if (confirmedContext === 'true') {
+                setHasConfirmed(true);
+            }
         } catch (e) {
             Alert.alert("Error", e.message);
             router.back();
@@ -91,7 +103,6 @@ export default function OrderDetailScreen() {
 
     const handleReceiveOrder = () => {
         Alert.alert(
-            "Confirm Receipt",
             "Are you sure you have received this order? This action will mark the order as Delivered.",
             [
                 { text: "Cancel", style: "cancel" },
@@ -99,18 +110,18 @@ export default function OrderDetailScreen() {
                     text: "Confirm",
                     style: "default",
                     onPress: async () => {
-                        setIsLoading(true);
+                        setIsUpdating(true);
                         try {
-                            const updatedOrder = await updateOrderStatusAPI(id, 'delivered');
-                            setOrder(updatedOrder);
-                            Alert.alert("Success", "Order marked as Delivered!");
+                            const result = await updateOrderStatusAPI(id, 'delivered');
+                            setOrder(prev => ({ ...prev, ...(result || {}), status: 'delivered' }));
+                            Alert.alert("Success", "Order has been delivered!");
                         } catch (e) {
                             Alert.alert("Error", e.message);
                         } finally {
-                            setIsLoading(false);
+                            setIsUpdating(false);
                         }
                     }
-                },
+                }
             ]
         );
     };
@@ -126,11 +137,12 @@ export default function OrderDetailScreen() {
     // Xử lý hiển thị danh sách sản phẩm linh hoạt (products hoặc orderItems)
     const itemsList = order.products || order.orderItems || [];
     const totalItems = itemsList.reduce((sum, item) => sum + item.quantity, 0);
-    
+
     // Status Color Helper
     const getStatusColor = (status) => {
         switch (status?.toLowerCase()) {
             case 'delivered': return COLORS.success;
+            case 'completed': return COLORS.success; // Handle completed
             case 'cancelled': return COLORS.danger;
             case 'processing': return '#FF9800'; // Orange
             case 'shipped': return COLORS.primary;
@@ -176,7 +188,7 @@ export default function OrderDetailScreen() {
                     </View>
                     <View style={styles.addressRow}>
                         <Ionicons name="location-outline" size={16} color={COLORS.muted} style={styles.icon} />
-                        <Text style={[styles.detailText, {flex: 1}]}>{fullAddress}</Text>
+                        <Text style={[styles.detailText, { flex: 1 }]}>{fullAddress}</Text>
                     </View>
                 </View>
 
@@ -224,14 +236,43 @@ export default function OrderDetailScreen() {
             </ScrollView>
 
             {/* 5. Footer Action Button */}
-            {order.status === 'shipped' || order.status === 'processing' ? (
+            {/* Logic: 
+                1. Status = Delivered AND Chưa bấm confirm -> Hiện nút
+                2. Status = Delivered AND Đã bấm confirm -> Hiện "Thank You"
+                3. Status khác (Completed) -> Hiện Status Text
+            */}
+            {order.status === 'delivered' && !hasConfirmed ? (
                 <View style={styles.footer}>
                     <TouchableOpacity
                         style={styles.receiveButton}
-                        onPress={handleReceiveOrder}
+                        onPress={async () => {
+                            setHasConfirmed(true);
+                            showToast("Order Completed! ❤️", "success");
+
+                            // 0. Save to Local Storage (Client-side persistence rule)
+                            await AsyncStorage.setItem(`ORDER_CONFIRMED_${id}`, 'true');
+
+                            // Call API to persist state (Delivered -> Completed)
+                            try {
+                                await updateOrderStatusAPI(id, 'completed');
+                                setOrder(prev => ({ ...prev, status: 'completed' }));
+                            } catch (e) {
+                                console.log("Status update failed", e);
+                            }
+
+                            setTimeout(() => {
+                                Alert.alert("Thank You", "Thank you for shopping with AI Shop!\nWe hope you enjoy your purchase. 🎉");
+                            }, 500);
+                        }}
                     >
-                        <Text style={styles.receiveButtonText}>MARK AS DELIVERED</Text>
+                        <Text style={styles.receiveButtonText}>I RECEIVED THE ORDER</Text>
                     </TouchableOpacity>
+                </View>
+            ) : (order.status === 'delivered' && hasConfirmed) ? (
+                <View style={[styles.footerStatus, { backgroundColor: '#E8F5E9' }]}>
+                    <Text style={{ color: COLORS.success, fontWeight: 'bold', fontSize: 16 }}>
+                        ✅ Thank you for your purchase!
+                    </Text>
                 </View>
             ) : (
                 <View style={styles.footerStatus}>
@@ -249,7 +290,7 @@ const styles = StyleSheet.create({
     fullContainer: { flex: 1, backgroundColor: COLORS.background },
     scrollContainer: { flexGrow: 1, paddingBottom: 100 }, // Padding for Footer
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    
+
     card: {
         backgroundColor: COLORS.card,
         padding: 16,
@@ -263,17 +304,17 @@ const styles = StyleSheet.create({
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
         borderLeftWidth: 4, borderLeftColor: COLORS.primary
     },
-    
+
     sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12, color: COLORS.text },
     summaryTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text },
-    
+
     statusText: { fontSize: 18, fontWeight: '800', marginBottom: 4 },
     dateText: { fontSize: 13, color: COLORS.muted },
-    
+
     addressRow: { flexDirection: 'row', marginBottom: 8, alignItems: 'flex-start' },
     icon: { marginRight: 8, marginTop: 2 },
     detailText: { fontSize: 14, color: COLORS.text, lineHeight: 20 },
-    
+
     totalText: { fontSize: 20, fontWeight: '800', color: COLORS.primary },
 
     footer: {

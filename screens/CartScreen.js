@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Image,
-  TouchableOpacity,
-  TextInput,
-  Alert
-} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 export default function CartScreen() {
   const router = useRouter();
+  const { user } = useAuth(); // Get user status
   const [cart, setCart] = useState([]);
   const [promoCode, setPromoCode] = useState('');
 
@@ -104,13 +105,27 @@ export default function CartScreen() {
       Alert.alert('Notice', 'Your cart is empty!');
       return;
     }
+
+    // 🛡️ AUTH CHECK
+    if (!user) {
+      Alert.alert(
+        'Login Required',
+        'You must be logged in to proceed to checkout.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Login', onPress: () => router.push('/login') }
+        ]
+      );
+      return;
+    }
+
     router.push('/checkout');
   };
 
   // Hiển thị 1 sản phẩm trong giỏ
   const renderCartItem = ({ item }) => (
     <View style={styles.cartItem}>
-      <Image 
+      <Image
         source={{ uri: item.image }}
         style={styles.itemImage}
       />
@@ -119,18 +134,18 @@ export default function CartScreen() {
           {item.name}
         </Text>
         <Text style={styles.itemPrice}>$ {item.price.toFixed(2)}</Text>
-        
+
         <View style={styles.quantityContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.quantityButton}
             onPress={() => decreaseQuantity(item.productId)}
           >
             <Text style={styles.quantityButtonText}>-</Text>
           </TouchableOpacity>
-          
+
           <Text style={styles.quantityText}>{item.quantity}</Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.quantityButton}
             onPress={() => increaseQuantity(item.productId)}
           >
@@ -139,7 +154,7 @@ export default function CartScreen() {
         </View>
       </View>
 
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.deleteButton}
         onPress={() => removeProduct(item.productId)}
       >
@@ -152,7 +167,7 @@ export default function CartScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
@@ -212,7 +227,7 @@ export default function CartScreen() {
           </View>
 
           {/* Nút Check out */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.checkoutButton}
             onPress={goToCheckout}
           >

@@ -100,24 +100,7 @@ export default function NotificationsScreen() {
     const [loading, setLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // ⭐️ USER INFO CHECK LOGIC ⭐️
-    const checkUserInfo = () => {
-        if (!user) return null;
-        if (!user.phone || !user.address || user.address.trim() === "") {
-            return {
-                id: 'local-alert-missing-info',
-                title: 'Missing Information',
-                description: 'Please update your phone number and address to verify your account.',
-                type: 'SYSTEM_ALERT',
-                read: false,
-                image: null,
-                createdAt: new Date().toISOString(),
-                timeDisplay: 'Now',
-                action: '/account-settings'
-            };
-        }
-        return null;
-    };
+
 
     const markAsRead = async (item) => {
         if (item.type === 'SYSTEM_ALERT' && item.action) {
@@ -147,11 +130,6 @@ export default function NotificationsScreen() {
                     timeDisplay: new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 }));
 
-                // Prepend system alert
-                const reminder = checkUserInfo();
-                if (reminder) {
-                    fetchedData = [reminder, ...fetchedData];
-                }
                 setNotifications(fetchedData);
             }
         } catch (error) {
@@ -170,6 +148,33 @@ export default function NotificationsScreen() {
         return (
             <SafeAreaView style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
+            </SafeAreaView>
+        );
+    }
+
+    if (!user) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <View style={styles.header}>
+                    <View style={{ width: 24 }} />
+                    <Text style={styles.headerTitle}>Notifications</Text>
+                    <View style={{ width: 24 }} />
+                </View>
+                <View style={[styles.emptyContainer, {
+                    justifyContent: 'center', alignItems: 'center'
+                }]}>
+                    <Ionicons name="notifications-off-outline" size={80} color={COLORS.muted} style={{ marginBottom: 20 }} />
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: COLORS.text, marginBottom: 10 }}>Login Required</Text>
+                    <Text style={{ color: COLORS.muted, marginBottom: 30, textAlign: 'center', paddingHorizontal: 30 }}>
+                        Please login to view your notifications.
+                    </Text>
+                    <TouchableOpacity
+                        onPress={() => router.push('/(auth)/login')}
+                        style={{ backgroundColor: COLORS.primary, paddingHorizontal: 40, paddingVertical: 14, borderRadius: 30 }}
+                    >
+                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Log In Now</Text>
+                    </TouchableOpacity>
+                </View>
             </SafeAreaView>
         );
     }

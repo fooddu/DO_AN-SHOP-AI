@@ -3,9 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
+    ActivityIndicator, // Keep Alert for other potential uses
     FlatList,
     Image,
+    Platform,
     SafeAreaView,
     StyleSheet,
     Text,
@@ -14,14 +15,46 @@ import {
     View
 } from 'react-native';
 
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+
 const DELIVERY_FEE = 5.00;
 const PROMO_DISCOUNT = 0.00;
 
+// ⭐️ FIX LOCALHOST IMAGE URL ⭐️
+const getImageUrl = (input) => {
+    if (!input) return 'https://via.placeholder.com/80';
+
+    // Handle if input is an array (take first image)
+    let url = Array.isArray(input) ? input[0] : input;
+
+    // Ensure it's a string
+    if (typeof url !== 'string') return 'https://via.placeholder.com/80';
+
+    if (url.startsWith('http') && !url.includes('localhost')) return url;
+
+    // Android Emulator
+    if (Platform.OS === 'android' && url.includes('localhost')) {
+        return url.replace('localhost', '10.0.2.2');
+    }
+
+    // Relative path, append Base URL
+    const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:4000' : 'http://localhost:4000';
+    if (url.startsWith('/')) {
+        return `${BASE_URL}${url}`;
+    }
+    return url;
+};
+
 export default function CartScreen() {
     const router = useRouter();
+    const { user } = useAuth();
+    const { showToast } = useToast();
+
     const [cart, setCart] = useState([]);
     const [promoCode, setPromoCode] = useState('');
     const [discount, setDiscount] = useState(PROMO_DISCOUNT);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         loadCart();
@@ -30,23 +63,25 @@ export default function CartScreen() {
     // --- DATA STORAGE LOGIC (AsyncStorage) ---
 
     const loadCart = async () => {
+        setLoading(true);
         try {
             const data = await AsyncStorage.getItem('cart');
             if (data) {
                 const parsedData = JSON.parse(data);
                 setCart(parsedData);
-                console.log("--- LOAD CART: Loaded", parsedData.length, "items from AsyncStorage.");
+                console.log("--- LOAD CART: Loaded", parsedData.length, "items.");
             }
         } catch (error) {
             console.error('Error loading cart:', error);
+            showToast('Failed to load cart', 'error');
+        } finally {
+            setLoading(false);
         }
     };
 
     const saveCart = async (newCart) => {
         try {
             const cleanCart = newCart.filter(item => item.quantity > 0);
-            console.log("--- SAVE CART: Saving new cart:", cleanCart.length, "items.");
-            
             await AsyncStorage.setItem('cart', JSON.stringify(cleanCart));
             setCart(cleanCart);
         } catch (error) {
@@ -77,31 +112,27 @@ export default function CartScreen() {
     };
 
     const removeProduct = (productId) => {
-        console.log("--- DELETE ACTION: Removing ID:", productId); 
-        
-        const targetId = productId ? productId.toString() : null; 
-        
+        const targetId = productId ? productId.toString() : null;
         const newCart = cart.filter(item => {
             const itemId = item.productId ? item.productId.toString() : null;
             return itemId !== targetId;
         });
-        
-        console.log("--- DELETE RESULT: New cart size:", newCart.length); 
 
         if (newCart.length < cart.length) {
             saveCart(newCart);
+            showToast('Item removed', 'success');
         } else {
-            console.warn("Error: Product ID mismatch. Deletion failed.");
+            showToast('Could not remove item', 'error');
         }
     };
 
     const applyPromoCode = () => {
         if (promoCode.toUpperCase() === 'FREE5') {
-            setDiscount(5.00); 
-            Alert.alert('Success', 'Promo code applied! $5 discount.');
+            setDiscount(5.00);
+            showToast('Promo code applied! $5 discount.', 'success');
         } else {
             setDiscount(0.00);
-            Alert.alert('Error', 'Invalid promo code.');
+            showToast('Invalid promo code.', 'error');
         }
     };
 
@@ -118,14 +149,22 @@ export default function CartScreen() {
         const finalOrder = subtotal - discount;
         return finalOrder > 0 ? finalOrder + DELIVERY_FEE : 0;
     };
-    
+
     // --- NAVIGATION ---
 
     const goToCheckout = () => {
         if (cart.length === 0) {
-            Alert.alert('Notification', 'Your cart is empty!');
+            showToast('Your cart is empty!', 'error');
             return;
         }
+
+        // 🛡️ AUTH CHECK FOR GUEST
+        if (!user || !user.email || Object.keys(user).length === 0) {
+            showToast('Login required to checkout', 'error');
+            // Do NOT redirect automatically
+            return;
+        }
+
         router.push('/checkout');
     };
 
@@ -134,7 +173,7 @@ export default function CartScreen() {
     const renderCartItem = ({ item }) => (
         <View style={styles.cartItem}>
             <Image
-                source={{ uri: item.image }}
+                source={{ uri: getImageUrl(item.image) }}
                 style={styles.itemImage}
             />
 
@@ -143,6 +182,12 @@ export default function CartScreen() {
                     <Text style={styles.itemName} numberOfLines={1}>
                         {item.name}
                     </Text>
+                    {/* SHOW SIZE */}
+                    {item.size && (
+                        <Text style={styles.sizeText}>
+                            Size: {item.size}
+                        </Text>
+                    )}
                     <Text style={styles.itemPrice}>
                         $ {(item.price * item.quantity).toFixed(2)}
                     </Text>
@@ -168,18 +213,9 @@ export default function CartScreen() {
             </View>
 
             {/* DELETE BUTTON */}
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={styles.deleteButton}
-                onPress={() => {
-                    Alert.alert(
-                        "Remove Item",
-                        "Are you sure you want to remove this item?",
-                        [
-                            { text: "Cancel", style: "cancel" },
-                            { text: "Remove", onPress: () => removeProduct(item.productId), style: 'destructive' }
-                        ]
-                    );
-                }}
+                onPress={() => removeProduct(item.productId)}
             >
                 <Text style={styles.deleteButtonText}>×</Text>
             </TouchableOpacity>
@@ -190,8 +226,13 @@ export default function CartScreen() {
     const finalOrder = subtotal - discount;
     const total = calculateTotal();
 
-
-    // --- RENDER UI ---
+    if (loading) {
+        return (
+            <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#000" />
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -205,12 +246,13 @@ export default function CartScreen() {
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Cart</Text>
-                    <View style={styles.backButton} /> 
+                    <View style={styles.backButton} />
                 </View>
 
                 {/* Cart List */}
                 {cart.length === 0 ? (
                     <View style={styles.emptyCart}>
+                        <Ionicons name="cart-outline" size={64} color="#ccc" />
                         <Text style={styles.emptyText}>Your cart is empty</Text>
                     </View>
                 ) : (
@@ -218,7 +260,7 @@ export default function CartScreen() {
                         <FlatList
                             data={cart}
                             renderItem={renderCartItem}
-                            keyExtractor={(item) => item.productId.toString()}
+                            keyExtractor={(item) => item.productId ? item.productId.toString() : Math.random().toString()}
                             contentContainerStyle={styles.cartList}
                             showsVerticalScrollIndicator={false}
                         />
@@ -227,7 +269,7 @@ export default function CartScreen() {
                         <View style={styles.promoContainer}>
                             <TextInput
                                 style={styles.promoInput}
-                                placeholder="Enter promo code" 
+                                placeholder="Enter promo code"
                                 placeholderTextColor="#888"
                                 autoCapitalize="none"
                                 value={promoCode}
@@ -237,7 +279,7 @@ export default function CartScreen() {
                                 style={styles.promoButton}
                                 onPress={applyPromoCode}
                             >
-                                <Text style={styles.promoButtonText}>→</Text>
+                                <Ionicons name="arrow-forward" size={24} color="#FFF" />
                             </TouchableOpacity>
                         </View>
 
@@ -265,7 +307,7 @@ export default function CartScreen() {
                     </>
                 )}
             </View>
-            
+
             {/* Checkout Button */}
             {cart.length > 0 && (
                 <View style={styles.checkoutFooter}>
@@ -326,29 +368,36 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 6,
         elevation: 5,
+        borderWidth: 1,
+        borderColor: '#f0f0f0'
     },
     itemImage: {
         width: 80,
         height: 80,
-        borderRadius: 10,
+        borderRadius: 8,
         backgroundColor: '#F5F5F5',
     },
     itemMainContent: {
         flex: 1,
         marginLeft: 15,
         justifyContent: 'space-between',
-        paddingRight: 35,
+        paddingRight: 30, // Space for delete button
     },
     itemName: {
         fontSize: 14,
-        fontWeight: '500',
+        fontWeight: '600',
         color: '#000',
-        marginBottom: 5,
+        marginBottom: 4,
+    },
+    sizeText: {
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 4,
     },
     itemPrice: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#000',
+        color: '#E91E63',
     },
     quantityContainer: {
         flexDirection: 'row',
@@ -356,49 +405,49 @@ const styles = StyleSheet.create({
         marginTop: 5,
     },
     quantityButton: {
-        width: 25,
-        height: 25,
-        borderRadius: 5,
-        backgroundColor: '#F5F5F5',
+        width: 28,
+        height: 28,
+        borderRadius: 6,
+        backgroundColor: '#F0F0F0',
         alignItems: 'center',
         justifyContent: 'center',
     },
     quantityButtonText: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#000',
     },
     quantityText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginHorizontal: 10,
+        fontSize: 15,
+        fontWeight: '600',
+        marginHorizontal: 12,
         color: '#000',
     },
-    deleteButton: { 
+    deleteButton: {
         position: 'absolute',
-        top: 10, 
-        right: 10, 
-        width: 35, 
-        height: 25,
+        top: 5,
+        right: 5,
+        width: 30,
+        height: 30,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 5,
         zIndex: 10,
-        paddingBottom: 2,
     },
     deleteButtonText: {
-        fontSize: 18, 
+        fontSize: 20,
         fontWeight: 'bold',
-        color: '#000',
+        color: '#ccc',
     },
     emptyCart: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
+        marginTop: 50
     },
     emptyText: {
         fontSize: 16,
         color: '#999',
+        marginTop: 10
     },
     promoContainer: {
         flexDirection: 'row',
@@ -424,14 +473,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginLeft: 10,
     },
-    promoButtonText: {
-        color: '#FFF',
-        fontSize: 20,
-    },
     summaryContainer: {
         paddingHorizontal: 15,
-        paddingVertical: 10,
+        paddingVertical: 15,
         marginBottom: 10,
+        backgroundColor: '#F9F9F9',
+        borderRadius: 10,
+        marginHorizontal: 15
     },
     summaryRow: {
         flexDirection: 'row',
@@ -440,11 +488,12 @@ const styles = StyleSheet.create({
     },
     summaryLabel: {
         fontSize: 14,
-        color: '#808080',
+        color: '#666',
     },
     summaryValue: {
         fontSize: 14,
         color: '#000',
+        fontWeight: '500'
     },
     totalRow: {
         borderTopWidth: 1,
@@ -453,33 +502,37 @@ const styles = StyleSheet.create({
         marginTop: 5,
     },
     totalLabel: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 'bold',
         color: '#000',
     },
     totalValue: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 'bold',
-        color: '#000',
+        color: '#E91E63',
     },
     checkoutFooter: {
         paddingHorizontal: 15,
-        paddingTop: 10,
-        paddingBottom: 20,
+        paddingTop: 15,
+        paddingBottom: 30, // Safe area
         backgroundColor: '#FFF',
         borderTopWidth: 1,
         borderTopColor: '#F0F0F0',
     },
     checkoutButton: {
         backgroundColor: '#000',
-        paddingVertical: 15,
-        borderRadius: 10,
+        paddingVertical: 16,
+        borderRadius: 12,
         alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     checkoutButtonText: {
         color: '#FFF',
         fontSize: 16,
         fontWeight: 'bold',
     },
-
 });

@@ -6,11 +6,13 @@ import {
   ActivityIndicator, Alert,
   FlatList,
   Modal,
+  Platform,
   ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
 
 // Dùng chung client config đã fix (dynamic IP)
 import client from '../api/axiosConfig';
+import { useStripe } from '../components/StripeWrapper';
 import { useAuth } from '../context/AuthContext';
 
 const APP_PINK = '#FF3366';
@@ -81,15 +83,116 @@ export default function CheckoutScreen() {
     return calculateSubtotal() + DELIVERY_FEE;
   };
 
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const [paymentMethod, setPaymentMethod] = useState('COD'); // 'COD' or 'STRIPE'
+
+  // ... (keep existing setup) ...
+
+  const fetchPaymentSheetParams = async () => {
+    try {
+      const response = await client.post('/payments/intents', {
+        amount: calculateTotal() * 100, // cents
+      });
+      const { paymentIntent, ephemeralKey, customer } = response.data;
+      return {
+        paymentIntent,
+        ephemeralKey,
+        customer,
+      };
+    } catch (error) {
+      console.error("Error fetching payment params:", error);
+      Alert.alert("Error", "Could not initialize payment.");
+      return null;
+    }
+  };
+
+  const createCheckoutSession = async () => {
+    try {
+      const response = await client.post('/payments/checkout-session', {
+        amount: calculateTotal() * 100, // cents
+        successUrl: window.location.origin + '/order-success?session_id={CHECKOUT_SESSION_ID}',
+        cancelUrl: window.location.origin + '/checkout',
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      Alert.alert('Error', 'Could not initialize payment.');
+      return null;
+    }
+  };
+
+  const initializePaymentSheet = async () => {
+    if (Platform.OS === 'web') return true; // Skip on Web
+
+    const params = await fetchPaymentSheetParams();
+    if (!params) return false;
+
+    const { error } = await initPaymentSheet({
+      merchantDisplayName: "Shop AI",
+      customerId: params.customer,
+      customerEphemeralKeySecret: params.ephemeralKey,
+      paymentIntentClientSecret: params.paymentIntent,
+      // Set to true for Apple Pay
+      applePay: {
+        merchantCountryCode: 'US',
+      },
+      allowsDelayedPaymentMethods: true,
+      defaultBillingDetails: {
+        name: shippingInfo.recipientName,
+        phone: shippingInfo.phoneNumber,
+      }
+    });
+
+    if (error) {
+      Alert.alert("Error", error.message);
+      return false;
+    }
+    return true;
+  };
+
+  const openPaymentSheet = async () => {
+    if (Platform.OS === 'web') {
+      // Redirect to Stripe Checkout for Web
+      const session = await createCheckoutSession();
+      if (!session || !session.url) return false;
+
+      // Redirect to Stripe Checkout page
+      window.location.href = session.url;
+      return true; // Will redirect away
+    }
+
+    // Mobile: Use Payment Sheet
+    const { error } = await presentPaymentSheet();
+
+    if (error) {
+      Alert.alert(`Error code: ${error.code}`, error.message);
+      return false;
+    } else {
+      Alert.alert('Success', 'Your order is confirmed!');
+      return true;
+    }
+  };
+
   const submitOrder = async () => {
     if (!shippingInfo.recipientName || !shippingInfo.phoneNumber || !shippingInfo.address) {
       return Alert.alert('Missing Information', 'Please fill in all delivery details.');
     }
 
-    // Kiểm tra đăng nhập
     if (!user || (!user._id && !user.id)) {
       Alert.alert('Error', 'Session expired. Please login again.');
       return;
+    }
+
+    if (paymentMethod === 'STRIPE') {
+      // 1. Initialize Stripe
+      const isReady = await initializePaymentSheet();
+      if (!isReady) return;
+
+      // 2. Open Sheet
+      const isPaid = await openPaymentSheet();
+      if (!isPaid) return;
+
+      // 3. Paid successfully -> Continue to save order to backend
     }
 
     if (isLoading) return;
@@ -103,16 +206,15 @@ export default function CheckoutScreen() {
           quantity: i.quantity,
           price: i.price
         })),
-
         totalPrice: calculateTotal(),
-        total: calculateTotal(), // Gửi cả 2 trường để chắc chắn khớp Backend
-
+        total: calculateTotal(),
         shippingAddress: {
           recipientName: shippingInfo.recipientName,
           fullAddress: shippingInfo.address,
           phoneNumber: shippingInfo.phoneNumber,
         },
-        status: 'pending'
+        paymentMethod: paymentMethod, // 'COD' or 'STRIPE'
+        status: 'pending' // Always pending initially, paymentMethod indicates payment type
       };
 
       const res = await client.post('/orders', orderData);
@@ -121,12 +223,11 @@ export default function CheckoutScreen() {
         await AsyncStorage.removeItem('cart');
         router.replace('/order-success');
       } else {
-        Alert.alert('Error', res.data?.message || 'Unknown server error.');
+        Alert.alert('Error', res.data?.message || 'Order Saving Failed');
       }
     } catch (error) {
       console.error("Order Error:", error.response?.data);
-      const msg = error.response?.data?.message || 'Order Failed';
-      Alert.alert('Error', msg);
+      Alert.alert('Error', 'Order Failed');
     } finally {
       setIsLoading(false);
     }
@@ -229,15 +330,31 @@ export default function CheckoutScreen() {
         </View>
       </Modal>
 
-      {/* Payment Method (Visual only for now) */}
+      {/* Payment Method Selection */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Payment Method</Text>
-        <View style={styles.paymentOption}>
+
+        {/* Option 1: COD */}
+        <TouchableOpacity
+          style={styles.paymentOption}
+          onPress={() => setPaymentMethod('COD')}
+        >
           <View style={styles.radioOuter}>
-            <View style={styles.radioInner} />
+            {paymentMethod === 'COD' && <View style={styles.radioInner} />}
           </View>
           <Text style={styles.paymentText}>Cash on Delivery (COD)</Text>
-        </View>
+        </TouchableOpacity>
+
+        {/* Option 2: Stripe - Now available on all platforms */}
+        <TouchableOpacity
+          style={styles.paymentOption}
+          onPress={() => setPaymentMethod('STRIPE')}
+        >
+          <View style={styles.radioOuter}>
+            {paymentMethod === 'STRIPE' && <View style={styles.radioInner} />}
+          </View>
+          <Text style={styles.paymentText}>Credit Card (Stripe)</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Order Summary */}

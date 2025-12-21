@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Image,
     SafeAreaView,
     ScrollView,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 // Đảm bảo đường dẫn này đúng
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 const COLORS = {
     primary: '#222',
     grey: '#888',
@@ -32,14 +32,24 @@ export default function RegisterScreen() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
     const { signUp } = useAuth(); // Bây giờ signUp đã là một function hợp lệ
+    const { showToast } = useToast();
 
     const handleRegister = async () => {
         if (!name || !email || !password || !confirmPassword) {
-            Alert.alert('Error', 'Please fill in all fields.');
+            showToast('Please fill in all fields.', 'error');
             return;
         }
+
+        // 🛡️ EMAIL VALIDATION (REGEX)
+        // Stricter Regex: TLD must be 2+ letters (no numbers)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(email)) {
+            showToast('Invalid email format! Example: user@email.com', 'error');
+            return;
+        }
+
         if (password !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match.');
+            showToast('Passwords do not match.', 'error');
             return;
         }
         setIsSubmitting(true);
@@ -48,10 +58,10 @@ export default function RegisterScreen() {
         setIsSubmitting(false);
         if (result.success) {
             // You might need distinct redirect logic if your API requires email verification
-            Alert.alert('Success', 'Registration successful! Please login.');
+            showToast('Registration successful! Please login.', 'success');
             router.replace('/login');
         } else {
-            Alert.alert('Registration Failed', result.error);
+            showToast(result.error || 'Registration Failed', 'error');
         }
     };
     return (

@@ -8,14 +8,15 @@ import { useEffect, useState } from 'react';
 // ⭐ IMPORT HOOK/CONTEXT: Giả định hook này tồn tại và trả về số chưa đọc ⭐
 import client from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 
-const BADGE_COLOR = '#E91E63'; 
+const BADGE_COLOR = '#E91E63';
 const ACTIVE_COLOR = '#E91E63';
 const INACTIVE_COLOR = '#43464b';
 
 // HOOK: LẤY SỐ LƯỢNG THÔNG BÁO CHƯA ĐỌC (GIỮ NGUYÊN)
 const useNotificationCount = () => {
-    const { user, token } = useAuth();
+    const { user = null, token = null } = useAuth() || {};
     const [unreadCount, setUnreadCount] = useState(0);
 
     const fetchCount = async () => {
@@ -32,10 +33,10 @@ const useNotificationCount = () => {
             setUnreadCount(0);
         }
     };
-    
+
     useEffect(() => {
         fetchCount();
-        const interval = setInterval(fetchCount, 30000); 
+        const interval = setInterval(fetchCount, 30000);
         return () => clearInterval(interval);
     }, [user, token]);
 
@@ -44,17 +45,19 @@ const useNotificationCount = () => {
 
 
 export default function TabsLayout() {
-    const unreadCount = useNotificationCount(); 
+    const unreadCount = useNotificationCount();
     const badgeValue = unreadCount > 0 ? unreadCount : undefined;
-    
+    const { cartCount } = useCart();
+    const cartBadge = cartCount > 0 ? cartCount : undefined;
+
     return (
-        <Tabs 
-            screenOptions={{ 
+        <Tabs
+            screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: ACTIVE_COLOR, 
+                tabBarActiveTintColor: ACTIVE_COLOR,
                 tabBarInactiveTintColor: INACTIVE_COLOR,
                 // ⭐ FIX: Tối ưu Label Style để tránh bị cắt chữ
-                tabBarLabelStyle: { 
+                tabBarLabelStyle: {
                     fontSize: 10, // Giảm kích thước font chữ
                     fontWeight: '600',
                     marginBottom: 2 // Đẩy nhãn lên một chút
@@ -82,6 +85,7 @@ export default function TabsLayout() {
                     ),
                 }}
             />
+
             <Tabs.Screen
                 name="notifications" // Notification
                 options={{
@@ -91,8 +95,8 @@ export default function TabsLayout() {
                     ),
                     tabBarBadge: badgeValue,
                     tabBarBadgeStyle: {
-                        backgroundColor: BADGE_COLOR, 
-                        color: 'white', 
+                        backgroundColor: BADGE_COLOR,
+                        color: 'white',
                         fontWeight: 'bold',
                         fontSize: 10,
                         minWidth: 18,

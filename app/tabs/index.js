@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
     Image,
     KeyboardAvoidingView,
     Platform,
+    RefreshControl, // Add RefreshControl
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -17,6 +18,7 @@ import {
     View
 } from 'react-native';
 import client from '../../api/axiosConfig';
+import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 
 const COLORS = {
@@ -34,7 +36,7 @@ const LOCALHOST_URL = 'http://localhost:4000';
 const FALLBACK_IMAGE_URL = 'https://picsum.photos/400';
 
 // --- FIXED HEADER ---
-const FixedHeader = ({ search, onSearch, categoriesList, activeCategory, onCategory, router }) => (
+const FixedHeader = ({ search, onSearch, categoriesList, activeCategory, onCategory, router, cartCount }) => (
     <View style={styles.fixedHeaderContainer}>
         {/* TopBar */}
         <View style={styles.topBar}>
@@ -42,6 +44,11 @@ const FixedHeader = ({ search, onSearch, categoriesList, activeCategory, onCateg
             <Text style={styles.logoText}>AI Shop</Text>
             <TouchableOpacity onPress={() => router.push('/cart')} style={styles.cartBtn}>
                 <Ionicons name="cart-outline" size={24} color={COLORS.text} />
+                {cartCount > 0 && (
+                    <View style={styles.cartBadge}>
+                        <Text style={styles.cartBadgeText}>{cartCount}</Text>
+                    </View>
+                )}
             </TouchableOpacity>
         </View>
 
@@ -113,7 +120,7 @@ function ProductCard({ item, onAdd, onPress }) {
             <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
             <View style={styles.cardFooter}>
                 <Text style={styles.price}>$ {Number(item.price).toFixed(2)}</Text>
-                
+
                 <TouchableOpacity style={styles.addBtn} onPress={() => onAdd(item)}>
                     <Ionicons name="cart-outline" size={16} color="#fff" />
                 </TouchableOpacity>
@@ -125,20 +132,24 @@ function ProductCard({ item, onAdd, onPress }) {
 export default function HomeScreen() {
     const router = useRouter();
     const { showToast } = useToast();
+    const { cartCount, updateCartCount } = useCart();
 
     const [products, setProducts] = useState([]);
     const [filtered, setFiltered] = useState([]);
     const [categoriesList, setCategoriesList] = useState(['All']);
-    
+
     const [search, setSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState(null);
 
-    useEffect(() => { 
-        loadCategories(); 
-        loadProducts();   
-    }, []);
+    // Thay useEffect bằng useFocusEffect để tự động load lại khi vào màn hình
+    useFocusEffect(
+        useCallback(() => {
+            loadCategories();
+            loadProducts();
+        }, [])
+    );
 
     const loadCategories = async () => {
         try {
@@ -161,13 +172,22 @@ export default function HomeScreen() {
             const response = await client.get('/products');
             let apiData = response.data;
             let list = Array.isArray(apiData.data) ? apiData.data : [];
+            if (list.length > 0) {
+                console.log("--- PRODUCT DEBUG ---", JSON.stringify(list[0], null, 2));
+            }
 
             list = list.map(product => {
                 let imageUrl = product.image;
                 if (Array.isArray(product.image) && product.image.length > 0) imageUrl = product.image[0];
                 if (imageUrl && imageUrl.includes(LOCALHOST_URL)) imageUrl = imageUrl.replace(LOCALHOST_URL, API_BASE_URL_FOR_IMAGES);
                 const catName = typeof product.category === 'object' ? product.category?.name : product.category;
-                return { ...product, image: imageUrl, categoryName: catName }; 
+                return { ...product, image: imageUrl, categoryName: catName };
+            }).filter(p => {
+                // Filter logic: Check multiple possible flags
+                if (p.isHidden === true) return false;
+                if (p.hidden === true) return false;
+                if (p.isActive === false) return false;
+                return true;
             });
 
             if (list.length > 0) {
@@ -187,23 +207,26 @@ export default function HomeScreen() {
         try {
             const raw = await AsyncStorage.getItem('cart');
             const cart = raw ? JSON.parse(raw) : [];
-            
+
             const idx = cart.findIndex((it) => it.productId === product._id);
 
             if (idx >= 0) {
                 cart[idx].quantity = (cart[idx].quantity || 1) + 1;
             } else {
                 cart.push({
-                    productId: product._id, 
-                    name: product.name, 
+                    productId: product._id,
+                    name: product.name,
                     price: product.price,
-                    image: product.image, 
+                    image: product.image,
                     quantity: 1,
-                    size: 'M' 
+                    size: 'M'
                 });
             }
             await AsyncStorage.setItem('cart', JSON.stringify(cart));
-            
+
+            // Update cart badge immediately
+            updateCartCount();
+
             showToast(`Added ${product.name} to cart!`, 'success');
 
         } catch (e) {
@@ -244,17 +267,18 @@ export default function HomeScreen() {
 
     return (
         <SafeAreaView style={styles.safe}>
-            <KeyboardAvoidingView 
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1 }}
             >
-                <FixedHeader 
+                <FixedHeader
                     search={search}
                     onSearch={onSearch}
                     categoriesList={categoriesList}
                     activeCategory={activeCategory}
                     onCategory={onCategory}
                     router={router}
+                    cartCount={cartCount}
                 />
 
                 <View style={styles.listContainer}>
@@ -273,9 +297,12 @@ export default function HomeScreen() {
                         contentContainerStyle={styles.listContent}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
-                        
+
                         ListHeaderComponent={
                             <StatusIndicator loading={loading} status={status} />
+                        }
+                        refreshControl={
+                            <RefreshControl refreshing={loading} onRefresh={loadProducts} colors={[COLORS.primary]} />
                         }
                     />
                 </View>
@@ -287,12 +314,12 @@ export default function HomeScreen() {
 /* Styles */
 const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: COLORS.bg },
-    
+
     fixedHeaderContainer: {
         backgroundColor: COLORS.bg,
         paddingHorizontal: 16,
         paddingBottom: 10,
-        zIndex: 10, 
+        zIndex: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
         ...Platform.select({
@@ -302,8 +329,25 @@ const styles = StyleSheet.create({
     },
     topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingTop: 10 },
     logoText: { fontSize: 24, fontWeight: 'bold', color: COLORS.primary },
-    cartBtn: { padding: 4 },
-    
+    cartBtn: { padding: 4, position: 'relative' },
+    cartBadge: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        backgroundColor: COLORS.primary,
+        borderRadius: 10,
+        minWidth: 18,
+        height: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+    },
+    cartBadgeText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+
     searchBox: {
         flexDirection: 'row', alignItems: 'center',
         backgroundColor: COLORS.surface, borderRadius: 10,

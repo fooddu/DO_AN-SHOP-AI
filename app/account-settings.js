@@ -23,8 +23,8 @@ const isValidEmail = (email) => {
 };
 
 const getBaseUrl = (useLocal = true) => {
-    const LOCAL_IP = '192.168.1.5'; 
-    const LOCAL_PORT = 4000;
+    const LOCAL_IP = '192.168.1.18'; // Match with API base URL
+    const LOCAL_PORT = 5000; // Backend is running on port 5000
 
     if (Platform.OS === 'web' && useLocal) return `http://localhost:${LOCAL_PORT}`;
     if (Platform.OS === 'android') return `http://10.0.2.2:${LOCAL_PORT}`;
@@ -42,7 +42,7 @@ const uploadImageToServer = async (uri, userId, mimeType, token) => {
     const type = mimeType || 'image/jpeg';
     const ext = type.split('/')[1] || 'jpg';
     const filename = `avatar-${userId}-${Date.now()}.${ext}`;
-    
+
     const formData = new FormData();
     const serverBaseUrl = getBaseUrl();
 
@@ -74,7 +74,7 @@ const uploadImageToServer = async (uri, userId, mimeType, token) => {
         // Xử lý URL trả về
         let finalUrl = data.url;
         if (!finalUrl.startsWith('http')) {
-             finalUrl = `${serverBaseUrl}${finalUrl.startsWith('/') ? '' : '/'}${finalUrl}`;
+            finalUrl = `${serverBaseUrl}${finalUrl.startsWith('/') ? '' : '/'}${finalUrl}`;
         }
         console.log('[DEBUG] Upload Success URL:', finalUrl);
         return finalUrl;
@@ -87,7 +87,9 @@ const uploadImageToServer = async (uri, userId, mimeType, token) => {
 export default function EditProfileScreen() {
     const router = useRouter();
     const { user, token: userToken, updateUser } = useAuth();
-    const defaultAvatarIcon = 'https://i.pravatar.cc/150';
+    // Use UI Avatars with user's name initials (consistent, not random)
+    const userName = user?.name || 'User';
+    const defaultAvatarIcon = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&size=128&background=ec4899&color=fff&bold=true`;
 
     const getDisplayAvatarUrl = (userObj) => {
         const avatarUrl = userObj?.avatar;
@@ -156,12 +158,12 @@ export default function EditProfileScreen() {
             Alert.alert('Session Expired', 'Please login again.');
             return false;
         }
-        
+
         setLoading(true);
         try {
             const baseUrl = getBaseUrl();
             const updatedData = { name, email, phone, address };
-            
+
             // Nếu có ảnh mới upload, gửi đường dẫn tương đối lên DB
             if (newAvatarUrl) {
                 let relativeUrl = newAvatarUrl;
@@ -180,14 +182,14 @@ export default function EditProfileScreen() {
             });
 
             const data = await response.json();
-            
+
             if (response.status !== 200 || !data.success) {
                 throw new Error(data.message || 'Update failed');
             }
 
             // Cập nhật Context
             updateUser(data.data);
-            
+
             // Ưu tiên hiển thị ảnh vừa upload (nếu có) để mượt mà
             if (newAvatarUrl) {
                 setAvatar(newAvatarUrl);
@@ -226,7 +228,7 @@ export default function EditProfileScreen() {
                 // 1. Upload ảnh
                 const uploadedUrl = await uploadImageToServer(asset.uri, user._id, asset.mimeType, userToken);
                 // 2. Hiện ảnh ngay lập tức
-                setAvatar(uploadedUrl); 
+                setAvatar(uploadedUrl);
                 // 3. Lưu thông tin vào DB
                 await handleUpdateProfile(uploadedUrl);
             } catch (error) {
@@ -268,34 +270,34 @@ export default function EditProfileScreen() {
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Full Name</Text>
-                    <TextInput 
-                        style={[styles.input, errors.name && styles.inputError]} 
-                        value={name} 
-                        onChangeText={(text) => { setName(text); validateField('name', text); }} 
-                        editable={!loading} 
+                    <TextInput
+                        style={[styles.input, errors.name && styles.inputError]}
+                        value={name}
+                        onChangeText={(text) => { setName(text); validateField('name', text); }}
+                        editable={!loading}
                     />
                     {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
                 </View>
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Email</Text>
-                    <TextInput 
+                    <TextInput
                         style={[styles.input, errors.email && styles.inputError]}
-                        value={email} 
+                        value={email}
                         onChangeText={(text) => { setEmail(text); validateField('email', text); }}
-                        editable={!loading} 
+                        editable={!loading}
                     />
                     {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
                 </View>
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Phone</Text>
-                    <TextInput 
+                    <TextInput
                         style={[styles.input, errors.phone && styles.inputError]}
-                        value={phone} 
+                        value={phone}
                         onChangeText={(text) => { setPhone(text); validateField('phone', text); }}
-                        keyboardType="phone-pad" 
-                        editable={!loading} 
+                        keyboardType="phone-pad"
+                        editable={!loading}
                     />
                     {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
                 </View>
@@ -311,9 +313,9 @@ export default function EditProfileScreen() {
                     <Ionicons name="chevron-forward" size={20} color={COLORS.muted} />
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                    style={[styles.saveButton, loading && { backgroundColor: '#f59aab' }]} 
-                    onPress={() => handleUpdateProfile()} 
+                <TouchableOpacity
+                    style={[styles.saveButton, loading && { backgroundColor: '#f59aab' }]}
+                    onPress={() => handleUpdateProfile()}
                     disabled={loading}
                 >
                     {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>SAVE CHANGES</Text>}

@@ -11,6 +11,7 @@ import {
     View
 } from 'react-native';
 import client from '../../api/axiosConfig';
+import { useAuth } from '../../context/AuthContext';
 import { useFavorites } from '../../contexts/FavoritesContext';
 
 const COLORS = {
@@ -111,6 +112,23 @@ export default function FavoritesScreen() {
             <SafeAreaView style={styles.safeArea}>
                 <HeaderWithIcons />
                 <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 50 }} />
+            </SafeAreaView>
+        );
+    }
+
+    const { user } = useAuth();
+    if (!user) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <HeaderWithIcons />
+                <View style={[styles.emptyContainer, { marginTop: 50 }]}>
+                    <Ionicons name="lock-closed-outline" size={80} color={COLORS.lightGrey} style={styles.emptyIcon} />
+                    <Text style={styles.emptyTitle}>Login Required</Text>
+                    <Text style={styles.emptySubText}>Please login to view your favorite products.</Text>
+                    <TouchableOpacity onPress={() => router.push('/login')} style={styles.exploreButton}>
+                        <Text style={styles.exploreButtonText}>Log In Now</Text>
+                    </TouchableOpacity>
+                </View>
             </SafeAreaView>
         );
     }

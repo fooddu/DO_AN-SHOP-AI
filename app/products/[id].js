@@ -16,6 +16,7 @@ import {
 
 import client from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { useFavorites } from '../../contexts/FavoritesContext';
 
@@ -48,18 +49,16 @@ const ReviewItem = ({ review }) => {
                     </View>
                     <Text style={styles.reviewUser}>{displayName}</Text>
                 </View>
-                <View style={styles.ratingContainer}>
-                    {[...Array(5)].map((_, i) => (
-                        <Ionicons
-                            key={i}
-                            name={i < review.rating ? "star" : "star-outline"}
-                            size={14}
-                            color={COLORS.star}
-                        />
-                    ))}
-                </View>
+                {/* Star Rating Removed */}
             </View>
             <Text style={styles.reviewContent}>{review.comment}</Text>
+            {/* Admin Reply Section */}
+            {review.reply ? (
+                <View style={{ marginTop: 8, padding: 10, backgroundColor: '#F5F5F5', borderRadius: 8, borderLeftWidth: 3, borderLeftColor: COLORS.primary }}>
+                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: COLORS.primary, marginBottom: 4 }}>Admin Response:</Text>
+                    <Text style={{ fontSize: 13, color: '#444' }}>{review.reply}</Text>
+                </View>
+            ) : null}
             <Text style={styles.reviewDate}>
                 {new Date(review.createdAt).toLocaleDateString('en-US')}
             </Text>
@@ -81,9 +80,10 @@ export default function ProductDetailScreen() {
     const [reviews, setReviews] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [submittingReview, setSubmittingReview] = useState(false);
-    const [userRating, setUserRating] = useState(5);
+    // const [userRating, setUserRating] = useState(5); // Removed
 
     const { user } = useAuth();
+    const { updateCartCount } = useCart();
     const { isFavorited, toggleFavorite } = useFavorites();
 
     useEffect(() => {
@@ -129,7 +129,7 @@ export default function ProductDetailScreen() {
         try {
             const payload = {
                 productId: id,
-                rating: userRating,
+                // rating: userRating, // Removed
                 comment: newComment
             };
             const response = await client.post('/reviews', payload);
@@ -154,7 +154,7 @@ export default function ProductDetailScreen() {
             showToast('This product is out of stock', 'error');
             return;
         }
-        
+
         if (!selectedSize) {
             showToast('Please select a size first!', 'info');
             return;
@@ -179,7 +179,10 @@ export default function ProductDetailScreen() {
                 });
             }
             await AsyncStorage.setItem('cart', JSON.stringify(cart));
-            
+
+            // Update cart badge immediately
+            updateCartCount();
+
             showToast('Added to cart!', 'success');
             setQuantity(1);
         } catch (e) {
@@ -233,9 +236,9 @@ export default function ProductDetailScreen() {
     let imageUrl = 'https://via.placeholder.com/400';
     if (product.image) {
         if (Array.isArray(product.image) && product.image.length > 0) {
-             imageUrl = product.image[0].startsWith('http') ? product.image[0] : 'https://via.placeholder.com/400';
+            imageUrl = product.image[0].startsWith('http') ? product.image[0] : 'https://via.placeholder.com/400';
         } else if (typeof product.image === 'string' && product.image.startsWith('http')) {
-             imageUrl = product.image;
+            imageUrl = product.image;
         }
     }
     const categoryName = typeof product.category === 'object' ? product.category?.name : (product.category || 'Fashion');
@@ -312,17 +315,7 @@ export default function ProductDetailScreen() {
 
                     <View style={styles.addReviewContainer}>
                         <Text style={styles.subTitle}>Write a review</Text>
-                        <View style={styles.ratingInputRow}>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <TouchableOpacity key={star} onPress={() => setUserRating(star)}>
-                                    <Ionicons
-                                        name={star <= userRating ? "star" : "star-outline"}
-                                        size={28}
-                                        color={COLORS.star}
-                                    />
-                                </TouchableOpacity>
-                            ))}
-                        </View>
+                        {/* Star Input Removed */}
                         <TextInput
                             style={styles.reviewInput}
                             placeholder="Share your thoughts..."
