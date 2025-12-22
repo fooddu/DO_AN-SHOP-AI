@@ -192,7 +192,23 @@ export default function OrderDetailScreen() {
                     </View>
                 </View>
 
-                {/* 3. Product List */}
+                {/* 3. Payment Method */}
+                <View style={styles.card}>
+                    <Text style={styles.sectionTitle}>Payment Method</Text>
+                    <View style={styles.addressRow}>
+                        <Ionicons
+                            name={order.paymentMethod === 'STRIPE' ? 'card-outline' : 'cash-outline'}
+                            size={16}
+                            color={COLORS.muted}
+                            style={styles.icon}
+                        />
+                        <Text style={styles.detailText}>
+                            {order.paymentMethod === 'STRIPE' ? 'Credit Card (Stripe)' : 'Cash on Delivery'}
+                        </Text>
+                    </View>
+                </View>
+
+                {/* 4. Product List */}
                 <View style={styles.card}>
                     <Text style={styles.sectionTitle}>Products ({totalItems} items)</Text>
                     {itemsList.map((item, index) => {
@@ -226,7 +242,7 @@ export default function OrderDetailScreen() {
                     })}
                 </View>
 
-                {/* 4. Total Summary */}
+                {/* 5. Total Summary */}
                 <View style={[styles.card, styles.totalCard]}>
                     <Text style={styles.summaryTitle}>Total Payment</Text>
                     <Text style={styles.totalText}>
@@ -235,7 +251,7 @@ export default function OrderDetailScreen() {
                 </View>
             </ScrollView>
 
-            {/* 5. Footer Action Button */}
+            {/* 6. Footer Action Button */}
             {/* Logic: 
                 1. Status = Delivered AND Chưa bấm confirm -> Hiện nút
                 2. Status = Delivered AND Đã bấm confirm -> Hiện "Thank You"

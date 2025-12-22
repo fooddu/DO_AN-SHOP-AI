@@ -54,17 +54,37 @@ export default function TabsLayout() {
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: ACTIVE_COLOR,
-                tabBarInactiveTintColor: INACTIVE_COLOR,
-                // ⭐ FIX: Tối ưu Label Style để tránh bị cắt chữ
+                tabBarActiveTintColor: '#FFFFFF',
+                tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.5)',
                 tabBarLabelStyle: {
-                    fontSize: 10, // Giảm kích thước font chữ
+                    fontSize: 10,
                     fontWeight: '600',
-                    marginBottom: 2 // Đẩy nhãn lên một chút
+                    marginTop: -4,
                 },
-                // ⭐ FIX PHỤ: Đảm bảo Tab Bar Item có đủ không gian (sử dụng style này trên Tab Bar chính)
-                // tabBarItemStyle: { paddingVertical: 2 }, 
-                tabBarStyle: { height: 60 } // Tăng nhẹ chiều cao nếu cần
+                tabBarStyle: {
+                    height: 65,
+                    backgroundColor: '#2D3142',
+                    borderRadius: 35,
+                    borderTopWidth: 0,
+                    paddingTop: 5,
+                    paddingBottom: 5,
+                    paddingHorizontal: 20,
+                    position: 'absolute',
+                    bottom: 8,
+                    left: 50,
+                    right: 50,
+                    elevation: 10,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 12,
+                },
+                tabBarItemStyle: {
+                    paddingVertical: 8,
+                },
+                tabBarIconStyle: {
+                    marginTop: 4,
+                },
             }}
         >
             <Tabs.Screen
