@@ -1,4 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
+// File: app/(main)/orders/[id].js
+
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -6,28 +8,35 @@ import {
     Alert,
     Image,
     Platform,
+    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View
 } from 'react-native';
+import io from 'socket.io-client';
 
 import client from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
+// 👇 IMPORT COMPONENT MỚI
+import ConfirmModal from '../../components/ConfirmModal';
 
+// --- CONFIG ---
+const SOCKET_SERVER_URL = 'http://localhost:4000'; 
 const COLORS = {
-    primary: '#E91E63',
-    text: '#222',
-    muted: '#888',
-    background: '#F9F9F9',
-    card: '#FFFFFF',
-    success: '#4CAF50',
-    danger: '#D32F2F',
-    border: '#E8E8E8',
+    primary: '#FF3366',     
+    secondary: '#2D3436',   
+    muted: '#A4B0BE',       
+    bg: '#F5F7FA',          
+    card: '#FFFFFF',        
+    success: '#00B894',     
+    warning: '#FDCB6E',     
+    info: '#0984E3',        
+    danger: '#D63031',      
+    border: '#DFE6E9',
 };
 
-// --- HELPER: Xử lý URL ảnh ---
 const API_BASE_URL_FOR_IMAGES = client.defaults.baseURL.replace('/api', '');
 const FALLBACK_IMAGE = 'https://via.placeholder.com/150';
 
@@ -42,14 +51,13 @@ const getImageUrl = (url) => {
     return `${API_BASE_URL_FOR_IMAGES}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
-// --- API SERVICES ---
+// --- API ---
 const fetchOrderDetailsAPI = async (orderId) => {
     try {
         const response = await client.get(`/orders/${orderId}`);
-        // console.log("DEBUG DETAIL: Shipping Address Object (Populated):", JSON.stringify(response.data.data.shippingAddress, null, 2));
         return response.data.data;
     } catch (e) {
-        throw new Error(e.response?.data?.message || e.message || "Could not load order details.");
+        throw new Error(e.response?.data?.message || e.message || "Lỗi tải đơn hàng.");
     }
 };
 
@@ -58,263 +66,336 @@ const updateOrderStatusAPI = async (orderId, newStatus) => {
         const response = await client.put(`/orders/${orderId}`, { status: newStatus });
         return response.data.data;
     } catch (e) {
-        throw new Error(e.response?.data?.message || e.message || "Failed to update order status.");
+        throw new Error(e.response?.data?.message || e.message || "Lỗi cập nhật trạng thái.");
     }
+};
+
+// --- COMPONENT: STATUS TIMELINE ---
+const OrderTimeline = ({ currentStatus }) => {
+    const steps = [
+        { key: 'processing', label: 'Xử lý', icon: 'clipboard-list-outline' },
+        { key: 'shipped', label: 'Vận chuyển', icon: 'truck-delivery-outline' },
+        { key: 'delivered', label: 'Hoàn tất', icon: 'check-circle-outline' },
+    ];
+
+    let activeIndex = 0;
+    if (currentStatus === 'shipped') activeIndex = 1;
+    if (currentStatus === 'delivered') activeIndex = 2;
+    if (currentStatus === 'cancelled') activeIndex = -1;
+
+    if (activeIndex === -1) {
+        return (
+            <View style={[styles.timelineContainer, { borderColor: COLORS.danger, borderLeftWidth: 4 }]}>
+                <Text style={{ color: COLORS.danger, fontWeight: 'bold', textAlign: 'center', width: '100%' }}>
+                    ĐƠN HÀNG ĐÃ BỊ HỦY
+                </Text>
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.timelineContainer}>
+            {steps.map((step, index) => {
+                const isActive = index <= activeIndex;
+                const isLast = index === steps.length - 1;
+                return (
+                    <View key={step.key} style={styles.stepItem}>
+                        <View style={[styles.stepCircle, isActive ? styles.stepActive : styles.stepInactive]}>
+                            <MaterialCommunityIcons 
+                                name={step.icon} 
+                                size={18} 
+                                color={isActive ? '#fff' : COLORS.muted} 
+                            />
+                        </View>
+                        <Text style={[styles.stepLabel, isActive && styles.stepLabelActive]}>
+                            {step.label}
+                        </Text>
+                        {!isLast && (
+                            <View style={[styles.stepLine, index < activeIndex ? styles.lineActive : styles.lineInactive]} />
+                        )}
+                    </View>
+                );
+            })}
+        </View>
+    );
 };
 
 export default function OrderDetailScreen() {
     const { id } = useLocalSearchParams();
     const { token } = useAuth();
     const router = useRouter();
-
+    
     const [order, setOrder] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    
+    // ⭐ STATE CHO MODAL XÁC NHẬN ⭐
+    const [modalVisible, setModalVisible] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
+    // --- LOAD DATA ---
     const loadOrderDetails = useCallback(async () => {
         if (!id || !token) return;
-
         setIsLoading(true);
         try {
             const details = await fetchOrderDetailsAPI(id);
             setOrder(details);
         } catch (e) {
-            Alert.alert("Error", e.message);
+            Alert.alert("Lỗi", e.message);
             router.back();
         } finally {
             setIsLoading(false);
         }
     }, [id, token]);
 
-    useEffect(() => {
-        loadOrderDetails();
-    }, [loadOrderDetails]);
+    useEffect(() => { loadOrderDetails(); }, [loadOrderDetails]);
 
-    const handleReceiveOrder = () => {
-        Alert.alert(
-            "Confirm Receipt",
-            "Are you sure you have received this order? This action will mark the order as Delivered.",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Confirm",
-                    style: "default",
-                    onPress: async () => {
-                        setIsLoading(true);
-                        try {
-                            const updatedOrder = await updateOrderStatusAPI(id, 'delivered');
-                            setOrder(updatedOrder);
-                            Alert.alert("Success", "Order marked as Delivered!");
-                        } catch (e) {
-                            Alert.alert("Error", e.message);
-                        } finally {
-                            setIsLoading(false);
-                        }
-                    }
-                },
-            ]
-        );
+    // --- SOCKET.IO ---
+    useEffect(() => {
+        let socket;
+        const connect = async () => {
+            if (!token) return;
+            socket = io(SOCKET_SERVER_URL, { transports: ['websocket'], auth: { token } });
+            socket.on('orderStatusUpdated', (updatedOrder) => {
+                if (updatedOrder._id === id) {
+                    setOrder(updatedOrder);
+                }
+            });
+        };
+        connect();
+        return () => { if (socket) { socket.off('orderStatusUpdated'); socket.disconnect(); } };
+    }, [id, token]);
+
+    // --- LOGIC XỬ LÝ NHẬN HÀNG ---
+    
+    // 1. Khi bấm nút -> Hiện Modal
+    const handlePressReceive = () => {
+        setModalVisible(true);
     };
 
-    if (isLoading) {
-        return <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
-    }
-
-    if (!order) {
-        return <View style={styles.center}><Text>Order not found.</Text></View>;
-    }
-
-    // Xử lý hiển thị danh sách sản phẩm linh hoạt (products hoặc orderItems)
-    const itemsList = order.products || order.orderItems || [];
-    const totalItems = itemsList.reduce((sum, item) => sum + item.quantity, 0);
-    
-    // Status Color Helper
-    const getStatusColor = (status) => {
-        switch (status?.toLowerCase()) {
-            case 'delivered': return COLORS.success;
-            case 'cancelled': return COLORS.danger;
-            case 'processing': return '#FF9800'; // Orange
-            case 'shipped': return COLORS.primary;
-            default: return COLORS.muted;
+    // 2. Khi bấm "Đồng ý" trong Modal
+    const confirmReceiveOrder = async () => {
+        setIsProcessing(true); // Loading trong modal
+        try {
+            const updated = await updateOrderStatusAPI(id, 'delivered');
+            setOrder(updated);
+            setModalVisible(false); // Tắt modal khi thành công
+        } catch (e) {
+            alert("Lỗi: " + e.message); // Alert native nhẹ báo lỗi
+        } finally {
+            setIsProcessing(false);
         }
     };
 
-    // Shipping Info
-    const shippingAddress = order.shippingAddress || {};
-    const recipientName = shippingAddress.recipientName || 'N/A';
-    const fullAddress = shippingAddress.fullAddress || shippingAddress.street || 'N/A';
-    const phoneNumber = shippingAddress.phoneNumber || 'N/A';
+    // --- RENDER ---
+    if (isLoading) return <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
+    if (!order) return <View style={styles.center}><Text>Không tìm thấy đơn hàng.</Text></View>;
 
-    // Total Price Logic
-    const displayTotal = order.totalPrice !== undefined ? order.totalPrice : (order.total || 0);
+    const itemsList = order.products || order.orderItems || [];
+    const shipping = order.shippingAddress || {};
+    const totalPrice = order.totalPrice !== undefined ? order.totalPrice : (order.total || 0);
+
+    const getStatusStyle = (status) => {
+        switch (status) {
+            case 'delivered': return { bg: '#E3FDFD', text: COLORS.success, label: 'Giao thành công' };
+            case 'shipped': return { bg: '#E3F2FD', text: COLORS.info, label: 'Đang vận chuyển' };
+            case 'processing': return { bg: '#FFF8E1', text: COLORS.warning, label: 'Đang xử lý' };
+            case 'cancelled': return { bg: '#FFEBEE', text: COLORS.danger, label: 'Đã hủy' };
+            default: return { bg: '#F5F5F5', text: COLORS.muted, label: status };
+        }
+    };
+    const statusMeta = getStatusStyle(order.status);
 
     return (
-        <View style={styles.fullContainer}>
-            <Stack.Screen options={{ title: `Order #${order._id.slice(-6).toUpperCase()}` }} />
+        <SafeAreaView style={styles.container}>
+            <Stack.Screen 
+                options={{ 
+                    title: 'Chi tiết đơn hàng',
+                    headerShadowVisible: false,
+                    headerStyle: { backgroundColor: COLORS.bg },
+                    headerTintColor: COLORS.secondary,
+                }} 
+            />
 
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-                {/* 1. Status Card */}
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Order Status</Text>
-                    <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>
-                        {order.status.toUpperCase()}
-                    </Text>
-                    <Text style={styles.dateText}>
-                        Placed on: {new Date(order.dateOrdered || order.createdAt).toLocaleDateString('en-US')}
-                    </Text>
-                </View>
-
-                {/* 2. Shipping Address */}
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Shipping Address</Text>
-                    <View style={styles.addressRow}>
-                        <Ionicons name="person-outline" size={16} color={COLORS.muted} style={styles.icon} />
-                        <Text style={styles.detailText}>{recipientName}</Text>
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                {/* HEADER */}
+                <View style={styles.headerSection}>
+                    <View>
+                        <Text style={styles.orderId}>#{order._id.slice(-8).toUpperCase()}</Text>
+                        <Text style={styles.orderDate}>{new Date(order.dateOrdered || order.createdAt).toLocaleString('vi-VN')}</Text>
                     </View>
-                    <View style={styles.addressRow}>
-                        <Ionicons name="call-outline" size={16} color={COLORS.muted} style={styles.icon} />
-                        <Text style={styles.detailText}>{phoneNumber}</Text>
-                    </View>
-                    <View style={styles.addressRow}>
-                        <Ionicons name="location-outline" size={16} color={COLORS.muted} style={styles.icon} />
-                        <Text style={[styles.detailText, {flex: 1}]}>{fullAddress}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: statusMeta.bg }]}>
+                        <Text style={[styles.statusText, { color: statusMeta.text }]}>{statusMeta.label}</Text>
                     </View>
                 </View>
 
-                {/* 3. Product List */}
+                {/* TIMELINE */}
+                <OrderTimeline currentStatus={order.status} />
+
+                {/* INFO CARDS */}
                 <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Products ({totalItems} items)</Text>
+                    <View style={styles.cardHeader}>
+                        <Ionicons name="location" size={20} color={COLORS.primary} />
+                        <Text style={styles.cardTitle}>Thông tin giao hàng</Text>
+                    </View>
+                    <View style={styles.divider} />
+                    <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Người nhận</Text>
+                        <Text style={styles.infoValue}>{shipping.recipientName || 'N/A'}</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Số điện thoại</Text>
+                        <Text style={styles.infoValue}>{shipping.phoneNumber || 'N/A'}</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Địa chỉ</Text>
+                        <Text style={[styles.infoValue, { flex: 1, textAlign: 'right' }]}>
+                            {shipping.fullAddress || shipping.address || 'N/A'}
+                        </Text>
+                    </View>
+                </View>
+
+                {/* PRODUCTS */}
+                <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <Ionicons name="bag-handle" size={20} color={COLORS.primary} />
+                        <Text style={styles.cardTitle}>Sản phẩm đã đặt</Text>
+                    </View>
+                    <View style={styles.divider} />
                     {itemsList.map((item, index) => {
-                        // Logic lấy tên và ảnh thông minh
-                        let pName = "Unknown Product";
-                        let pImage = FALLBACK_IMAGE;
+                        let pName = item.product?.name || item.name || "Sản phẩm";
+                        let pImgRaw = item.product?.image?.[0] || item.product?.image || item.image;
+                        let pImage = getImageUrl(pImgRaw);
                         let pPrice = item.price || 0;
-
-                        if (item.product) {
-                            // Nếu populate
-                            if (item.product.name) pName = item.product.name;
-                            if (item.product.image) pImage = getImageUrl(item.product.image[0] || item.product.image);
-                        } else if (item.name) {
-                            // Nếu lưu cứng
-                            pName = item.name;
-                            if (item.image) pImage = getImageUrl(item.image);
-                        }
-
                         return (
-                            <View key={index} style={itemStyles.productRow}>
-                                <Image source={{ uri: pImage }} style={itemStyles.productImage} />
-                                <View style={itemStyles.productInfo}>
-                                    <Text style={itemStyles.productName} numberOfLines={2}>{pName}</Text>
-                                    <Text style={itemStyles.productQty}>QTY: {item.quantity}</Text>
+                            <View key={index} style={styles.productItem}>
+                                <Image source={{ uri: pImage }} style={styles.productImage} resizeMode="cover" />
+                                <View style={styles.productInfo}>
+                                    <Text style={styles.productName} numberOfLines={2}>{pName}</Text>
+                                    <Text style={styles.productMeta}>x{item.quantity}</Text>
                                 </View>
-                                <Text style={itemStyles.productPrice}>
-                                    ${(pPrice * item.quantity).toFixed(2)}
-                                </Text>
+                                <Text style={styles.productPrice}>${(pPrice * item.quantity).toFixed(2)}</Text>
                             </View>
                         );
                     })}
                 </View>
 
-                {/* 4. Total Summary */}
+                {/* TOTAL */}
                 <View style={[styles.card, styles.totalCard]}>
-                    <Text style={styles.summaryTitle}>Total Payment</Text>
-                    <Text style={styles.totalText}>
-                        ${Number(displayTotal).toFixed(2)}
-                    </Text>
+                    <Text style={styles.totalLabel}>Tổng thanh toán</Text>
+                    <Text style={styles.totalValue}>${Number(totalPrice).toFixed(2)}</Text>
                 </View>
             </ScrollView>
 
-            {/* 5. Footer Action Button */}
-            {order.status === 'shipped' || order.status === 'processing' ? (
+            {/* FOOTER ACTION */}
+            {order.status === 'shipped' ? (
                 <View style={styles.footer}>
-                    <TouchableOpacity
-                        style={styles.receiveButton}
-                        onPress={handleReceiveOrder}
+                    <TouchableOpacity 
+                        style={styles.btnSuccess} 
+                        onPress={handlePressReceive} // 👈 Mở Modal
+                        activeOpacity={0.8}
                     >
-                        <Text style={styles.receiveButtonText}>MARK AS DELIVERED</Text>
+                        <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
+                        <Text style={styles.btnText}>ĐÃ NHẬN ĐƯỢC HÀNG</Text>
                     </TouchableOpacity>
                 </View>
-            ) : (
-                <View style={styles.footerStatus}>
-                    <Text style={{ color: getStatusColor(order.status), fontWeight: 'bold' }}>
-                        This order is {order.status.toUpperCase()}.
-                    </Text>
+            ) : order.status === 'delivered' ? (
+                 <View style={[styles.footer, { backgroundColor: 'transparent', borderTopWidth: 0 }]}>
+                    <View style={styles.completedBadge}>
+                        <Ionicons name="star" size={16} color="#fff" />
+                        <Text style={styles.completedText}>Đơn hàng đã hoàn tất</Text>
+                    </View>
                 </View>
-            )}
-        </View>
+            ) : null}
+
+            {/* ⭐ MODAL XÁC NHẬN (LUÔN NẰM CUỐI CÙNG) ⭐ */}
+            <ConfirmModal
+                visible={modalVisible}
+                title="Xác nhận nhận hàng"
+                message="Bạn có chắc chắn đã nhận được gói hàng này không? Trạng thái đơn sẽ chuyển thành 'Thành công'."
+                onConfirm={confirmReceiveOrder}
+                onCancel={() => setModalVisible(false)}
+                loading={isProcessing}
+                confirmText="Xác nhận"
+                cancelText="Quay lại"
+            />
+        </SafeAreaView>
     );
 }
 
 // --- STYLES ---
 const styles = StyleSheet.create({
-    fullContainer: { flex: 1, backgroundColor: COLORS.background },
-    scrollContainer: { flexGrow: 1, paddingBottom: 100 }, // Padding for Footer
+    container: { flex: 1, backgroundColor: COLORS.bg },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    
+    scrollContent: { padding: 16, paddingBottom: 100 },
+
+    headerSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+    orderId: { fontSize: 20, fontWeight: '800', color: COLORS.secondary },
+    orderDate: { fontSize: 13, color: COLORS.muted, marginTop: 4 },
+    statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+    statusText: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+
+    timelineContainer: { 
+        flexDirection: 'row', justifyContent: 'space-between', 
+        backgroundColor: '#fff', padding: 16, borderRadius: 16, marginBottom: 20,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: {width:0, height:2}, shadowOpacity: 0.05, shadowRadius: 4 },
+            android: { elevation: 2 }
+        })
+    },
+    stepItem: { alignItems: 'center', flex: 1, position: 'relative' },
+    stepCircle: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', zIndex: 2 },
+    stepActive: { backgroundColor: COLORS.primary },
+    stepInactive: { backgroundColor: '#EEE' },
+    stepLabel: { fontSize: 11, marginTop: 6, color: COLORS.muted, fontWeight: '600' },
+    stepLabelActive: { color: COLORS.primary },
+    stepLine: { position: 'absolute', top: 16, left: '50%', width: '100%', height: 2, zIndex: 1 },
+    lineActive: { backgroundColor: COLORS.primary },
+    lineInactive: { backgroundColor: '#EEE' },
+
     card: {
-        backgroundColor: COLORS.card,
-        padding: 16,
-        marginHorizontal: 16,
-        marginTop: 16,
-        borderRadius: 12,
-        elevation: 2,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2,
+        backgroundColor: COLORS.card, borderRadius: 16, padding: 16, marginBottom: 16,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: {width:0, height:2}, shadowOpacity: 0.05, shadowRadius: 6 },
+            android: { elevation: 3 }
+        })
     },
-    totalCard: {
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        borderLeftWidth: 4, borderLeftColor: COLORS.primary
-    },
-    
-    sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12, color: COLORS.text },
-    summaryTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text },
-    
-    statusText: { fontSize: 18, fontWeight: '800', marginBottom: 4 },
-    dateText: { fontSize: 13, color: COLORS.muted },
-    
-    addressRow: { flexDirection: 'row', marginBottom: 8, alignItems: 'flex-start' },
-    icon: { marginRight: 8, marginTop: 2 },
-    detailText: { fontSize: 14, color: COLORS.text, lineHeight: 20 },
-    
-    totalText: { fontSize: 20, fontWeight: '800', color: COLORS.primary },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    cardTitle: { fontSize: 16, fontWeight: '700', color: COLORS.secondary, marginLeft: 8 },
+    divider: { height: 1, backgroundColor: COLORS.border, marginBottom: 12 },
+
+    infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+    infoLabel: { fontSize: 14, color: COLORS.muted },
+    infoValue: { fontSize: 14, color: COLORS.secondary, fontWeight: '500' },
+
+    productItem: { flexDirection: 'row', marginBottom: 16, alignItems: 'center' },
+    productImage: { width: 56, height: 56, borderRadius: 10, backgroundColor: '#F0F0F0' },
+    productInfo: { flex: 1, marginLeft: 12 },
+    productName: { fontSize: 14, fontWeight: '600', color: COLORS.secondary },
+    productMeta: { fontSize: 12, color: COLORS.muted, marginTop: 4 },
+    productPrice: { fontSize: 15, fontWeight: '700', color: COLORS.primary },
+
+    totalCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 20 },
+    totalLabel: { fontSize: 16, fontWeight: '600', color: COLORS.secondary },
+    totalValue: { fontSize: 22, fontWeight: '800', color: COLORS.primary },
 
     footer: {
         position: 'absolute', bottom: 0, left: 0, right: 0,
-        padding: 16,
-        backgroundColor: COLORS.card,
+        backgroundColor: '#fff', padding: 16, paddingBottom: Platform.OS === 'ios' ? 30 : 20,
         borderTopWidth: 1, borderTopColor: COLORS.border,
-    },
-    footerStatus: {
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        padding: 20,
-        backgroundColor: '#fff',
         alignItems: 'center',
-        borderTopWidth: 1, borderTopColor: COLORS.border,
+        zIndex: 10, elevation: 10
     },
-    receiveButton: {
-        backgroundColor: COLORS.success,
-        paddingVertical: 14,
-        borderRadius: 8,
-        alignItems: 'center',
-        elevation: 3
+    btnSuccess: {
+        backgroundColor: COLORS.success, flexDirection: 'row',
+        width: '100%', paddingVertical: 16, borderRadius: 12,
+        justifyContent: 'center', alignItems: 'center',
+        shadowColor: COLORS.success, shadowOffset: {width:0,height:4}, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4
     },
-    receiveButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
-});
-
-const itemStyles = StyleSheet.create({
-    productRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F5F5F5',
+    btnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    
+    completedBadge: { 
+        flexDirection: 'row', alignItems: 'center', 
+        backgroundColor: COLORS.success, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 
     },
-    productImage: {
-        width: 50, height: 50,
-        borderRadius: 6,
-        backgroundColor: '#F0F0F0',
-        marginRight: 12,
-    },
-    productInfo: { flex: 1, marginRight: 10 },
-    productName: { fontSize: 14, fontWeight: '600', color: COLORS.text, marginBottom: 4 },
-    productQty: { fontSize: 12, color: COLORS.muted },
-    productPrice: { fontSize: 14, fontWeight: '700', color: COLORS.text, minWidth: 60, textAlign: 'right' }
+    completedText: { color: '#fff', fontWeight: '600', marginLeft: 6 }
 });

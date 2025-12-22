@@ -1,3 +1,5 @@
+// File: app/(tabs)/notifications.js
+
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -28,7 +30,7 @@ const COLORS = {
     warning: '#f39c12',
 };
 
-// ⭐️ FIX LOCALHOST IMAGE URL ⭐️
+// FIX LOCALHOST IMAGE URL
 const getImageUrl = (url) => {
     if (!url) return 'https://via.placeholder.com/60';
     if (url.startsWith('http') && !url.includes('localhost')) return url;
@@ -93,14 +95,14 @@ const NotificationItem = ({ item, markAsRead }) => {
     );
 };
 
-export default function NotificationsScreen() {
+export function NotificationsScreen() { 
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // ⭐️ USER INFO CHECK LOGIC ⭐️
+    // USER INFO CHECK LOGIC
     const checkUserInfo = () => {
         if (!user) return null;
         if (!user.phone || !user.address || user.address.trim() === "") {
@@ -121,7 +123,7 @@ export default function NotificationsScreen() {
 
     const markAsRead = async (item) => {
         if (item.type === 'SYSTEM_ALERT' && item.action) {
-            router.push(item.action);
+            router.push('/(main)' + item.action); // FIX: đảm bảo điều hướng đúng group
             return;
         }
         try {
@@ -166,6 +168,29 @@ export default function NotificationsScreen() {
         if (user) fetchNotifications();
     }, [user]);
 
+    // ⭐️ LOGIC GUEST ACCESS ⭐️
+    if (!user) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                {/* Header tùy chỉnh khi chưa đăng nhập */}
+                <View style={styles.header}>
+                    <Ionicons name="notifications-outline" size={24} color={COLORS.text} style={{ width: 24 }} />
+                    <Text style={styles.headerTitle}>Notifications</Text>
+                    <View style={{ width: 24 }} />
+                </View>
+
+                <View style={styles.emptyContainer}>
+                    <Ionicons name="notifications-off-outline" size={80} color={COLORS.muted} />
+                    <Text style={styles.noAuthTitle}>Sign In to get Notifications</Text>
+                    <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/(auth)/login')}>
+                        <Text style={styles.loginButtonText}>Sign In</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
+    // ----------------------
+
     if (authLoading || loading) {
         return (
             <SafeAreaView style={styles.loadingContainer}>
@@ -176,6 +201,7 @@ export default function NotificationsScreen() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
+            {/* Header khi đã đăng nhập */}
             <View style={styles.header}>
                 <Ionicons name="notifications-outline" size={24} color={COLORS.text} style={{ width: 24 }} />
                 <Text style={styles.headerTitle}>Notifications</Text>
@@ -221,4 +247,11 @@ const styles = StyleSheet.create({
     newDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary },
     bottomRow: { marginTop: 5 },
     newTagText: { fontSize: 10, fontWeight: '700', color: COLORS.primary, borderWidth: 1, borderColor: COLORS.primary, borderRadius: 4, paddingHorizontal: 6, alignSelf: 'flex-start' },
+    
+    // No-Auth Styles for Notifications
+    noAuthTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text, marginTop: 15, marginBottom: 25 },
+    loginButton: { backgroundColor: COLORS.primary, paddingVertical: 14, paddingHorizontal: 40, borderRadius: 30 },
+    loginButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });
+
+export default NotificationsScreen;

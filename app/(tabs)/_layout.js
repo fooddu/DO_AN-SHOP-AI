@@ -1,11 +1,9 @@
-// File: app/(tabs)/_layout.js
-// Nhiệm vụ: Tạo 4 tab bar và fix lỗi cắt chữ.
+// File: app/(tabs)/_layout.js (ĐÃ SỬA LỖI LOGIC CHẶN)
 
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
 
-// ⭐ IMPORT HOOK/CONTEXT: Giả định hook này tồn tại và trả về số chưa đọc ⭐
 import client from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
 
@@ -46,6 +44,11 @@ const useNotificationCount = () => {
 export default function TabsLayout() {
     const unreadCount = useNotificationCount(); 
     const badgeValue = unreadCount > 0 ? unreadCount : undefined;
+    const { user, loading } = useAuth(); // Vẫn giữ user/loading
+
+    if (loading) {
+        return null;
+    }
     
     return (
         <Tabs 
@@ -53,19 +56,17 @@ export default function TabsLayout() {
                 headerShown: false,
                 tabBarActiveTintColor: ACTIVE_COLOR, 
                 tabBarInactiveTintColor: INACTIVE_COLOR,
-                // ⭐ FIX: Tối ưu Label Style để tránh bị cắt chữ
                 tabBarLabelStyle: { 
-                    fontSize: 10, // Giảm kích thước font chữ
+                    fontSize: 10,
                     fontWeight: '600',
-                    marginBottom: 2 // Đẩy nhãn lên một chút
+                    marginBottom: 2
                 },
-                // ⭐ FIX PHỤ: Đảm bảo Tab Bar Item có đủ không gian (sử dụng style này trên Tab Bar chính)
-                // tabBarItemStyle: { paddingVertical: 2 }, 
-                tabBarStyle: { height: 60 } // Tăng nhẹ chiều cao nếu cần
+                tabBarStyle: { height: 60 }
             }}
         >
+            {/* 1. HOME (Public) - KHÔNG CẦN THAY ĐỔI */}
             <Tabs.Screen
-                name="index" // Home
+                name="index"
                 options={{
                     title: 'Home',
                     tabBarIcon: ({ color, size }) => (
@@ -73,19 +74,26 @@ export default function TabsLayout() {
                     ),
                 }}
             />
+            
+            {/* 2. FAVORITES (Guest Access) */}
             <Tabs.Screen
-                name="favorites" // Like
+                name="favorites"
                 options={{
                     title: 'Like',
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="heart-outline" size={size} color={color} />
                     ),
+                    unmountOnBlur: true,
                 }}
+                // ❌ XÓA listeners để cho phép người dùng chưa đăng nhập truy cập
+                // Logic kiểm tra sẽ nằm trong file favorites.js
             />
+            
+            {/* 3. NOTIFICATIONS (Guest Access) */}
             <Tabs.Screen
-                name="notifications" // Notification
+                name="notifications"
                 options={{
-                    title: 'Notification', // ⭐ Giữ nguyên title này
+                    title: 'Notification',
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="notifications-outline" size={size} color={color} />
                     ),
@@ -97,17 +105,25 @@ export default function TabsLayout() {
                         fontSize: 10,
                         minWidth: 18,
                         lineHeight: 18,
-                    }
+                    },
+                    unmountOnBlur: true,
                 }}
+                // ❌ XÓA listeners để cho phép người dùng chưa đăng nhập truy cập
+                // Logic kiểm tra sẽ nằm trong file notifications.js
             />
+            
+            {/* 4. ACCOUNT (Nếu bạn muốn giữ hành vi Chuyển hướng cho Account) */}
             <Tabs.Screen
-                name="account" // Profile/Account
+                name="account"
                 options={{
                     title: 'Account',
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="person-outline" size={size} color={color} />
                     ),
+                    unmountOnBlur: true,
                 }}
+                // ❌ XÓA listeners
+                // Logic kiểm tra sẽ nằm trong file account.js
             />
         </Tabs>
     );

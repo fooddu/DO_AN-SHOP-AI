@@ -14,7 +14,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import client from '../api/axiosConfig';
+import client from '../../api/axiosConfig';
 
 const COLORS = {
     primary: '#000', // Màu đen như trong ảnh

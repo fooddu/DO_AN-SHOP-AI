@@ -11,8 +11,8 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import client from '../api/axiosConfig';
-import { useAuth } from '../context/AuthContext';
+import client from '../../api/axiosConfig';
+import { useAuth } from '../../context/AuthContext';
 
 // --- CONFIG MÀU SẮC ---
 const COLORS = {

@@ -1,78 +1,30 @@
 import { Stack } from 'expo-router';
-// 1. IMPORT ToastProvider (Đảm bảo đường dẫn đúng với nơi bạn tạo file context)
-import { ToastProvider } from '../context/ToastContext';
+// 1. IMPORT TỪ UTILS ĐỂ TRÁNH LỖI CRASH WEB
+import { StripeProvider } from '../utils/stripe-helper';
 
+// Import các Providers khác
 import { AuthProvider } from '../context/AuthContext';
+import { ToastProvider } from '../context/ToastContext';
 import { FavoritesProvider } from '../contexts/FavoritesContext';
 
 export default function RootLayout() {
-  return (
-    <AuthProvider>
-      <FavoritesProvider>
-        {/* 2. BỌC ToastProvider Ở ĐÂY (Bên trong FavoritesProvider hoặc ngoài cùng đều được) */}
-        <ToastProvider> 
-          <Stack>
-            {/* Auth and Tabs groups have no header */}
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="tabs" options={{ headerShown: false }} />
-            
-            {/* Index file also has no header */}
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-
-            {/* AUXILIARY SCREENS */}
-            <Stack.Screen 
-              name="cart" 
-              options={{ 
-                title: 'Cart', 
-                headerShown: false 
-              }} 
-            />
-            <Stack.Screen 
-              name="orders" 
-              options={{ 
-                title: 'Orders', 
-                headerShown: false 
-              }} 
-            />
-            
-            {/* Product Detail Page */}
-            <Stack.Screen 
-              name="products/[id]" 
-              options={{ 
-                headerShown: false 
-              }} 
-            />
-
-            {/* Account Settings Page */}
-            <Stack.Screen 
-              name="account-settings" 
-              options={{ 
-                headerShown: false 
-              }} 
-            />
-
-              {/* Shipping Address Management */}
-            <Stack.Screen 
-              name="shipping-addresses" 
-              options={{ 
-                title: 'Shipping Addresses',
-                headerShown: false 
-              }} 
-            />
-              
-              {/* Add/Edit Address Form */}
-            <Stack.Screen 
-              name="add-address-form" 
-              options={{ 
-                title: 'Add Address',
-                headerShown: false 
-              }} 
-            />
-              
-          </Stack>
-        </ToastProvider> 
-        {/* Kết thúc ToastProvider */}
-      </FavoritesProvider>
-    </AuthProvider>
-  );
+    return (
+        // ⭐️ KEY CỦA BẠN ĐÃ ĐƯỢC ĐIỀN VÀO ĐÂY
+        <StripeProvider 
+            publishableKey="pk_test_51SgIYkJytB1k3bNs1HdOwHmFmjgLsVuhwnoD8FKOK0UPDwGXGDlgbFqONIWQy3Xm2GeBE6nPaCdfTQ8145fKAujR00e6nexZKY"
+        >
+            <ToastProvider>
+                <AuthProvider>
+                    <FavoritesProvider>
+                        <Stack>
+                            <Stack.Screen name="index" options={{ headerShown: false }} />
+                            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                            <Stack.Screen name="(main)" options={{ headerShown: false }} />
+                        </Stack>
+                    </FavoritesProvider>
+                </AuthProvider>
+            </ToastProvider>
+        </StripeProvider>
+    );
 }

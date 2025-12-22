@@ -1,3 +1,5 @@
+// File: app/(tabs)/favorites.js
+
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import {
@@ -11,6 +13,7 @@ import {
     View
 } from 'react-native';
 import client from '../../api/axiosConfig';
+import { useAuth } from '../../context/AuthContext';
 import { useFavorites } from '../../contexts/FavoritesContext';
 
 const COLORS = {
@@ -22,16 +25,18 @@ const COLORS = {
     lightGrey: '#E0E0E0',
 };
 
+// Đảm bảo URL này khớp với cấu hình của bạn
 const API_BASE_URL_FOR_IMAGES = client.defaults.baseURL.replace('/api', '');
 const LOCALHOST_URL = 'http://localhost:4000';
 const FALLBACK_IMAGE_URL = 'https://picsum.photos/200';
 
 const FavoriteCard = ({ item }) => {
     const router = useRouter();
-    const { toggleFavorite } = useFavorites();
+    const { toggleFavorite } = useFavorites(); // Dùng hook từ context đã sửa lỗi
 
     const goToDetail = () => {
-        router.push(`/products/${item._id}`);
+        // Giả định màn hình chi tiết sản phẩm nằm ở /products/[id]
+        router.push(`/(main)/products/${item._id}`); 
     };
 
     let displayImageUrl = '';
@@ -71,13 +76,15 @@ const FavoriteCard = ({ item }) => {
     );
 };
 
-export default function FavoritesScreen() {
+export function FavoritesScreen() { 
     const router = useRouter();
     const { favoriteProducts, loading, loadFavorites } = useFavorites();
+    const { user } = useAuth();
 
-    const goToHome = () => router.push('/tabs');
-    const goToCart = () => router.push('/cart');
-    const goToSearch = () => router.push('/search');
+    // Sửa đường dẫn điều hướng (Unmatched Route Fix)
+    const goToHome = () => router.push('/(tabs)'); 
+    const goToCart = () => router.push('/(main)/cart'); 
+    const goToSearch = () => router.push('/search'); // Giả định /search nằm ở root hoặc group khác
 
     const EmptyListPlaceholder = () => (
         <View style={styles.emptyContainer}>
@@ -105,6 +112,23 @@ export default function FavoritesScreen() {
             </TouchableOpacity>
         </View>
     );
+
+    // ⭐️ LOGIC GUEST ACCESS ⭐️
+    if (!user) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <HeaderWithIcons />
+                <View style={styles.noAuthContainer}>
+                    <Ionicons name="heart-outline" size={80} color={COLORS.muted} />
+                    <Text style={styles.noAuthTitle}>Login to save your Favorites</Text>
+                    <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/(auth)/login')}>
+                        <Text style={styles.loginButtonText}>Sign In</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
+    // ----------------------
 
     if (loading && favoriteProducts.length === 0) {
         return (
@@ -236,4 +260,11 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 16,
     },
+    // Guest/No-Auth Styles
+    noAuthContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+    noAuthTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text, marginTop: 15, marginBottom: 25 },
+    loginButton: { backgroundColor: COLORS.primary, paddingVertical: 14, paddingHorizontal: 40, borderRadius: 30 },
+    loginButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });
+
+export default FavoritesScreen;

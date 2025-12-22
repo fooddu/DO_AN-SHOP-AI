@@ -1,3 +1,5 @@
+// File: app/(main)/cart.js
+
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -14,11 +16,15 @@ import {
     View
 } from 'react-native';
 
+import { useAuth } from '../../context/AuthContext';
+
 const DELIVERY_FEE = 5.00;
 const PROMO_DISCOUNT = 0.00;
 
 export default function CartScreen() {
     const router = useRouter();
+    const { user } = useAuth(); // ⭐️ Lấy trạng thái user ⭐️
+
     const [cart, setCart] = useState([]);
     const [promoCode, setPromoCode] = useState('');
     const [discount, setDiscount] = useState(PROMO_DISCOUNT);
@@ -27,7 +33,7 @@ export default function CartScreen() {
         loadCart();
     }, []);
 
-    // --- DATA STORAGE LOGIC (AsyncStorage) ---
+    // --- DATA STORAGE LOGIC (loadCart, saveCart giữ nguyên) ---
 
     const loadCart = async () => {
         try {
@@ -54,7 +60,7 @@ export default function CartScreen() {
         }
     };
 
-    // --- CART LOGIC ---
+    // --- CART LOGIC (increaseQuantity, decreaseQuantity, removeProduct, applyPromoCode giữ nguyên) ---
 
     const increaseQuantity = (productId) => {
         const newCart = cart.map(item => {
@@ -104,8 +110,8 @@ export default function CartScreen() {
             Alert.alert('Error', 'Invalid promo code.');
         }
     };
-
-    // --- CALCULATIONS ---
+    
+    // --- CALCULATIONS (giữ nguyên) ---
 
     const calculateSubtotal = () => {
         return cart.reduce((total, item) => {
@@ -116,20 +122,35 @@ export default function CartScreen() {
     const calculateTotal = () => {
         const subtotal = calculateSubtotal();
         const finalOrder = subtotal - discount;
-        return finalOrder > 0 ? finalOrder + DELIVERY_FEE : 0;
+        return (finalOrder > 0 ? finalOrder : 0) + DELIVERY_FEE; 
     };
     
-    // --- NAVIGATION ---
+    // --- NAVIGATION (Thêm kiểm tra đăng nhập) ---
 
     const goToCheckout = () => {
         if (cart.length === 0) {
             Alert.alert('Notification', 'Your cart is empty!');
             return;
         }
-        router.push('/checkout');
+
+        // ⭐️ KIỂM TRA ĐĂNG NHẬP ⭐️
+        if (!user) {
+            Alert.alert(
+                'Access Denied', 
+                'You must be logged in to proceed to checkout.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Sign In', onPress: () => router.push('/(auth)/login') }
+                ]
+            );
+            return;
+        }
+
+        // Nếu đã đăng nhập và giỏ hàng không trống
+        router.push('/(main)/checkout'); 
     };
 
-    // --- RENDER CART ITEM ---
+    // --- RENDER CART ITEM (giữ nguyên) ---
 
     const renderCartItem = ({ item }) => (
         <View style={styles.cartItem}>
@@ -143,6 +164,7 @@ export default function CartScreen() {
                     <Text style={styles.itemName} numberOfLines={1}>
                         {item.name}
                     </Text>
+                    {item.size && <Text style={styles.itemSize}>Size: {item.size}</Text>} 
                     <Text style={styles.itemPrice}>
                         $ {(item.price * item.quantity).toFixed(2)}
                     </Text>
@@ -196,7 +218,7 @@ export default function CartScreen() {
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                {/* Header */}
+                {/* Header tùy chỉnh */}
                 <View style={styles.header}>
                     <TouchableOpacity
                         style={styles.backButton}
@@ -204,21 +226,23 @@ export default function CartScreen() {
                     >
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Cart</Text>
+                    <Text style={styles.headerTitle}>Your Cart</Text>
                     <View style={styles.backButton} /> 
                 </View>
 
                 {/* Cart List */}
                 {cart.length === 0 ? (
                     <View style={styles.emptyCart}>
+                         <Ionicons name="cart-outline" size={80} color="#999" style={{ marginBottom: 15 }} />
                         <Text style={styles.emptyText}>Your cart is empty</Text>
+                        <Text style={{ color: '#888', marginTop: 5 }}>Add some great products!</Text>
                     </View>
                 ) : (
                     <>
                         <FlatList
                             data={cart}
                             renderItem={renderCartItem}
-                            keyExtractor={(item) => item.productId.toString()}
+                            keyExtractor={(item, index) => `${item.productId.toString()}_${item.size}_${index}`}
                             contentContainerStyle={styles.cartList}
                             showsVerticalScrollIndicator={false}
                         />
@@ -246,9 +270,19 @@ export default function CartScreen() {
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Subtotal:</Text>
                                 <Text style={styles.summaryValue}>
-                                    $ {finalOrder.toFixed(2)}
+                                    $ {subtotal.toFixed(2)}
                                 </Text>
                             </View>
+                            
+                             {/* Display Discount Row */}
+                            {discount > 0.00 && (
+                                <View style={styles.summaryRow}>
+                                    <Text style={[styles.summaryLabel, { color: '#4caf50' }]}>Promo Discount:</Text>
+                                    <Text style={[styles.summaryValue, { color: '#4caf50' }]}>
+                                        - $ {discount.toFixed(2)}
+                                    </Text>
+                                </View>
+                            )}
 
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Delivery Fee:</Text>
@@ -266,7 +300,7 @@ export default function CartScreen() {
                 )}
             </View>
             
-            {/* Checkout Button */}
+            {/* Checkout Button Footer */}
             {cart.length > 0 && (
                 <View style={styles.checkoutFooter}>
                     <TouchableOpacity
@@ -285,17 +319,18 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#FFF' },
     container: {
         flex: 1,
-        backgroundColor: '#FFF',
+        backgroundColor: '#F7F7F7', // Đổi màu nền cho đẹp hơn
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: 15,
         paddingTop: 10,
         paddingBottom: 15,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+        borderBottomColor: '#E0E0E0',
+        backgroundColor: '#FFF'
     },
     backButton: {
         width: 40,
@@ -304,8 +339,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
+        fontSize: 18,
+        fontWeight: '700',
         color: '#000',
         flex: 1,
         textAlign: 'center',
@@ -322,10 +357,10 @@ const styles = StyleSheet.create({
         padding: 10,
         marginVertical: 8,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 5,
+        shadowRadius: 4,
+        elevation: 3,
     },
     itemImage: {
         width: 80,
@@ -340,61 +375,68 @@ const styles = StyleSheet.create({
         paddingRight: 35,
     },
     itemName: {
-        fontSize: 14,
-        fontWeight: '500',
+        fontSize: 15,
+        fontWeight: '600',
         color: '#000',
-        marginBottom: 5,
+        marginBottom: 3,
+    },
+    itemSize: {
+        fontSize: 12,
+        color: '#888',
+        marginBottom: 5
     },
     itemPrice: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: 'bold',
-        color: '#000',
+        color: '#E91E63',
     },
     quantityContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: 5,
+        alignSelf: 'flex-start'
     },
     quantityButton: {
         width: 25,
         height: 25,
-        borderRadius: 5,
-        backgroundColor: '#F5F5F5',
+        borderRadius: 12.5,
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
         alignItems: 'center',
         justifyContent: 'center',
     },
     quantityButtonText: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#000',
     },
     quantityText: {
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 15,
+        fontWeight: '600',
         marginHorizontal: 10,
         color: '#000',
     },
     deleteButton: { 
         position: 'absolute',
-        top: 10, 
-        right: 10, 
-        width: 35, 
-        height: 25,
+        top: 5, 
+        right: 5, 
+        width: 30, 
+        height: 30,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 5,
+        borderRadius: 15,
         zIndex: 10,
-        paddingBottom: 2,
     },
     deleteButtonText: {
-        fontSize: 18, 
+        fontSize: 20, 
         fontWeight: 'bold',
-        color: '#000',
+        color: '#555',
     },
     emptyCart: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
+        height: 300,
     },
     emptyText: {
         fontSize: 16,
@@ -404,7 +446,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         paddingHorizontal: 15,
         marginTop: 10,
-        marginBottom: 15,
+        marginBottom: 20,
     },
     promoInput: {
         flex: 1,
@@ -414,11 +456,12 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         paddingHorizontal: 15,
         fontSize: 14,
+        backgroundColor: '#FFF'
     },
     promoButton: {
         width: 50,
         height: 50,
-        backgroundColor: '#000',
+        backgroundColor: '#E91E63',
         borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
@@ -427,11 +470,21 @@ const styles = StyleSheet.create({
     promoButtonText: {
         color: '#FFF',
         fontSize: 20,
+        fontWeight: 'bold'
     },
     summaryContainer: {
         paddingHorizontal: 15,
         paddingVertical: 10,
         marginBottom: 10,
+        backgroundColor: '#FFF',
+        borderRadius: 10,
+        marginHorizontal: 15,
+        padding: 15,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
     },
     summaryRow: {
         flexDirection: 'row',
@@ -439,12 +492,13 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     summaryLabel: {
-        fontSize: 14,
-        color: '#808080',
+        fontSize: 15,
+        color: '#555',
     },
     summaryValue: {
-        fontSize: 14,
+        fontSize: 15,
         color: '#000',
+        fontWeight: '600'
     },
     totalRow: {
         borderTopWidth: 1,
@@ -453,14 +507,14 @@ const styles = StyleSheet.create({
         marginTop: 5,
     },
     totalLabel: {
-        fontSize: 16,
+        fontSize: 17,
         fontWeight: 'bold',
         color: '#000',
     },
     totalValue: {
-        fontSize: 16,
+        fontSize: 17,
         fontWeight: 'bold',
-        color: '#000',
+        color: '#E91E63',
     },
     checkoutFooter: {
         paddingHorizontal: 15,
@@ -471,7 +525,7 @@ const styles = StyleSheet.create({
         borderTopColor: '#F0F0F0',
     },
     checkoutButton: {
-        backgroundColor: '#000',
+        backgroundColor: '#E91E63',
         paddingVertical: 15,
         borderRadius: 10,
         alignItems: 'center',
@@ -481,5 +535,4 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-
 });

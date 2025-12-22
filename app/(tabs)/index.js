@@ -162,6 +162,10 @@ export default function HomeScreen() {
             let apiData = response.data;
             let list = Array.isArray(apiData.data) ? apiData.data : [];
 
+            // ⭐⭐⭐ ĐÃ SỬA: Lọc bỏ sản phẩm bị ẩn (isActive: false) ⭐⭐⭐
+            list = list.filter(product => product.isActive === true);
+            // -------------------------------------------------------------
+
             list = list.map(product => {
                 let imageUrl = product.image;
                 if (Array.isArray(product.image) && product.image.length > 0) imageUrl = product.image[0];
